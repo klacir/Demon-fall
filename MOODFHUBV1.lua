@@ -308,12 +308,17 @@ local function teleportAndLook()
     if enemy and root then
         local enemyRoot = enemy:FindFirstChild("HumanoidRootPart") or enemy:FindFirstChild("Torso")
         if enemyRoot then
-            local targetPos = enemyRoot.Position + (enemyRoot.CFrame.LookVector * -4)  -- Aumentado de -3 para -10 para maior distância
-            root.CFrame = CFrame.new(targetPos, enemyRoot.Position)
+            -- FICA EM CIMA DO INIMIGO (altura ajustável)
+            local alturaAcima = 12  -- Muda este número para subir ou descer
+                                    -- 10–12 = bem seguro (a maioria dos ataques não chega)
+                                    -- 15–20 = super alto (quase invisível (mas ainda bate)
+            local targetPos = enemyRoot.Position + Vector3.new(0, alturaAcima, 0)
+            root.CFrame = CFrame.new(targetPos, targetPos + enemyRoot.CFrame.LookVector)
         else
+            -- fallback se não tiver HumanoidRootPart
             local success, pivot = pcall(function() return enemy:GetPivot() end)
             if success and pivot then
-                root.CFrame = pivot * CFrame.new(0, 0, 5)  -- Aumentado de 5 para 10 para maior distância
+                root.CFrame = pivot * CFrame.new(0, 12, 0)
                 root.Velocity = Vector3.new(0,0,0)
             end
         end
