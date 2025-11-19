@@ -88,7 +88,6 @@ local noclipToggle = false
 local noclipConn
 local antiBurnToggle = false
 local antiBurnConn
-
 local function onCharAdded(newChar)
     char = newChar
     root = char:WaitForChild("HumanoidRootPart")
@@ -106,12 +105,10 @@ local function onCharAdded(newChar)
         end)
     end
     if isEnabled and currentMob then task.wait(0.5) toggleTeleport(true, currentMob) end
-
     -- Reativa noclip se estava ativado
     if noclipToggle then
         toggleNoclip(true)
     end
-
     -- Reativa anti-burn se estava ativado
     if antiBurnToggle then
         toggleAntiBurn(true)
@@ -126,7 +123,7 @@ local function calculateFlySpeed(sliderVal)
         return (sliderVal / 5000) * 400
     else
         local excess = sliderVal - 5000
-        return 400 + (excess * 2) 
+        return 400 + (excess * 2)
     end
 end
 function setupFly()
@@ -311,12 +308,12 @@ local function teleportAndLook()
     if enemy and root then
         local enemyRoot = enemy:FindFirstChild("HumanoidRootPart") or enemy:FindFirstChild("Torso")
         if enemyRoot then
-            local targetPos = enemyRoot.Position + (enemyRoot.CFrame.LookVector * -3)
+            local targetPos = enemyRoot.Position + (enemyRoot.CFrame.LookVector * -10)  -- Aumentado de -3 para -10 para maior distância
             root.CFrame = CFrame.new(targetPos, enemyRoot.Position)
         else
             local success, pivot = pcall(function() return enemy:GetPivot() end)
             if success and pivot then
-                root.CFrame = pivot * CFrame.new(0, 5, 0)
+                root.CFrame = pivot * CFrame.new(0, 10, 0)  -- Aumentado de 5 para 10 para maior distância
                 root.Velocity = Vector3.new(0,0,0)
             end
         end
@@ -368,13 +365,13 @@ local function forceTeleportToPlayer(targetName)
     local targetChar = target.Character
     local targetCFrame = targetChar:GetPivot()
     if targetCFrame then
-        root.CFrame = targetCFrame + Vector3.new(0, 3, 0)
+        root.CFrame = targetCFrame + Vector3.new(0, 10, 0)  -- Aumentado de 3 para 10 para maior distância
         local startTime = tick()
         local stayLoop
         stayLoop = RunService.RenderStepped:Connect(function()
             if targetChar then
                  targetCFrame = targetChar:GetPivot()
-                 root.CFrame = targetCFrame + Vector3.new(0, 3, 0)
+                 root.CFrame = targetCFrame + Vector3.new(0, 10, 0)  -- Aumentado de 3 para 10 para maior distância
                  root.Velocity = Vector3.new(0,0,0)
             end
             if (tick() - startTime > 3) or (targetChar:FindFirstChild("HumanoidRootPart")) then
@@ -404,7 +401,6 @@ local function toggleNoclip(state)
         if noclipConn then noclipConn:Disconnect() end
     end
 end
-
 -- Anti-Burn (Anti Sun para Demônios)
 local function toggleAntiBurn(state)
     antiBurnToggle = state
@@ -427,7 +423,6 @@ local function toggleAntiBurn(state)
         if antiBurnConn then antiBurnConn:Disconnect() end
     end
 end
-
 -- Server Hop
 local function serverHop()
     local TeleportService = game:GetService("TeleportService")
@@ -447,11 +442,10 @@ local function serverHop()
         TeleportService:TeleportToPlaceInstance(game.PlaceId, Server.id, game.Players.LocalPlayer)
     end
 end
-
 -- ==========================================
 -- UI
 -- ==========================================
-local geralTab = Window:NewTab("Geral")  -- Nome alterado de Movimento para Geral
+local geralTab = Window:NewTab("Geral") -- Nome alterado de Movimento para Geral
 local extraTab = Window:NewTab("Farm")
 local playersTab = Window:NewTab("Players")
 local tpTab = Window:NewTab("Teleportes")
