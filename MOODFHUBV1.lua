@@ -308,12 +308,12 @@ local function teleportAndLook()
     if enemy and root then
         local enemyRoot = enemy:FindFirstChild("HumanoidRootPart") or enemy:FindFirstChild("Torso")
         if enemyRoot then
-            local targetPos = enemyRoot.Position + (enemyRoot.CFrame.LookVector * -5)  -- Aumentado de -3 para -10 para maior distância
+            local targetPos = enemyRoot.Position + (enemyRoot.CFrame.LookVector * -4)  -- Aumentado de -3 para -10 para maior distância
             root.CFrame = CFrame.new(targetPos, enemyRoot.Position)
         else
             local success, pivot = pcall(function() return enemy:GetPivot() end)
             if success and pivot then
-                root.CFrame = pivot * CFrame.new(0, 10, 0)  -- Aumentado de 5 para 10 para maior distância
+                root.CFrame = pivot * CFrame.new(0, 0, 5)  -- Aumentado de 5 para 10 para maior distância
                 root.Velocity = Vector3.new(0,0,0)
             end
         end
