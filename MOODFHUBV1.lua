@@ -305,24 +305,23 @@ local function loadAllMap()
 end
 local function teleportAndLook()
     local enemy = currentMob and findEnemy(currentMob)
-    if enemy and root then
-        local enemyRoot = enemy:FindFirstChild("HumanoidRootPart") or enemy:FindFirstChild("Torso")
-        if enemyRoot then
-            -- FICA EM CIMA DO INIMIGO (altura ajustável)
-            local alturaAcima = 12  -- Muda este número para subir ou descer
-                                    -- 10–12 = bem seguro (a maioria dos ataques não chega)
-                                    -- 15–20 = super alto (quase invisível (mas ainda bate)
-            local targetPos = enemyRoot.Position + Vector3.new(0, alturaAcima, 0)
-            root.CFrame = CFrame.new(targetPos, targetPos + enemyRoot.CFrame.LookVector)
-        else
-            -- fallback se não tiver HumanoidRootPart
-            local success, pivot = pcall(function() return enemy:GetPivot() end)
-            if success and pivot then
-                root.CFrame = pivot * CFrame.new(0, 12, 0)
-                root.Velocity = Vector3.new(0,0,0)
-            end
-        end
-    end
+    if not enemy or not root then return end
+
+    local enemyRoot = enemy:FindFirstChild("HumanoidRootPart") or enemy:FindFirstChild("Torso")
+    if not enemyRoot then return end
+
+    -- Altura que queres ficar em cima dele (muda à vontade)
+    local alturaAcima = _G.AlturaFarm or 12    -- 10~14 é o ponto perfeito na maioria dos bosses
+
+    -- Posição final: diretamente em cima da cabeça dele
+    local minhaPosicao = enemyRoot.Position + Vector3.new(0, alturaAcima, 0)
+
+    -- Faz com que o teu personagem olhe DIRETAMENTE para a cabeça do inimigo
+    -- (lookVector vai de ti para ele = olhando para baixo)
+    root.CFrame = CFrame.new(minhaPosicao, enemyRoot.Position)
+
+    -- Opcional: trava a velocidade para não subir/descer sem querer
+    root.Velocity = Vector3.new(0, 0, 0)
 end
 local function teleportAndLookWithKeys()
     local b_timer = 0
