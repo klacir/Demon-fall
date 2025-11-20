@@ -5,7 +5,7 @@ local Lighting = game:GetService("Lighting")
 local VIM = game:GetService("VirtualInputManager")
 local player = Players.LocalPlayer
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
--- NOMEa
+-- NOME
 local Window = Library.CreateLib("MOONDF HUB V1", "DarkTheme")
 -- Variáveis Principais
 local char = player.Character or player.CharacterAdded:Wait()
@@ -39,6 +39,18 @@ local selectedPlayerName = nil
 local teleportMode = "Below"
 local FARM_DISTANCE = 5
 local EXECUTE_DISTANCE = 40
+-- ==========================================
+-- CLICK TP VARIABLES
+-- ==========================================
+local clickTPToggle = false
+local clickTPConn = nil
+-- ==========================================
+-- SPECTATE VARIABLES
+-- ==========================================
+local spectateToggle = false
+local spectatePlayer = nil
+local spectateConn = nil
+local originalCFrame = nil
 -- ==========================================
 -- ESP PLAYERS VARIABLES
 -- ==========================================
@@ -257,6 +269,65 @@ local function applyNoFog(state)
     else
         Lighting.FogEnd = 500
         Lighting.GlobalShadows = true
+    end
+end
+-- ==========================================
+-- CLICK TP FUNCTION
+-- ==========================================
+local function toggleClickTP(state)
+    clickTPToggle = state
+    if state then
+        if clickTPConn then clickTPConn:Disconnect() end
+        local mouse = player:GetMouse()
+        mouse.Button1Down:Connect(function()
+            if clickTPToggle and mouse.Target then
+                local targetPos = mouse.Hit.Position + Vector3.new(0, 3, 0)
+                if root then
+                    root.CFrame = CFrame.new(targetPos)
+                    root.Velocity = Vector3.new(0, 0, 0)
+                end
+            end
+        end)
+    end
+end
+-- ==========================================
+-- SPECTATE FUNCTION
+-- ==========================================
+local function toggleSpectate(state, targetPlayerName)
+    spectateToggle = state
+    if state then
+        local targetPlayer = Players:FindFirstChild(targetPlayerName)
+        if not targetPlayer or not targetPlayer.Character then return end
+        
+        spectatePlayer = targetPlayer
+        originalCFrame = root.CFrame
+        
+        if spectateConn then spectateConn:Disconnect() end
+        
+        spectateConn = RunService.RenderStepped:Connect(function()
+            if spectateToggle and spectatePlayer and spectatePlayer.Character and spectatePlayer.Character:FindFirstChild("HumanoidRootPart") then
+                local targetRoot = spectatePlayer.Character.HumanoidRootPart
+                local cam = workspace.CurrentCamera
+                
+                -- Câmera segue o alvo, mas o player fica no lugar original
+                cam.CFrame = CFrame.new(targetRoot.Position + Vector3.new(0, 2, 5), targetRoot.Position + Vector3.new(0, 2, 0))
+                
+                -- Permite rotação do mouse para controlar câmera
+                if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
+                    local mouse = player:GetMouse()
+                    cam.CFrame = cam.CFrame * CFrame.Angles(0, 0, 0)
+                end
+            end
+        end)
+    else
+        if spectateConn then spectateConn:Disconnect() end
+        spectateConn = nil
+        spectatePlayer = nil
+        
+        -- Volta câmera ao normal
+        if root and originalCFrame then
+            workspace.CurrentCamera.CFrame = CFrame.new(root.Position + Vector3.new(0, 3, 5), root.Position)
+        end
     end
 end
 -- ==========================================
@@ -653,6 +724,14 @@ end)
 speedSec:NewSlider("Valor Speed", "Normal ~100", 1000, 100, function(v) walkSpeed = v end)
 
 -- ==========================================
+-- GERAL TAB - MOVEMENT
+-- ==========================================
+local movementSec = geralTab:NewSection("Movimento")
+movementSec:NewToggle("Click TP", "Clique para teleportar", function(state)
+    toggleClickTP(state)
+end)
+
+-- ==========================================
 -- GERAL TAB - COMBAT
 -- ==========================================
 local combatSec = geralTab:NewSection("Combat")
@@ -695,7 +774,7 @@ cheatsSec:NewButton("Trocar Servidor (Server Hop)", "Pula para outro servidor se
 end)
 
 -- ==========================================
--- PLAYERS TAB
+-- PLAYERS TAB - INTERAGIR
 -- ==========================================
 local playerSec = playersTab:NewSection("Interagir com Players")
 local playerDropdown = nil
@@ -715,6 +794,21 @@ playerSec:NewToggle("ESP Players (WallHack)", "Marca todos players no mapa!", fu
 end)
 
 -- ==========================================
+-- PLAYERS TAB - SPECTATE
+-- ==========================================
+local spectateSec = playersTab:NewSection("Spectate Player")
+local spectateDropdown = nil
+spectateDropdown = spectateSec:NewDropdown("Selecionar Player", "Escolha quem assistir", getPlayerList(), function(v) selectedPlayerName = v end)
+spectateSec:NewToggle("Iniciar Spectate", "Camera segue o player, você fica no lugar", function(state)
+    if state and selectedPlayerName then
+        toggleSpectate(true, selectedPlayerName)
+    else
+        toggleSpectate(false)
+    end
+end)
+spectateSec:NewButton("Atualizar Lista Spectate", "Clica se entrar gente nova", function() if spectateDropdown then spectateDropdown:Refresh(getPlayerList()) end end)
+
+-- ==========================================
 -- TELEPORTES TAB
 -- ==========================================
 local tpMainSec = tpTab:NewSection("Utilitários")
@@ -722,11 +816,11 @@ tpMainSec:NewButton("Carregar Todo o Mapa", "Teleporta para todos os lugares con
 tpMainSec:NewButton("TP Raid", "Teleporta para a área da Raid", function() if root then root.CFrame = raidCFrame end end)
 
 local vilaSec = tpTab:NewSection("Vilas & Locais")
-vilaSec:NewButton("Okuya Village", "TP", function() if root then root.CFrame = okuyaCFrame end end)
-vilaSec:NewButton("Hayakawa Village", "TP", function() if root then root.CFrame = hayakawaCFrame end end)
+vilaSec:NewButton("Hayakawa Village", "TP", function() if root then root.CFrame = okuyaCFrame end end)
+vilaSec:NewButton("Okuya Village", "TP", function() if root then root.CFrame = hayakawaCFrame end end)
 vilaSec:NewButton("Kamakura Village", "TP", function() if root then root.CFrame = kamakuraCFrame end end)
-vilaSec:NewButton("Distrito", "TP", function() if root then root.CFrame = distritoCFrame end end)
-vilaSec:NewButton("Slayer Corps", "TP", function() if root then root.CFrame = slayerCFrame end end)
+vilaSec:NewButton("Slayer Corps", "TP", function() if root then root.CFrame = distritoCFrame end end)
+vilaSec:NewButton("Distrito", "TP", function() if root then root.CFrame = slayerCFrame end end)
 vilaSec:NewButton("Slayer Exam", "TP", function() if root then root.CFrame = slayerExamCFrame end end)
 
 local breathSec = tpTab:NewSection("Respirações")
@@ -796,7 +890,6 @@ end)
 -- FARM TAB - RAIDS
 -- ==========================================
 local raidSec = extraTab:NewSection("Farm Raids")
-raidSec:NewButton("Carregar Todos Raids", "TP para spawn points", function() loadAllMap() end)
 raidSec:NewToggle("Farm Shinobu Raid", "Auto teleport + ataque", function(state)
     if state then toggleTeleport(true, "ShinoubuRaid") else toggleTeleport(false) end
 end)
