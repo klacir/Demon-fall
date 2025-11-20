@@ -6,7 +6,7 @@ local VIM = game:GetService("VirtualInputManager")
 local player = Players.LocalPlayer
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
 -- NOME
-local Window = Library.CreateLib("MOONDF HUB V1", "DarkTheme")
+local Window = Library.CreateLib("MOONDF HUB V2", "DarkTheme")
 -- Variáveis Principais
 local char = player.Character or player.CharacterAdded:Wait()
 local root = char:WaitForChild("HumanoidRootPart")
