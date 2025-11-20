@@ -5,7 +5,7 @@ local Lighting = game:GetService("Lighting")
 local VIM = game:GetService("VirtualInputManager")
 local player = Players.LocalPlayer
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
--- NOME
+-- NOMEa
 local Window = Library.CreateLib("MOONDF HUB V1", "DarkTheme")
 -- Variáveis Principais
 local char = player.Character or player.CharacterAdded:Wait()
