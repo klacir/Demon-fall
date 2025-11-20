@@ -36,6 +36,16 @@ local connection = nil
 local loadingAllMobs = false
 local teleportAndLookLooping = false
 local selectedPlayerName = nil
+local teleportMode = "Below"
+local FARM_DISTANCE = 5
+local EXECUTE_DISTANCE = 40
+-- ==========================================
+-- ESP PLAYERS VARIABLES
+-- ==========================================
+local espEnabled = false
+local espConnections = {}
+local espUpdateLoop = nil
+local espPlayers = {}
 -- ==========================================
 -- COORDENADAS & LOCAIS
 -- ==========================================
@@ -83,11 +93,12 @@ local function isInBlockedState(h)
     for _, v in ipairs(blockedStates) do if h:GetState() == v then return true end end
     return false
 end
--- Novas variáveis para as funções adicionais
+
 local noclipToggle = false
 local noclipConn
 local antiBurnToggle = false
 local antiBurnConn
+
 local function onCharAdded(newChar)
     char = newChar
     root = char:WaitForChild("HumanoidRootPart")
@@ -105,11 +116,9 @@ local function onCharAdded(newChar)
         end)
     end
     if isEnabled and currentMob then task.wait(0.5) toggleTeleport(true, currentMob) end
-    -- Reativa noclip se estava ativado
     if noclipToggle then
         toggleNoclip(true)
     end
-    -- Reativa anti-burn se estava ativado
     if antiBurnToggle then
         toggleAntiBurn(true)
     end
@@ -123,7 +132,7 @@ local function calculateFlySpeed(sliderVal)
         return (sliderVal / 5000) * 400
     else
         local excess = sliderVal - 5000
-        return 400 + (excess * 2)
+        return 400 + (excess * 2) 
     end
 end
 function setupFly()
@@ -251,6 +260,136 @@ local function applyNoFog(state)
     end
 end
 -- ==========================================
+-- ESP PLAYERS FUNCTIONS
+-- ==========================================
+local function createESPLabel(hrp, playerName, distance)
+    local billboardGui = Instance.new("BillboardGui")
+    billboardGui.Name = "ESPLabel"
+    billboardGui.Size = UDim2.new(4, 0, 2, 0)
+    billboardGui.MaxDistance = 500
+    billboardGui.Adornee = hrp
+    billboardGui.Parent = hrp
+    
+    local textLabel = Instance.new("TextLabel")
+    textLabel.BackgroundTransparency = 0.3
+    textLabel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    textLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+    textLabel.TextScaled = true
+    textLabel.Font = Enum.Font.GothamBold
+    textLabel.Size = UDim2.new(1, 0, 1, 0)
+    textLabel.BorderSizePixel = 2
+    textLabel.BorderColor3 = Color3.fromRGB(255, 0, 0)
+    textLabel.Parent = billboardGui
+    
+    return billboardGui, textLabel
+end
+local function clearESP()
+    for _, conn in ipairs(espConnections) do
+        if conn then conn:Disconnect() end
+    end
+    espConnections = {}
+    espPlayers = {}
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+            local adorn = plr.Character.HumanoidRootPart:FindFirstChild("ESPAdornment")
+            local label = plr.Character.HumanoidRootPart:FindFirstChild("ESPLabel")
+            if adorn then adorn:Destroy() end
+            if label then label:Destroy() end
+        end
+    end
+    if espUpdateLoop then espUpdateLoop:Disconnect() espUpdateLoop = nil end
+end
+local function enableESP()
+    clearESP()
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+            local hrp = plr.Character.HumanoidRootPart
+            local box = Instance.new("BoxHandleAdornment")
+            box.Name = "ESPAdornment"
+            box.Size = Vector3.new(3, 6, 2)
+            box.Adornee = hrp
+            box.Color3 = Color3.new(1, 0, 0)
+            box.Transparency = 0.6
+            box.AlwaysOnTop = true
+            box.ZIndex = 10
+            box.Parent = hrp
+            
+            local billGui, textLabel = createESPLabel(hrp, plr.Name, 0)
+            espPlayers[plr.Name] = {
+                player = plr,
+                box = box,
+                billGui = billGui,
+                textLabel = textLabel
+            }
+        end
+    end
+    local conn = Players.PlayerAdded:Connect(function(plr)
+        plr.CharacterAdded:Connect(function(char)
+            task.wait(1)
+            if espEnabled and char:FindFirstChild("HumanoidRootPart") then
+                local hrp = char.HumanoidRootPart
+                local box = Instance.new("BoxHandleAdornment")
+                box.Name = "ESPAdornment"
+                box.Size = Vector3.new(3, 6, 2)
+                box.Adornee = hrp
+                box.Color3 = Color3.new(1, 0, 0)
+                box.Transparency = 0.6
+                box.AlwaysOnTop = true
+                box.ZIndex = 10
+                box.Parent = hrp
+                
+                local billGui, textLabel = createESPLabel(hrp, plr.Name, 0)
+                espPlayers[plr.Name] = {
+                    player = plr,
+                    box = box,
+                    billGui = billGui,
+                    textLabel = textLabel
+                }
+            end
+        end)
+    end)
+    table.insert(espConnections, conn)
+    
+    espUpdateLoop = RunService.Heartbeat:Connect(function()
+        if not espEnabled then return end
+        
+        for playerName, espData in pairs(espPlayers) do
+            if espData.player and espData.player.Character and espData.player.Character:FindFirstChild("HumanoidRootPart") then
+                local hrp = espData.player.Character.HumanoidRootPart
+                local humanoid = espData.player.Character:FindFirstChild("Humanoid")
+                
+                if espData.box then
+                    espData.box.Adornee = hrp
+                end
+                
+                local distance = 0
+                if root then
+                    distance = (root.Position - hrp.Position).Magnitude
+                end
+                
+                if espData.textLabel and humanoid then
+                    local health = math.floor(humanoid.Health)
+                    local maxHealth = math.floor(humanoid.MaxHealth)
+                    espData.textLabel.Text = string.format("%s\nHP: %d/%d\nDist: %.1f studs", 
+                        playerName, health, maxHealth, distance)
+                end
+            else
+                if espData.box then espData.box:Destroy() end
+                if espData.billGui then espData.billGui:Destroy() end
+                espPlayers[playerName] = nil
+            end
+        end
+    end)
+end
+local function toggleESP(state)
+    espEnabled = state
+    if espEnabled then
+        enableESP()
+    else
+        clearESP()
+    end
+end
+-- ==========================================
 -- FARM & TP LOGIC
 -- ==========================================
 local function findEnemy(mobName)
@@ -306,22 +445,41 @@ end
 local function teleportAndLook()
     local enemy = currentMob and findEnemy(currentMob)
     if not enemy or not root then return end
-
     local enemyRoot = enemy:FindFirstChild("HumanoidRootPart") or enemy:FindFirstChild("Torso")
-    if not enemyRoot then return end
-
-    -- Altura que queres ficar em cima dele (muda à vontade)
-    local alturaAcima = _G.AlturaFarm or 12    -- 10~14 é o ponto perfeito na maioria dos bosses
-
-    -- Posição final: diretamente em cima da cabeça dele
-    local minhaPosicao = enemyRoot.Position + Vector3.new(0, alturaAcima, 0)
-
-    -- Faz com que o teu personagem olhe DIRETAMENTE para a cabeça do inimigo
-    -- (lookVector vai de ti para ele = olhando para baixo)
-    root.CFrame = CFrame.new(minhaPosicao, enemyRoot.Position)
-
-    -- Opcional: trava a velocidade para não subir/descer sem querer
-    root.Velocity = Vector3.new(0, 0, 0)
+    if not enemyRoot then
+        local success, pivot = pcall(function() return enemy:GetPivot() end)
+        if success and pivot then enemyRoot = { Position = pivot.Position, CFrame = pivot } end
+        if not enemyRoot then return end
+    end
+    local enemyHum = enemy:FindFirstChildOfClass("Humanoid")
+    local currentDistance = FARM_DISTANCE
+    
+    local isExecuting = false
+    if enemy:FindFirstChild("Executing") or enemy:FindFirstChild("Execute") or enemy:FindFirstChild("Execution") then
+        isExecuting = true
+    end
+    if enemyRoot.Anchored or (enemyRoot.Parent and enemyRoot.Parent:FindFirstChild("Grip") or enemyRoot.Parent:FindFirstChild("Neck")) then
+        isExecuting = true
+    end
+    if enemyHum and enemyHum.Health <= 5 and (root.Position - enemyRoot.Position).Magnitude < 10 then
+        isExecuting = true
+    end
+    if isExecuting then
+        currentDistance = EXECUTE_DISTANCE
+    end
+    
+    local offset = Vector3.new(0, 0, 0)
+    if teleportMode == "Below" then
+        offset = Vector3.new(0, -currentDistance, 0)
+    elseif teleportMode == "Above" then
+        offset = Vector3.new(0, currentDistance, 0)
+    elseif teleportMode == "Behind" then
+        local lookVec = enemyRoot.CFrame.LookVector
+        offset = -lookVec * currentDistance
+    end
+    local targetPos = enemyRoot.Position + offset
+    root.CFrame = CFrame.new(targetPos, enemyRoot.Position)
+    root.Velocity = Vector3.new(0,0,0)
 end
 local function teleportAndLookWithKeys()
     local b_timer = 0
@@ -369,13 +527,13 @@ local function forceTeleportToPlayer(targetName)
     local targetChar = target.Character
     local targetCFrame = targetChar:GetPivot()
     if targetCFrame then
-        root.CFrame = targetCFrame + Vector3.new(0, 10, 0)  -- Aumentado de 3 para 10 para maior distância
+        root.CFrame = targetCFrame + Vector3.new(0, 3, 0)
         local startTime = tick()
         local stayLoop
         stayLoop = RunService.RenderStepped:Connect(function()
             if targetChar then
                  targetCFrame = targetChar:GetPivot()
-                 root.CFrame = targetCFrame + Vector3.new(0, 10, 0)  -- Aumentado de 3 para 10 para maior distância
+                 root.CFrame = targetCFrame + Vector3.new(0, 3, 0)
                  root.Velocity = Vector3.new(0,0,0)
             end
             if (tick() - startTime > 3) or (targetChar:FindFirstChild("HumanoidRootPart")) then
@@ -387,7 +545,6 @@ end
 -- ==========================================
 -- FUNÇÕES ADICIONAIS: NO CLIP, ANTI-BURN
 -- ==========================================
--- No Clip
 local function toggleNoclip(state)
     noclipToggle = state
     if state then
@@ -405,19 +562,17 @@ local function toggleNoclip(state)
         if noclipConn then noclipConn:Disconnect() end
     end
 end
--- Anti-Burn (Anti Sun para Demônios)
+
 local function toggleAntiBurn(state)
     antiBurnToggle = state
     if state then
         if antiBurnConn then antiBurnConn:Disconnect() end
         antiBurnConn = RunService.Heartbeat:Connect(function()
             if char and char:FindFirstChild("Demon") then
-                -- Desativar dano do sol
                 local sunBurnScript = char.Demon:FindFirstChild("SunBurn") or char.Demon:FindFirstChild("SunDamage")
                 if sunBurnScript and sunBurnScript:IsA("Script") then
                     sunBurnScript.Disabled = true
                 end
-                -- Ou curar dano
                 if humanoid.Health < humanoid.MaxHealth then
                     humanoid.Health = humanoid.MaxHealth
                 end
@@ -427,33 +582,47 @@ local function toggleAntiBurn(state)
         if antiBurnConn then antiBurnConn:Disconnect() end
     end
 end
--- Server Hop
+
 local function serverHop()
-    local TeleportService = game:GetService("TeleportService")
     local HttpService = game:GetService("HttpService")
-    local Servers = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"
-    local Server, Next = nil, nil
-    local function ListServers(cursor)
-        local Raw = game:HttpGet(Servers .. ((cursor and "&cursor=" .. cursor) or ""))
-        return HttpService:JSONDecode(Raw)
-    end
+    local TeleportService = game:GetService("TeleportService")
+    local api = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"
+    local cursor = ""
+    local servers = {}
     repeat
-        local ServersData = ListServers(Next)
-        Server = ServersData.data[math.random(1, #ServersData.data)]
-        Next = ServersData.nextPageCursor
-    until Server
-    if Server.playing < Server.maxPlayers and Server.id ~= game.JobId then
-        TeleportService:TeleportToPlaceInstance(game.PlaceId, Server.id, game.Players.LocalPlayer)
+        local url = api
+        if cursor ~= "" then url = url .. "&cursor=" .. cursor end
+        local success, req = pcall(function()
+            return game:HttpGet(url)
+        end)
+        if success then
+            local data = HttpService:JSONDecode(req)
+            for _, v in ipairs(data.data) do
+                if v.playing < v.maxPlayers and v.id ~= game.JobId then
+                    table.insert(servers, v.id)
+                end
+            end
+            cursor = data.nextPageCursor
+        else
+            cursor = nil
+        end
+    until cursor == nil
+    if #servers > 0 then
+        local chosen = servers[math.random(1, #servers)]
+        TeleportService:TeleportToPlaceInstance(game.PlaceId, chosen)
     end
 end
 -- ==========================================
 -- UI
 -- ==========================================
-local geralTab = Window:NewTab("Geral") -- Nome alterado de Movimento para Geral
+local geralTab = Window:NewTab("Geral")
 local extraTab = Window:NewTab("Farm")
 local playersTab = Window:NewTab("Players")
 local tpTab = Window:NewTab("Teleportes")
--- FLY (na aba Geral)
+
+-- ==========================================
+-- GERAL TAB - FLY
+-- ==========================================
 local flySec = geralTab:NewSection("Fly Híbrido")
 flySec:NewToggle("Ativar Fly", "WASD + Space↑ + C↓", function(state)
     flyToggle = state
@@ -464,6 +633,10 @@ flySec:NewToggle("Ativar Fly", "WASD + Space↑ + C↓", function(state)
     end
 end)
 flySec:NewSlider("Força do Fly", "0-5000 (Preciso) | 5k-10k (Turbo)", 10000, 150, function(v) flySpeedValue = v end)
+
+-- ==========================================
+-- GERAL TAB - SPEED
+-- ==========================================
 local speedSec = geralTab:NewSection("Speed no Chão")
 speedSec:NewToggle("Ativar Speed", "Aumenta velocidade", function(state)
     speedToggle = state
@@ -478,7 +651,19 @@ speedSec:NewToggle("Ativar Speed", "Aumenta velocidade", function(state)
     end
 end)
 speedSec:NewSlider("Valor Speed", "Normal ~100", 1000, 100, function(v) walkSpeed = v end)
--- VISUAL (na aba Geral)
+
+-- ==========================================
+-- GERAL TAB - COMBAT
+-- ==========================================
+local combatSec = geralTab:NewSection("Combat")
+combatSec:NewToggle("Auto Attack M1", "Simula clique do mouse", function(state)
+    autoAttack = state
+    if state then spawn(autoAttackLoop) end
+end)
+
+-- ==========================================
+-- GERAL TAB - VISUAL
+-- ==========================================
 local visualSec = geralTab:NewSection("Visual")
 visualSec:NewToggle("Mostrar Coords", "X Y Z na tela", function(state)
     coordsEnabled = state
@@ -494,18 +679,24 @@ end)
 visualSec:NewToggle("SUPER ULTRA LITE", "DEIXA TUDO FEIO E LISO (FPS)", function(state)
     toggleUltraLite(state)
 end)
--- Novas funções na aba Geral
+
+-- ==========================================
+-- GERAL TAB - CHEATS
+-- ==========================================
 local cheatsSec = geralTab:NewSection("Cheats Adicionais")
 cheatsSec:NewToggle("No Clip", "Atravesse paredes", function(state)
     toggleNoclip(state)
 end)
-cheatsSec:NewToggle("Anti-Burn (Demônios imunes ao sol)", "Sem dano do sol", function(state)
+cheatsSec:NewToggle("Anti-Burn (Demônios)", "Sem dano do sol", function(state)
     toggleAntiBurn(state)
 end)
 cheatsSec:NewButton("Trocar Servidor (Server Hop)", "Pula para outro servidor sem sair", function()
     serverHop()
 end)
--- PLAYERS
+
+-- ==========================================
+-- PLAYERS TAB
+-- ==========================================
 local playerSec = playersTab:NewSection("Interagir com Players")
 local playerDropdown = nil
 local function getPlayerList()
@@ -519,17 +710,25 @@ playerSec:NewButton("Teleportar para Player", "Carrega o mapa e vai até ele", f
 playerSec:NewToggle("Farmar Player", "TP Costas + Seguir", function(state)
     if state and selectedPlayerName then toggleTeleport(true, selectedPlayerName) else toggleTeleport(false) end
 end)
--- TELEPORTES
+playerSec:NewToggle("ESP Players (WallHack)", "Marca todos players no mapa!", function(state)
+    toggleESP(state)
+end)
+
+-- ==========================================
+-- TELEPORTES TAB
+-- ==========================================
 local tpMainSec = tpTab:NewSection("Utilitários")
 tpMainSec:NewButton("Carregar Todo o Mapa", "Teleporta para todos os lugares conhecidos", function() loadAllMap() end)
 tpMainSec:NewButton("TP Raid", "Teleporta para a área da Raid", function() if root then root.CFrame = raidCFrame end end)
+
 local vilaSec = tpTab:NewSection("Vilas & Locais")
-vilaSec:NewButton("Okuya Village", "TP", function() if root then root.CFrame = hayakawaCFrame end end)
-vilaSec:NewButton("Hayakawa Village", "TP", function() if root then root.CFrame = okuyaCFrame end end)
+vilaSec:NewButton("Okuya Village", "TP", function() if root then root.CFrame = okuyaCFrame end end)
+vilaSec:NewButton("Hayakawa Village", "TP", function() if root then root.CFrame = hayakawaCFrame end end)
 vilaSec:NewButton("Kamakura Village", "TP", function() if root then root.CFrame = kamakuraCFrame end end)
-vilaSec:NewButton("Distrito", "TP", function() if root then root.CFrame = slayerCFrame end end)
-vilaSec:NewButton("Slayer Corps", "TP", function() if root then root.CFrame = distritoCFrame end end)
+vilaSec:NewButton("Distrito", "TP", function() if root then root.CFrame = distritoCFrame end end)
+vilaSec:NewButton("Slayer Corps", "TP", function() if root then root.CFrame = slayerCFrame end end)
 vilaSec:NewButton("Slayer Exam", "TP", function() if root then root.CFrame = slayerExamCFrame end end)
+
 local breathSec = tpTab:NewSection("Respirações")
 breathSec:NewButton("Mist Breath", "TP", function() if root then root.CFrame = mistBreathCFrame end end)
 breathSec:NewButton("Water Breath", "TP", function() if root then root.CFrame = waterBreathCFrame end end)
@@ -544,18 +743,26 @@ breathSec:NewButton("Sound Breath", "TP", function() if root then root.CFrame = 
 breathSec:NewButton("Flower Breath", "TP", function() if root then root.CFrame = flowerBreathCFrame end end)
 breathSec:NewButton("Serpent Breath", "TP", function() if root then root.CFrame = serpentBreathCFrame end end)
 breathSec:NewButton("Love Breath", "TP", function() if root then root.CFrame = loveBreathCFrame end end)
--- FARM
-local farmSec = extraTab:NewSection("Mob Farms")
-farmSec:NewButton("Carregar Todos Mobs", "Teleporta para spawn points", function() loadAllMobs() end)
-local mobToggles = {}
-for _, mob in ipairs(MOBS) do
-    local tog = farmSec:NewToggle("Farm "..mob, "Auto teleport", function(state)
-        if state then toggleTeleport(true, mob) else toggleTeleport(false) end
-    end)
-    mobToggles[mob] = tog
-end
-farmSec:NewLabel(" Trinkets ")
-farmSec:NewToggle("Auto Farm Trinkets", "Teleporta e coleta", function(state)
+
+-- ==========================================
+-- FARM TAB - CONFIGURAÇÕES
+-- ==========================================
+local configSec = extraTab:NewSection("Configurações Farm")
+configSec:NewDropdown("Posição de Teleporte", "Escolha a posição relativa ao alvo", {"Below", "Above", "Behind"}, function(v)
+    teleportMode = v
+end)
+configSec:NewSlider("Distância do Alvo", "Ajusta quantos studs de distância do mob/player", 20, 0.1, function(valor)
+    FARM_DISTANCE = valor
+end)
+configSec:NewSlider("Distância no Execute", "Quanto fugir quando estiver executando (30-60 recomendado)", 100, 0.1, function(v)
+    EXECUTE_DISTANCE = v
+end)
+
+-- ==========================================
+-- FARM TAB - TRINKETS
+-- ==========================================
+local trinketSec = extraTab:NewSection("Farm Trinkets")
+trinketSec:NewToggle("Auto Farm Trinkets", "Teleporta e coleta automaticamente", function(state)
     trinketFarm = state
     if state then
         spawn(function()
@@ -584,12 +791,38 @@ farmSec:NewToggle("Auto Farm Trinkets", "Teleporta e coleta", function(state)
         end)
     end
 end)
-farmSec:NewLabel(" Raid System ")
-farmSec:NewToggle("Farm Raid (Auto Enemy)", "Foca no inimigo 'Enemy'", function(state)
+
+-- ==========================================
+-- FARM TAB - RAIDS
+-- ==========================================
+local raidSec = extraTab:NewSection("Farm Raids")
+raidSec:NewButton("Carregar Todos Raids", "TP para spawn points", function() loadAllMap() end)
+raidSec:NewToggle("Farm Shinobu Raid", "Auto teleport + ataque", function(state)
+    if state then toggleTeleport(true, "ShinoubuRaid") else toggleTeleport(false) end
+end)
+raidSec:NewToggle("Farm Rengoku Raid", "Auto teleport + ataque", function(state)
+    if state then toggleTeleport(true, "RengokuRaid") else toggleTeleport(false) end
+end)
+raidSec:NewToggle("Farm Kokushibo Raid", "Auto teleport + ataque", function(state)
+    if state then toggleTeleport(true, "KokushiboRaid") else toggleTeleport(false) end
+end)
+raidSec:NewToggle("Farm Yoriichi Raid", "Auto teleport + ataque", function(state)
+    if state then toggleTeleport(true, "YoriichiRaid") else toggleTeleport(false) end
+end)
+raidSec:NewToggle("Farm Enemy Raid", "Foca no inimigo 'Enemy'", function(state)
     if state then toggleTeleport(true, "Enemy") else toggleTeleport(false) end
 end)
-farmSec:NewLabel(" Combat ")
-farmSec:NewToggle("Auto Attack M1", "Simula clique do mouse", function(state)
-    autoAttack = state
-    if state then spawn(autoAttackLoop) end
-end)
+
+-- ==========================================
+-- FARM TAB - MOBS
+-- ==========================================
+local mobSec = extraTab:NewSection("Farm Mobs")
+mobSec:NewButton("Carregar Todos Mobs", "Teleporta para spawn points", function() loadAllMobs() end)
+
+local mobToggles = {}
+for _, mob in ipairs(MOBS) do
+    local tog = mobSec:NewToggle("Farm "..mob, "Auto teleport", function(state)
+        if state then toggleTeleport(true, mob) else toggleTeleport(false) end
+    end)
+    mobToggles[mob] = tog
+end
