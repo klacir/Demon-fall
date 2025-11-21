@@ -6,7 +6,7 @@ local VIM = game:GetService("VirtualInputManager")
 local player = Players.LocalPlayer
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
 -- NOME
-local Window = Library.CreateLib("MOONDF HUB V2", "DarkTheme")
+local Window = Library.CreateLib("MOONDF HUB V1", "DarkTheme")
 -- Variáveis Principais
 local char = player.Character or player.CharacterAdded:Wait()
 local root = char:WaitForChild("HumanoidRootPart")
@@ -51,6 +51,8 @@ local spectateToggle = false
 local spectatePlayer = nil
 local spectateConn = nil
 local originalCFrame = nil
+local spectateHeight = 20
+local spectateDistance = 5
 -- ==========================================
 -- ESP PLAYERS VARIABLES
 -- ==========================================
@@ -108,8 +110,6 @@ end
 
 local noclipToggle = false
 local noclipConn
-local antiBurnToggle = false
-local antiBurnConn
 
 local function onCharAdded(newChar)
     char = newChar
@@ -130,9 +130,6 @@ local function onCharAdded(newChar)
     if isEnabled and currentMob then task.wait(0.5) toggleTeleport(true, currentMob) end
     if noclipToggle then
         toggleNoclip(true)
-    end
-    if antiBurnToggle then
-        toggleAntiBurn(true)
     end
 end
 player.CharacterAdded:Connect(onCharAdded)
@@ -291,7 +288,7 @@ local function toggleClickTP(state)
     end
 end
 -- ==========================================
--- SPECTATE FUNCTION
+-- SPECTATE FUNCTION - CÂMERA DE CIMA
 -- ==========================================
 local function toggleSpectate(state, targetPlayerName)
     spectateToggle = state
@@ -309,14 +306,11 @@ local function toggleSpectate(state, targetPlayerName)
                 local targetRoot = spectatePlayer.Character.HumanoidRootPart
                 local cam = workspace.CurrentCamera
                 
-                -- Câmera segue o alvo, mas o player fica no lugar original
-                cam.CFrame = CFrame.new(targetRoot.Position + Vector3.new(0, 2, 5), targetRoot.Position + Vector3.new(0, 2, 0))
+                -- CÂMERA DE CIMA (Top-Down) - Olhando para baixo
+                local cameraPos = targetRoot.Position + Vector3.new(spectateDistance, spectateHeight, spectateDistance)
+                local targetLookPos = targetRoot.Position + Vector3.new(0, 2, 0)
                 
-                -- Permite rotação do mouse para controlar câmera
-                if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
-                    local mouse = player:GetMouse()
-                    cam.CFrame = cam.CFrame * CFrame.Angles(0, 0, 0)
-                end
+                cam.CFrame = CFrame.new(cameraPos, targetLookPos)
             end
         end)
     else
@@ -614,7 +608,7 @@ local function forceTeleportToPlayer(targetName)
     end
 end
 -- ==========================================
--- FUNÇÕES ADICIONAIS: NO CLIP, ANTI-BURN
+-- NO CLIP FUNCTION
 -- ==========================================
 local function toggleNoclip(state)
     noclipToggle = state
@@ -634,57 +628,8 @@ local function toggleNoclip(state)
     end
 end
 
-local function toggleAntiBurn(state)
-    antiBurnToggle = state
-    if state then
-        if antiBurnConn then antiBurnConn:Disconnect() end
-        antiBurnConn = RunService.Heartbeat:Connect(function()
-            if char and char:FindFirstChild("Demon") then
-                local sunBurnScript = char.Demon:FindFirstChild("SunBurn") or char.Demon:FindFirstChild("SunDamage")
-                if sunBurnScript and sunBurnScript:IsA("Script") then
-                    sunBurnScript.Disabled = true
-                end
-                if humanoid.Health < humanoid.MaxHealth then
-                    humanoid.Health = humanoid.MaxHealth
-                end
-            end
-        end)
-    else
-        if antiBurnConn then antiBurnConn:Disconnect() end
-    end
-end
-
-local function serverHop()
-    local HttpService = game:GetService("HttpService")
-    local TeleportService = game:GetService("TeleportService")
-    local api = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"
-    local cursor = ""
-    local servers = {}
-    repeat
-        local url = api
-        if cursor ~= "" then url = url .. "&cursor=" .. cursor end
-        local success, req = pcall(function()
-            return game:HttpGet(url)
-        end)
-        if success then
-            local data = HttpService:JSONDecode(req)
-            for _, v in ipairs(data.data) do
-                if v.playing < v.maxPlayers and v.id ~= game.JobId then
-                    table.insert(servers, v.id)
-                end
-            end
-            cursor = data.nextPageCursor
-        else
-            cursor = nil
-        end
-    until cursor == nil
-    if #servers > 0 then
-        local chosen = servers[math.random(1, #servers)]
-        TeleportService:TeleportToPlaceInstance(game.PlaceId, chosen)
-    end
-end
 -- ==========================================
--- UI
+-- UI TABS NORMAIS
 -- ==========================================
 local geralTab = Window:NewTab("Geral")
 local extraTab = Window:NewTab("Farm")
@@ -744,13 +689,6 @@ end)
 -- GERAL TAB - VISUAL
 -- ==========================================
 local visualSec = geralTab:NewSection("Visual")
-visualSec:NewToggle("Mostrar Coords", "X Y Z na tela", function(state)
-    coordsEnabled = state
-    if state then createCoordsGui() startCoordsUpdate() else
-        if coordsGui then coordsGui:Destroy() end
-        if coordsConn then coordsConn:Disconnect() end
-    end
-end)
 visualSec:NewToggle("No Fog (Lite Básico)", "Remove apenas neblina", function(state)
     noFogEnabled = state
     applyNoFog(state)
@@ -765,12 +703,6 @@ end)
 local cheatsSec = geralTab:NewSection("Cheats Adicionais")
 cheatsSec:NewToggle("No Clip", "Atravesse paredes", function(state)
     toggleNoclip(state)
-end)
-cheatsSec:NewToggle("Anti-Burn (Demônios)", "Sem dano do sol", function(state)
-    toggleAntiBurn(state)
-end)
-cheatsSec:NewButton("Trocar Servidor (Server Hop)", "Pula para outro servidor sem sair", function()
-    serverHop()
 end)
 
 -- ==========================================
@@ -796,10 +728,12 @@ end)
 -- ==========================================
 -- PLAYERS TAB - SPECTATE
 -- ==========================================
-local spectateSec = playersTab:NewSection("Spectate Player")
+local spectateSec = playersTab:NewSection("Spectate Player (Câmera de Cima)")
 local spectateDropdown = nil
 spectateDropdown = spectateSec:NewDropdown("Selecionar Player", "Escolha quem assistir", getPlayerList(), function(v) selectedPlayerName = v end)
-spectateSec:NewToggle("Iniciar Spectate", "Camera segue o player, você fica no lugar", function(state)
+spectateSec:NewSlider("Altura da Câmera", "Quanto mais alto, mais acima fica", 50, 5, function(v) spectateHeight = v end)
+spectateSec:NewSlider("Distância Lateral", "Afastamento horizontal", 30, 1, function(v) spectateDistance = v end)
+spectateSec:NewToggle("Iniciar Spectate", "Camera de cima olhando para baixo", function(state)
     if state and selectedPlayerName then
         toggleSpectate(true, selectedPlayerName)
     else
@@ -919,3 +853,165 @@ for _, mob in ipairs(MOBS) do
     end)
     mobToggles[mob] = tog
 end
+
+-- ==========================================
+-- ABA DEVELOPER
+-- ==========================================
+local devTab = Window:NewTab("Developer")
+local devSec = devTab:NewSection("Ferramentas Developer")
+
+devSec:NewToggle("Mostrar Coords (DEV)", "X Y Z na tela (Apenas DEV)", function(state)
+    coordsEnabled = state
+    if state then createCoordsGui() startCoordsUpdate() else
+        if coordsGui then coordsGui:Destroy() end
+        if coordsConn then coordsConn:Disconnect() end
+    end
+end)
+
+local function createNPCViewer()
+    local Players = game:GetService("Players")
+    local player = Players.LocalPlayer
+    local playerGui = player:WaitForChild("PlayerGui")
+    if playerGui:FindFirstChild("NPCViewerGui") then playerGui:FindFirstChild("NPCViewerGui"):Destroy() end
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "NPCViewerGui"
+    screenGui.ResetOnSpawn = false
+    screenGui.Parent = playerGui
+    local background = Instance.new("Frame")
+    background.Name = "Background"
+    background.Size = UDim2.new(1, 0, 1, 0)
+    background.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    background.BackgroundTransparency = 0.5
+    background.Parent = screenGui
+    local popup = Instance.new("Frame")
+    popup.Name = "Popup"
+    popup.Size = UDim2.new(0, 500, 0, 600)
+    popup.Position = UDim2.new(0.5, -250, 0.5, -300)
+    popup.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+    popup.BorderSizePixel = 0
+    popup.Parent = screenGui
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = popup
+    local header = Instance.new("Frame")
+    header.Name = "Header"
+    header.Size = UDim2.new(1, 0, 0, 50)
+    header.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+    header.BorderSizePixel = 0
+    header.Parent = popup
+    local headerCorner = Instance.new("UICorner")
+    headerCorner.CornerRadius = UDim.new(0, 8)
+    headerCorner.Parent = header
+    local title = Instance.new("TextLabel")
+    title.Name = "Title"
+    title.Size = UDim2.new(1, -40, 1, 0)
+    title.Position = UDim2.new(0, 10, 0, 0)
+    title.BackgroundTransparency = 1
+    title.Text = "NPCs Carregados - Demon Fall"
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.TextSize = 18
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.Font = Enum.Font.GothamBold
+    title.Parent = header
+    local closeBtn = Instance.new("TextButton")
+    closeBtn.Name = "CloseBtn"
+    closeBtn.Size = UDim2.new(0, 30, 0, 30)
+    closeBtn.Position = UDim2.new(1, -40, 0, 10)
+    closeBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeBtn.Text = "✕"
+    closeBtn.TextSize = 20
+    closeBtn.Font = Enum.Font.GothamBold
+    closeBtn.BorderSizePixel = 0
+    closeBtn.Parent = header
+    local closeBtnCorner = Instance.new("UICorner")
+    closeBtnCorner.CornerRadius = UDim.new(0, 4)
+    closeBtnCorner.Parent = closeBtn
+    local scrollFrame = Instance.new("ScrollingFrame")
+    scrollFrame.Name = "ScrollFrame"
+    scrollFrame.Size = UDim2.new(1, -20, 1, -70)
+    scrollFrame.Position = UDim2.new(0, 10, 0, 60)
+    scrollFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+    scrollFrame.BorderSizePixel = 0
+    scrollFrame.ScrollBarThickness = 8
+    scrollFrame.Parent = popup
+    local scrollCorner = Instance.new("UICorner")
+    scrollCorner.CornerRadius = UDim.new(0, 4)
+    scrollCorner.Parent = scrollFrame
+    local listLayout = Instance.new("UIListLayout")
+    listLayout.Padding = UDim.new(0, 5)
+    listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    listLayout.Parent = scrollFrame
+    local function findAllNPCs()
+        local npcs = {}
+        local workspace = game:GetService("Workspace")
+        local function searchFolder(folder)
+            for _, child in pairs(folder:GetChildren()) do
+                if child:FindFirstChild("Humanoid") and not Players:FindFirstChild(child.Name) then
+                    table.insert(npcs, child)
+                end
+                if child:IsA("Folder") or child:IsA("Model") then
+                    searchFolder(child)
+                end
+            end
+        end
+        searchFolder(workspace)
+        return npcs
+    end
+    local function addNPCItem(npcName)
+        local item = Instance.new("Frame")
+        item.Name = npcName
+        item.Size = UDim2.new(1, 0, 0, 50)
+        item.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
+        item.BorderSizePixel = 0
+        item.Parent = scrollFrame
+        local itemCorner = Instance.new("UICorner")
+        itemCorner.CornerRadius = UDim.new(0, 4)
+        itemCorner.Parent = item
+        local textLabel = Instance.new("TextLabel")
+        textLabel.Size = UDim2.new(1, -10, 1, 0)
+        textLabel.Position = UDim2.new(0, 5, 0, 0)
+        textLabel.BackgroundTransparency = 1
+        textLabel.Text = "🧟 " .. npcName
+        textLabel.TextColor3 = Color3.fromRGB(255, 200, 100)
+        textLabel.TextSize = 14
+        textLabel.TextXAlignment = Enum.TextXAlignment.Left
+        textLabel.Font = Enum.Font.Gotham
+        textLabel.Parent = item
+    end
+    local npcs = findAllNPCs()
+    if #npcs == 0 then
+        local emptyLabel = Instance.new("TextLabel")
+        emptyLabel.Size = UDim2.new(1, 0, 1, 0)
+        emptyLabel.BackgroundTransparency = 1
+        emptyLabel.Text = "Nenhum NPC encontrado!"
+        emptyLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+        emptyLabel.TextSize = 16
+        emptyLabel.Font = Enum.Font.Gotham
+        emptyLabel.Parent = scrollFrame
+    else
+        for _, npc in pairs(npcs) do
+            addNPCItem(npc.Name)
+        end
+    end
+    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y + 10)
+    listLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        scrollFrame.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y + 10)
+    end)
+    closeBtn.MouseButton1Click:Connect(function() screenGui:Destroy() end)
+    background.InputBegan:Connect(function(input, gameProcessed)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then screenGui:Destroy() end
+    end)
+end
+
+devSec:NewButton("Visualizar NPCs Carregados", "Abre popup dos NPCs existentes", function()
+    createNPCViewer()
+end)
+
+local UserInputService = game:GetService("UserInputService")
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.F5 then
+        createNPCViewer()
+    end
+end)
