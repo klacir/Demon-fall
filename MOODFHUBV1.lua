@@ -5,12 +5,15 @@ local Lighting = game:GetService("Lighting")
 local VIM = game:GetService("VirtualInputManager")
 local player = Players.LocalPlayer
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
--- NOME
-local Window = Library.CreateLib("MOONDF HUB V1", "DarkTheme")
+
+-- NOME DA JANELA
+local Window = Library.CreateLib("MOONDF HUB V2.5", "DarkTheme")
+
 -- Variáveis Principais
 local char = player.Character or player.CharacterAdded:Wait()
 local root = char:WaitForChild("HumanoidRootPart")
 local humanoid = char:WaitForChild("Humanoid")
+
 -- Configurações de Voo e Speed
 local flyToggle = false
 local flySpeedValue = 150
@@ -19,16 +22,21 @@ local speedToggle = false
 local walkSpeed = 16
 local speedConn
 local BASE_WALKSPEED = 16
+
 -- Configurações Visuais
 local coordsEnabled = false
 local coordsGui, coordsLabel, coordsConn
 local noFogEnabled = false
+
 -- Configurações Ultra Lite
 local ultraLiteEnabled = false
 local liteLoop = nil
+
 -- Configurações de Farm
 local trinketFarm = false
+local oreFarm = false -- VARIAVEL NOVA MINERIO
 local autoAttack = false
+
 -- Lógica de Farm
 local currentMob = nil
 local isEnabled = false
@@ -36,14 +44,17 @@ local connection = nil
 local loadingAllMobs = false
 local teleportAndLookLooping = false
 local selectedPlayerName = nil
-local teleportMode = "Below"
-local FARM_DISTANCE = 5
-local EXECUTE_DISTANCE = 40
+local teleportMode = "Behind"
+local FARM_DISTANCE = 4
+local EXECUTE_DISTANCE = 1
+local PLAYER_EXECUTE_DISTANCE = 20
+
 -- ==========================================
 -- CLICK TP VARIABLES
 -- ==========================================
 local clickTPToggle = false
 local clickTPConn = nil
+
 -- ==========================================
 -- SPECTATE VARIABLES
 -- ==========================================
@@ -53,6 +64,7 @@ local spectateConn = nil
 local originalCFrame = nil
 local spectateHeight = 20
 local spectateDistance = 5
+
 -- ==========================================
 -- ESP PLAYERS VARIABLES
 -- ==========================================
@@ -60,6 +72,7 @@ local espEnabled = false
 local espConnections = {}
 local espUpdateLoop = nil
 local espPlayers = {}
+
 -- ==========================================
 -- COORDENADAS & LOCAIS
 -- ==========================================
@@ -70,6 +83,8 @@ local kamakuraCFrame = CFrame.new(-2343.6, 1166.6, -1678.2)
 local slayerCFrame = CFrame.new(-5433.1, 761.0, -6392.9)
 local distritoCFrame = CFrame.new(-1986.7, 871.8, -6484.5)
 local slayerExamCFrame = CFrame.new(-5123, 815, -3037)
+
+-- Respirações
 local mistBreathCFrame = CFrame.new(3237, 778.8, -4051.3)
 local serpentBreathCFrame = CFrame.new(991.8, 1071.3, -1144.8)
 local loveBreathCFrame = CFrame.new(1192.8, 1079.3, -1107.6)
@@ -83,6 +98,12 @@ local flowerBreathCFrame = CFrame.new(-1320, 872.5, -6237)
 local beastBreathCFrame = CFrame.new(-3112, 785, -6596)
 local waterBreathCFrame = CFrame.new(-925, 851.5, -994.6)
 local sunBreathCFrame = CFrame.new(393, 819.7, -421)
+
+-- Coordenadas novas para Farm Castelo
+local casteloCoord1 = CFrame.new(-9986.8, 6898.9, -4678.2)
+local casteloCoord2 = CFrame.new(3433.3, 3732.3, 1879.8)
+local casteloCoord3 = CFrame.new(3396.3, 4010.6, 1768.6)
+
 local LOAD_COORDINATES = {
     Vector3.new(-3398.0, 722.4, -1128.5),
     Vector3.new(-2740.9, 737.8, -3378.0),
@@ -93,7 +114,9 @@ local LOAD_COORDINATES = {
     Vector3.new(1406.2, 769.3, -6549.3),
     Vector3.new(893.3, 772.6, -2260.9),
 }
+
 local MOBS = { "GenericSlayer", "GenericOni", "FrostyOni", "Green Demon", "Blue Demon", "Zenitsu", "Gyutaro", "Kaigaku" }
+
 -- ==========================================
 -- UTILS
 -- ==========================================
@@ -101,6 +124,7 @@ local blockedStates = {
     Enum.HumanoidStateType.FallingDown, Enum.HumanoidStateType.Freefall, Enum.HumanoidStateType.GettingUp,
     Enum.HumanoidStateType.Seated, Enum.HumanoidStateType.PlatformStanding, Enum.HumanoidStateType.Dead, Enum.HumanoidStateType.Physics,
 }
+
 local function isInBlockedState(h)
     if not h then return true end
     if h.PlatformStand == true then return true end
@@ -115,24 +139,51 @@ local function onCharAdded(newChar)
     char = newChar
     root = char:WaitForChild("HumanoidRootPart")
     humanoid = char:WaitForChild("Humanoid")
+    
     if flyToggle then
         task.wait(0.5)
         pcall(function() if bg then bg:Destroy() end if bv then bv:Destroy() end if flyConn then flyConn:Disconnect() end end)
         setupFly()
     end
+    
     if coordsEnabled then createCoordsGui() startCoordsUpdate() end
+    
     if speedToggle then
         if speedConn then speedConn:Disconnect() end
         speedConn = RunService.Heartbeat:Connect(function()
             if humanoid and humanoid.Health > 0 and not isInBlockedState(humanoid) then humanoid.WalkSpeed = walkSpeed end
         end)
     end
+    
     if isEnabled and currentMob then task.wait(0.5) toggleTeleport(true, currentMob) end
+    
     if noclipToggle then
         toggleNoclip(true)
     end
 end
 player.CharacterAdded:Connect(onCharAdded)
+
+-- ==========================================
+-- NO CLIP FUNCTION
+-- ==========================================
+function toggleNoclip(state)
+    noclipToggle = state
+    if state then
+        if noclipConn then noclipConn:Disconnect() end
+        noclipConn = RunService.Stepped:Connect(function(time, step)
+            if char then
+                for _, part in pairs(char:GetDescendants()) do
+                    if part:IsA("BasePart") and part.CanCollide then
+                        part.CanCollide = false
+                    end
+                end
+            end
+        end)
+    else
+        if noclipConn then noclipConn:Disconnect() end
+    end
+end
+
 -- ==========================================
 -- SISTEMA DE FLY
 -- ==========================================
@@ -144,6 +195,7 @@ local function calculateFlySpeed(sliderVal)
         return 400 + (excess * 2) 
     end
 end
+
 function setupFly()
     bg = Instance.new("BodyGyro", root)
     bg.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
@@ -153,6 +205,7 @@ function setupFly()
     bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
     bv.Velocity = Vector3.new(0,0,0)
     humanoid.PlatformStand = true
+    
     flyConn = RunService.Heartbeat:Connect(function()
         if not flyToggle or not root then return end
         local cam = workspace.CurrentCamera
@@ -164,6 +217,7 @@ function setupFly()
         bg.CFrame = cam.CFrame
     end)
 end
+
 -- ==========================================
 -- LITE MODE
 -- ==========================================
@@ -183,6 +237,7 @@ local function toggleUltraLite(state)
         Terrain.WaterWaveSize = 0
         Terrain.WaterReflectance = 0
         Terrain.WaterTransparency = 0
+        
         local function uglyfy(v)
             if v:IsA("BasePart") and not v:IsA("Terrain") then
                 v.Material = Enum.Material.SmoothPlastic
@@ -200,7 +255,9 @@ local function toggleUltraLite(state)
                 v:Destroy()
             end
         end
+        
         for _, v in pairs(workspace:GetDescendants()) do uglyfy(v) end
+        
         liteLoop = RunService.RenderStepped:Connect(function()
             Lighting.FogEnd = 9e9
             Lighting.GlobalShadows = false
@@ -221,6 +278,7 @@ local function toggleUltraLite(state)
         end
     end
 end
+
 -- ==========================================
 -- VISUAL (COORDS & FOG)
 -- ==========================================
@@ -236,6 +294,7 @@ function createCoordsGui()
     frame.BackgroundTransparency = 0.3
     frame.BorderSizePixel = 1
     frame.BorderColor3 = Color3.fromRGB(255,255,255)
+    
     coordsLabel = Instance.new("TextLabel", frame)
     coordsLabel.Size = UDim2.new(1, -10, 1, 0)
     coordsLabel.Position = UDim2.new(0, 5, 0, 0)
@@ -245,6 +304,7 @@ function createCoordsGui()
     coordsLabel.Font = Enum.Font.SourceSansBold
     coordsLabel.Text = "Coords: carregando..."
 end
+
 function startCoordsUpdate()
     if coordsConn then coordsConn:Disconnect() end
     coordsConn = RunService.RenderStepped:Connect(function()
@@ -254,6 +314,7 @@ function startCoordsUpdate()
         end
     end)
 end
+
 local function applyNoFog(state)
     if state then
         Lighting.FogEnd = 100000
@@ -268,6 +329,7 @@ local function applyNoFog(state)
         Lighting.GlobalShadows = true
     end
 end
+
 -- ==========================================
 -- CLICK TP FUNCTION
 -- ==========================================
@@ -287,8 +349,9 @@ local function toggleClickTP(state)
         end)
     end
 end
+
 -- ==========================================
--- SPECTATE FUNCTION - CÂMERA DE CIMA
+-- SPECTATE FUNCTION
 -- ==========================================
 local function toggleSpectate(state, targetPlayerName)
     spectateToggle = state
@@ -305,11 +368,8 @@ local function toggleSpectate(state, targetPlayerName)
             if spectateToggle and spectatePlayer and spectatePlayer.Character and spectatePlayer.Character:FindFirstChild("HumanoidRootPart") then
                 local targetRoot = spectatePlayer.Character.HumanoidRootPart
                 local cam = workspace.CurrentCamera
-                
-                -- CÂMERA DE CIMA (Top-Down) - Olhando para baixo
                 local cameraPos = targetRoot.Position + Vector3.new(spectateDistance, spectateHeight, spectateDistance)
                 local targetLookPos = targetRoot.Position + Vector3.new(0, 2, 0)
-                
                 cam.CFrame = CFrame.new(cameraPos, targetLookPos)
             end
         end)
@@ -317,37 +377,46 @@ local function toggleSpectate(state, targetPlayerName)
         if spectateConn then spectateConn:Disconnect() end
         spectateConn = nil
         spectatePlayer = nil
-        
-        -- Volta câmera ao normal
         if root and originalCFrame then
             workspace.CurrentCamera.CFrame = CFrame.new(root.Position + Vector3.new(0, 3, 5), root.Position)
         end
     end
 end
+
 -- ==========================================
--- ESP PLAYERS FUNCTIONS
+-- ESP PLAYERS FUNCTIONS (MENOR & FIX HP)
 -- ==========================================
 local function createESPLabel(hrp, playerName, distance)
     local billboardGui = Instance.new("BillboardGui")
     billboardGui.Name = "ESPLabel"
-    billboardGui.Size = UDim2.new(4, 0, 2, 0)
-    billboardGui.MaxDistance = 500
+    
+    -- TAMANHO REDUZIDO: 120x50
+    billboardGui.Size = UDim2.new(0, 120, 0, 50)
+    
+    -- StudsOffset levanta o ESP para cima da cabeça
+    billboardGui.StudsOffset = Vector3.new(0, 5, 0) 
+    
+    -- MaxDistance
+    billboardGui.MaxDistance = 3000 
+    
     billboardGui.Adornee = hrp
     billboardGui.Parent = hrp
+    billboardGui.AlwaysOnTop = true
     
     local textLabel = Instance.new("TextLabel")
-    textLabel.BackgroundTransparency = 0.3
+    textLabel.BackgroundTransparency = 0.5 
     textLabel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
     textLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
     textLabel.TextScaled = true
     textLabel.Font = Enum.Font.GothamBold
     textLabel.Size = UDim2.new(1, 0, 1, 0)
-    textLabel.BorderSizePixel = 2
+    textLabel.BorderSizePixel = 1
     textLabel.BorderColor3 = Color3.fromRGB(255, 0, 0)
     textLabel.Parent = billboardGui
     
     return billboardGui, textLabel
 end
+
 local function clearESP()
     for _, conn in ipairs(espConnections) do
         if conn then conn:Disconnect() end
@@ -364,6 +433,7 @@ local function clearESP()
     end
     if espUpdateLoop then espUpdateLoop:Disconnect() espUpdateLoop = nil end
 end
+
 local function enableESP()
     clearESP()
     for _, plr in ipairs(Players:GetPlayers()) do
@@ -388,6 +458,7 @@ local function enableESP()
             }
         end
     end
+    
     local conn = Players.PlayerAdded:Connect(function(plr)
         plr.CharacterAdded:Connect(function(char)
             task.wait(1)
@@ -433,9 +504,13 @@ local function enableESP()
                 end
                 
                 if espData.textLabel and humanoid then
+                    local rawMax = humanoid.MaxHealth
+                    if rawMax < 1 then rawMax = 100 end
+                    
                     local health = math.floor(humanoid.Health)
-                    local maxHealth = math.floor(humanoid.MaxHealth)
-                    espData.textLabel.Text = string.format("%s\nHP: %d/%d\nDist: %.1f studs", 
+                    local maxHealth = math.floor(rawMax)
+                    
+                    espData.textLabel.Text = string.format("%s\nHP: %d/%d\n%.1fm", 
                         playerName, health, maxHealth, distance)
                 end
             else
@@ -446,6 +521,7 @@ local function enableESP()
         end
     end)
 end
+
 local function toggleESP(state)
     espEnabled = state
     if espEnabled then
@@ -454,6 +530,7 @@ local function toggleESP(state)
         clearESP()
     end
 end
+
 -- ==========================================
 -- FARM & TP LOGIC
 -- ==========================================
@@ -462,6 +539,7 @@ local function findEnemy(mobName)
     if targetPlayer and targetPlayer.Character then return targetPlayer.Character end
     return workspace:FindFirstChild(mobName)
 end
+
 local function loadAllMobs()
     if loadingAllMobs then return end
     loadingAllMobs = true
@@ -474,28 +552,14 @@ local function loadAllMobs()
     task.wait(1)
     loadingAllMobs = false
 end
+
 local function loadAllMap()
     local allCFrames = {
-        raidCFrame,
-        hayakawaCFrame,
-        okuyaCFrame,
-        kamakuraCFrame,
-        slayerCFrame,
-        distritoCFrame,
-        slayerExamCFrame,
-        mistBreathCFrame,
-        serpentBreathCFrame,
-        loveBreathCFrame,
-        flameBreathCFrame,
-        moonBreathCFrame,
-        windBreathCFrame,
-        thunderBreathCFrame,
-        insectBreathCFrame,
-        soundBreathCFrame,
-        flowerBreathCFrame,
-        beastBreathCFrame,
-        waterBreathCFrame,
-        sunBreathCFrame
+        raidCFrame, hayakawaCFrame, okuyaCFrame, kamakuraCFrame,
+        slayerCFrame, distritoCFrame, slayerExamCFrame, mistBreathCFrame,
+        serpentBreathCFrame, loveBreathCFrame, flameBreathCFrame, moonBreathCFrame,
+        windBreathCFrame, thunderBreathCFrame, insectBreathCFrame, soundBreathCFrame,
+        flowerBreathCFrame, beastBreathCFrame, waterBreathCFrame, sunBreathCFrame
     }
     for _, coord in ipairs(LOAD_COORDINATES) do
         table.insert(allCFrames, CFrame.new(coord))
@@ -507,6 +571,7 @@ local function loadAllMap()
     end
     root.CFrame = initialPosition
 end
+
 local function teleportAndLook()
     local enemy = currentMob and findEnemy(currentMob)
     if not enemy or not root then return end
@@ -530,7 +595,11 @@ local function teleportAndLook()
         isExecuting = true
     end
     if isExecuting then
-        currentDistance = EXECUTE_DISTANCE
+        if Players:GetPlayerFromCharacter(enemy) then
+            currentDistance = PLAYER_EXECUTE_DISTANCE
+        else
+            currentDistance = EXECUTE_DISTANCE
+        end
     end
     
     local offset = Vector3.new(0, 0, 0)
@@ -546,6 +615,7 @@ local function teleportAndLook()
     root.CFrame = CFrame.new(targetPos, enemyRoot.Position)
     root.Velocity = Vector3.new(0,0,0)
 end
+
 local function teleportAndLookWithKeys()
     local b_timer = 0
     while teleportAndLookLooping do
@@ -562,6 +632,7 @@ local function teleportAndLookWithKeys()
         task.wait(delta)
     end
 end
+
 local function toggleTeleport(enable, mobName)
     if enable then
         if not connection then
@@ -578,6 +649,7 @@ local function toggleTeleport(enable, mobName)
         currentMob = nil
     end
 end
+
 local function autoAttackLoop()
     while autoAttack do
         VIM:SendMouseButtonEvent(0, 0, 0, true, game, 1)
@@ -586,58 +658,54 @@ local function autoAttackLoop()
         task.wait(0.15)
     end
 end
+
+-- ==========================================
+-- NOVA FUNÇÃO: TELEPORT TO PLAYER (FLY SPEED)
+-- ==========================================
 local function forceTeleportToPlayer(targetName)
     local target = Players:FindFirstChild(targetName)
     if not target or not target.Character or not root then return end
-    local targetChar = target.Character
-    local targetCFrame = targetChar:GetPivot()
-    if targetCFrame then
-        root.CFrame = targetCFrame + Vector3.new(0, 3, 0)
-        local startTime = tick()
-        local stayLoop
-        stayLoop = RunService.RenderStepped:Connect(function()
-            if targetChar then
-                 targetCFrame = targetChar:GetPivot()
-                 root.CFrame = targetCFrame + Vector3.new(0, 3, 0)
-                 root.Velocity = Vector3.new(0,0,0)
-            end
-            if (tick() - startTime > 3) or (targetChar:FindFirstChild("HumanoidRootPart")) then
-                stayLoop:Disconnect()
-            end
-        end)
+    
+    local targetRoot = target.Character:FindFirstChild("HumanoidRootPart")
+    if targetRoot then
+        root.CFrame = targetRoot.CFrame + Vector3.new(0, 3, 0)
+        root.Velocity = Vector3.new(0,0,0)
+    else
+        local pivot = target.Character:GetPivot()
+        root.CFrame = pivot + Vector3.new(0, 3, 0)
+        root.Velocity = Vector3.new(0,0,0)
     end
 end
--- ==========================================
--- NO CLIP FUNCTION
--- ==========================================
-local function toggleNoclip(state)
-    noclipToggle = state
-    if state then
-        if noclipConn then noclipConn:Disconnect() end
-        noclipConn = RunService.Stepped:Connect(function(time, step)
-            if char then
-                for _, part in pairs(char:GetDescendants()) do
-                    if part:IsA("BasePart") and part.CanCollide then
-                        part.CanCollide = false
-                    end
-                end
-            end
-        end)
+
+local function forceTeleportToNPC(npcName)
+    local npc = findEnemy(npcName)
+    if not npc or not root then return end
+    
+    local npcRoot = npc:FindFirstChild("HumanoidRootPart") or npc:FindFirstChild("Torso")
+    if npcRoot then
+        root.CFrame = npcRoot.CFrame + Vector3.new(0, 3, 0)
+        root.Velocity = Vector3.new(0,0,0)
     else
-        if noclipConn then noclipConn:Disconnect() end
+        local success, pivot = pcall(function() return npc:GetPivot() end)
+        if success then
+            root.CFrame = pivot + Vector3.new(0, 3, 0)
+            root.Velocity = Vector3.new(0,0,0)
+        end
     end
 end
 
 -- ==========================================
--- UI TABS NORMAIS
+-- UI TABS (REORGANIZADAS)
 -- ==========================================
 local geralTab = Window:NewTab("Geral")
-local extraTab = Window:NewTab("Farm")
+local farmGeralTab = Window:NewTab("Farm Geral") -- ABA 2: GERAL
+local mobTab = Window:NewTab("Farm Mobs")      -- ABA 3: MOBS
+local farmCasteloTab = Window:NewTab("Farm Castelo") -- NOVA ABA: FARM CASTELO
 local playersTab = Window:NewTab("Players")
 local tpTab = Window:NewTab("Teleportes")
 
 -- ==========================================
--- GERAL TAB - FLY
+-- GERAL TAB
 -- ==========================================
 local flySec = geralTab:NewSection("Fly Híbrido")
 flySec:NewToggle("Ativar Fly", "WASD + Space↑ + C↓", function(state)
@@ -650,9 +718,6 @@ flySec:NewToggle("Ativar Fly", "WASD + Space↑ + C↓", function(state)
 end)
 flySec:NewSlider("Força do Fly", "0-5000 (Preciso) | 5k-10k (Turbo)", 10000, 150, function(v) flySpeedValue = v end)
 
--- ==========================================
--- GERAL TAB - SPEED
--- ==========================================
 local speedSec = geralTab:NewSection("Speed no Chão")
 speedSec:NewToggle("Ativar Speed", "Aumenta velocidade", function(state)
     speedToggle = state
@@ -668,26 +733,14 @@ speedSec:NewToggle("Ativar Speed", "Aumenta velocidade", function(state)
 end)
 speedSec:NewSlider("Valor Speed", "Normal ~100", 1000, 100, function(v) walkSpeed = v end)
 
--- ==========================================
--- GERAL TAB - MOVEMENT
--- ==========================================
 local movementSec = geralTab:NewSection("Movimento")
 movementSec:NewToggle("Click TP", "Clique para teleportar", function(state)
     toggleClickTP(state)
 end)
-
--- ==========================================
--- GERAL TAB - COMBAT
--- ==========================================
-local combatSec = geralTab:NewSection("Combat")
-combatSec:NewToggle("Auto Attack M1", "Simula clique do mouse", function(state)
-    autoAttack = state
-    if state then spawn(autoAttackLoop) end
+movementSec:NewToggle("No Clip", "Atravesse paredes", function(state)
+    toggleNoclip(state)
 end)
 
--- ==========================================
--- GERAL TAB - VISUAL
--- ==========================================
 local visualSec = geralTab:NewSection("Visual")
 visualSec:NewToggle("No Fog (Lite Básico)", "Remove apenas neblina", function(state)
     noFogEnabled = state
@@ -697,16 +750,116 @@ visualSec:NewToggle("SUPER ULTRA LITE", "DEIXA TUDO FEIO E LISO (FPS)", function
     toggleUltraLite(state)
 end)
 
--- ==========================================
--- GERAL TAB - CHEATS
--- ==========================================
 local cheatsSec = geralTab:NewSection("Cheats Adicionais")
-cheatsSec:NewToggle("No Clip", "Atravesse paredes", function(state)
-    toggleNoclip(state)
+
+-- ==========================================
+-- FARM GERAL TAB
+-- ==========================================
+
+local configSec = farmGeralTab:NewSection("Configurações de Farm")
+configSec:NewDropdown("Posição de Teleporte", "Escolha a posição relativa ao alvo", {"Below", "Above", "Behind"}, function(v)
+    teleportMode = v
+end)
+configSec:NewSlider("Distância do Alvo", "Ajusta quantos studs de distância do mob/player", 20, 0.1, function(valor)
+    FARM_DISTANCE = valor
+end)
+configSec:NewSlider("Distância no Execute", "Quanto fugir quando estiver executando (30-60 recomendado)", 100, 0.1, function(v)
+    EXECUTE_DISTANCE = v
+end)
+
+local combatSec = farmGeralTab:NewSection("Combat")
+combatSec:NewToggle("Auto Attack M1", "Simula clique do mouse", function(state)
+    autoAttack = state
+    if state then spawn(autoAttackLoop) end
+end)
+
+local trinketSec = farmGeralTab:NewSection("Farm Trinkets")
+trinketSec:NewToggle("Auto Farm Trinkets", "Teleporta e coleta automaticamente", function(state)
+    trinketFarm = state
+    if state then
+        spawn(function()
+            while trinketFarm do
+                task.wait(0.1)
+                pcall(function()
+                    if workspace:FindFirstChild("Trinkets") then
+                        for _, trinket in pairs(workspace.Trinkets:GetChildren()) do
+                            if not trinketFarm then break end
+                            if trinket:IsA("Part") and trinket:FindFirstChild("Spawned") then
+                                if root then root.CFrame = trinket.CFrame * CFrame.new(0, 3, 0) end
+                                task.wait(0.15)
+                                local attempts = 0
+                                while trinketFarm and trinket.Parent and trinket:FindFirstChild("Spawned") and attempts < 10 do
+                                    VIM:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+                                    task.wait(0.05)
+                                    VIM:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+                                    task.wait(0.1)
+                                    attempts = attempts + 1
+                                end
+                            end
+                        end
+                    end
+                end)
+            end
+        end)
+    end
 end)
 
 -- ==========================================
--- PLAYERS TAB - INTERAGIR
+-- FARM MOBS TAB
+-- ==========================================
+
+
+local raidSec = mobTab:NewSection("Farm Raids")
+raidSec:NewButton("TP Raid", "Teleporta para a área da Raid", function() if root then root.CFrame = raidCFrame end end)
+raidSec:NewToggle("Farm Shinobu Raid", "Auto teleport + ataque", function(state)
+    if state then toggleTeleport(true, "ShinoubuRaid") else toggleTeleport(false) end
+end)
+raidSec:NewToggle("Farm Rengoku Raid", "Auto teleport + ataque", function(state)
+    if state then toggleTeleport(true, "RengokuRaid") else toggleTeleport(false) end
+end)
+raidSec:NewToggle("Farm Kokushibo Raid", "Auto teleport + ataque", function(state)
+    if state then toggleTeleport(true, "KokushiboRaid") else toggleTeleport(false) end
+end)
+raidSec:NewToggle("Farm Yoriichi Raid", "Auto teleport + ataque", function(state)
+    if state then toggleTeleport(true, "Yoriichi") else toggleTeleport(false) end
+end)
+raidSec:NewToggle("Farm Enemy Raid", "Foca no inimigo 'Enemy'", function(state)
+    if state then toggleTeleport(true, "Enemy") else toggleTeleport(false) end
+end)
+
+local mobSec = mobTab:NewSection("Farm Mobs")
+mobSec:NewButton("Carregar Todos Mobs", "Teleporta para spawn points", function() loadAllMobs() end)
+
+local mobToggles = {}
+for _, mob in ipairs(MOBS) do
+    local tog = mobSec:NewToggle("Farm "..mob, "Auto teleport", function(state)
+        if state then toggleTeleport(true, mob) else toggleTeleport(false) end
+    end)
+    mobToggles[mob] = tog
+end
+
+-- ==========================================
+-- FARM CASTELO TAB (NOVA)
+-- ==========================================
+
+local casteloTpSec = farmCasteloTab:NewSection("Teleportes Castelo")
+casteloTpSec:NewButton("Slayer Corps Castelo TP", "TP para coordenada 1", function() if root then root.CFrame = casteloCoord1 end end)
+casteloTpSec:NewButton("Akaza|Doma TP", "TP para coordenada 2", function() if root then root.CFrame = casteloCoord2 end end)
+casteloTpSec:NewButton("Kokushibo TP", "TP para coordenada 3", function() if root then root.CFrame = casteloCoord3 end end)
+
+local casteloMobSec = farmCasteloTab:NewSection("Farm Mobs Castelo")
+casteloMobSec:NewToggle("Farm Akaza", "Auto teleport + ataque", function(state)
+    if state then toggleTeleport(true, "Akaza") else toggleTeleport(false) end
+end)
+casteloMobSec:NewToggle("Farm Doma", "Auto teleport + ataque", function(state)
+    if state then toggleTeleport(true, "Doma") else toggleTeleport(false) end
+end)
+casteloMobSec:NewToggle("Farm Kokushibo", "Auto teleport + ataque", function(state)
+    if state then toggleTeleport(true, "Kokushibo") else toggleTeleport(false) end
+end)
+
+-- ==========================================
+-- PLAYERS TAB
 -- ==========================================
 local playerSec = playersTab:NewSection("Interagir com Players")
 local playerDropdown = nil
@@ -717,7 +870,7 @@ local function getPlayerList()
 end
 playerDropdown = playerSec:NewDropdown("Selecionar Player", "Escolha o alvo", getPlayerList(), function(v) selectedPlayerName = v end)
 playerSec:NewButton("Atualizar Lista", "Clica se entrar gente nova", function() if playerDropdown then playerDropdown:Refresh(getPlayerList()) end end)
-playerSec:NewButton("Teleportar para Player", "Carrega o mapa e vai até ele", function() if selectedPlayerName then forceTeleportToPlayer(selectedPlayerName) end end)
+playerSec:NewButton("Ir até Player (TP Fly)", "Voa rápido (Carrega mapa)", function() if selectedPlayerName then forceTeleportToPlayer(selectedPlayerName) end end)
 playerSec:NewToggle("Farmar Player", "TP Costas + Seguir", function(state)
     if state and selectedPlayerName then toggleTeleport(true, selectedPlayerName) else toggleTeleport(false) end
 end)
@@ -725,9 +878,11 @@ playerSec:NewToggle("ESP Players (WallHack)", "Marca todos players no mapa!", fu
     toggleESP(state)
 end)
 
--- ==========================================
--- PLAYERS TAB - SPECTATE
--- ==========================================
+local playerConfigSec = playersTab:NewSection("Configurações Player Farm")
+playerConfigSec:NewSlider("Distância no Execute Player", "Quanto fugir quando estiver executando player", 100, 0.1, function(v)
+    PLAYER_EXECUTE_DISTANCE = v
+end)
+
 local spectateSec = playersTab:NewSection("Spectate Player (Câmera de Cima)")
 local spectateDropdown = nil
 spectateDropdown = spectateSec:NewDropdown("Selecionar Player", "Escolha quem assistir", getPlayerList(), function(v) selectedPlayerName = v end)
@@ -771,88 +926,6 @@ breathSec:NewButton("Sound Breath", "TP", function() if root then root.CFrame = 
 breathSec:NewButton("Flower Breath", "TP", function() if root then root.CFrame = flowerBreathCFrame end end)
 breathSec:NewButton("Serpent Breath", "TP", function() if root then root.CFrame = serpentBreathCFrame end end)
 breathSec:NewButton("Love Breath", "TP", function() if root then root.CFrame = loveBreathCFrame end end)
-
--- ==========================================
--- FARM TAB - CONFIGURAÇÕES
--- ==========================================
-local configSec = extraTab:NewSection("Configurações Farm")
-configSec:NewDropdown("Posição de Teleporte", "Escolha a posição relativa ao alvo", {"Below", "Above", "Behind"}, function(v)
-    teleportMode = v
-end)
-configSec:NewSlider("Distância do Alvo", "Ajusta quantos studs de distância do mob/player", 20, 0.1, function(valor)
-    FARM_DISTANCE = valor
-end)
-configSec:NewSlider("Distância no Execute", "Quanto fugir quando estiver executando (30-60 recomendado)", 100, 0.1, function(v)
-    EXECUTE_DISTANCE = v
-end)
-
--- ==========================================
--- FARM TAB - TRINKETS
--- ==========================================
-local trinketSec = extraTab:NewSection("Farm Trinkets")
-trinketSec:NewToggle("Auto Farm Trinkets", "Teleporta e coleta automaticamente", function(state)
-    trinketFarm = state
-    if state then
-        spawn(function()
-            while trinketFarm do
-                task.wait(0.1)
-                pcall(function()
-                    if workspace:FindFirstChild("Trinkets") then
-                        for _, trinket in pairs(workspace.Trinkets:GetChildren()) do
-                            if not trinketFarm then break end
-                            if trinket:IsA("Part") and trinket:FindFirstChild("Spawned") then
-                                if root then root.CFrame = trinket.CFrame * CFrame.new(0, 3, 0) end
-                                task.wait(0.15)
-                                local attempts = 0
-                                while trinketFarm and trinket.Parent and trinket:FindFirstChild("Spawned") and attempts < 10 do
-                                    VIM:SendKeyEvent(true, Enum.KeyCode.E, false, game)
-                                    task.wait(0.05)
-                                    VIM:SendKeyEvent(false, Enum.KeyCode.E, false, game)
-                                    task.wait(0.1)
-                                    attempts = attempts + 1
-                                end
-                            end
-                        end
-                    end
-                end)
-            end
-        end)
-    end
-end)
-
--- ==========================================
--- FARM TAB - RAIDS
--- ==========================================
-local raidSec = extraTab:NewSection("Farm Raids")
-raidSec:NewToggle("Farm Shinobu Raid", "Auto teleport + ataque", function(state)
-    if state then toggleTeleport(true, "ShinoubuRaid") else toggleTeleport(false) end
-end)
-raidSec:NewToggle("Farm Rengoku Raid", "Auto teleport + ataque", function(state)
-    if state then toggleTeleport(true, "RengokuRaid") else toggleTeleport(false) end
-end)
-raidSec:NewToggle("Farm Kokushibo Raid", "Auto teleport + ataque", function(state)
-    if state then toggleTeleport(true, "KokushiboRaid") else toggleTeleport(false) end
-end)
-raidSec:NewToggle("Farm Yoriichi Raid", "Auto teleport + ataque", function(state)
-    if state then toggleTeleport(true, "YoriichiRaid") else toggleTeleport(false) end
-end)
-raidSec:NewToggle("Farm Enemy Raid", "Foca no inimigo 'Enemy'", function(state)
-    if state then toggleTeleport(true, "Enemy") else toggleTeleport(false) end
-end)
-
--- ==========================================
--- FARM TAB - MOBS
--- ==========================================
-local mobSec = extraTab:NewSection("Farm Mobs")
-mobSec:NewButton("Carregar Todos Mobs", "Teleporta para spawn points", function() loadAllMobs() end)
-
-local mobToggles = {}
-for _, mob in ipairs(MOBS) do
-    local tog = mobSec:NewToggle("Farm "..mob, "Auto teleport", function(state)
-        if state then toggleTeleport(true, mob) else toggleTeleport(false) end
-    end)
-    mobToggles[mob] = tog
-end
 
 -- ==========================================
 -- ABA DEVELOPER
@@ -1008,10 +1081,27 @@ devSec:NewButton("Visualizar NPCs Carregados", "Abre popup dos NPCs existentes",
     createNPCViewer()
 end)
 
-local UserInputService = game:GetService("UserInputService")
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    if input.KeyCode == Enum.KeyCode.F5 then
-        createNPCViewer()
+local customSec = devTab:NewSection("Custom TP & Farm Entidade")
+local customTargetName = ""
+customSec:NewTextBox("Nome da Entidade", "Digite o nome exato", function(text)
+    customTargetName = text
+end)
+customSec:NewButton("TP para Entidade", "Teleporta para o nome digitado acima", function()
+    if customTargetName ~= "" then
+        local isPlayer = Players:FindFirstChild(customTargetName)
+        if isPlayer then
+            forceTeleportToPlayer(customTargetName)
+        else
+            forceTeleportToNPC(customTargetName)
+        end
+    end
+end)
+customSec:NewToggle("Farm Entidade", "Farm no nome digitado acima (mesma logica)", function(state)
+    if customTargetName ~= "" then
+        if state then 
+            toggleTeleport(true, customTargetName) 
+        else 
+            toggleTeleport(false) 
+        end
     end
 end)
