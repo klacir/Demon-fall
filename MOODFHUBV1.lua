@@ -1105,3 +1105,101 @@ customSec:NewToggle("Farm Entidade", "Farm no nome digitado acima (mesma logica)
         end
     end
 end)
+
+local morphSec = devTab:NewSection("Morph Tools")
+local morphDropdown = nil
+local selectedMorphTarget = nil
+local function getNPCList()
+    local npcs = {}
+    local function searchFolder(folder)
+        for _, child in pairs(folder:GetChildren()) do
+            if child:FindFirstChild("Humanoid") and not Players:FindFirstChild(child.Name) then
+                table.insert(npcs, child.Name)
+            end
+            if child:IsA("Folder") or child:IsA("Model") then
+                searchFolder(child)
+            end
+        end
+    end
+    searchFolder(workspace)
+    return npcs
+end
+morphDropdown = morphSec:NewDropdown("Select NPC to Morph", "Choose NPC", getNPCList(), function(v) selectedMorphTarget = v end)
+morphSec:NewButton("Refresh NPC List", "Update the list of loaded NPCs", function() if morphDropdown then morphDropdown:Refresh(getNPCList()) end end)
+local function morphInto(npcName)
+    local npc = findEnemy(npcName)
+    if not npc then return end
+    local npcHum = npc:FindFirstChildOfClass("Humanoid")
+    if not npcHum then return end
+    local desc = npcHum:GetAppliedDescription()
+    if not desc then return end
+
+    -- Apply body colors
+    local bodyParts = {"Head", "Torso", "Left Arm", "Right Arm", "Left Leg", "Right Leg"}
+    local bodyColors = {desc.HeadColor, desc.TorsoColor, desc.LeftArmColor, desc.RightArmColor, desc.LeftLegColor, desc.RightLegColor}
+    for i, partName in ipairs(bodyParts) do
+        local part = char:FindFirstChild(partName)
+        if part then
+            part.Color = bodyColors[i]
+        end
+    end
+
+    -- Apply clothing
+    local clothingTypes = {"Shirt", "Pants", "ShirtGraphic"}
+    local clothingProps = {"ShirtTemplate", "PantsTemplate", "Graphic"}
+    local clothingIds = {desc.Shirt, desc.Pants, desc.GraphicTShirt}
+    for i, clothType in ipairs(clothingTypes) do
+        local existing = char:FindFirstChildOfClass(clothType)
+        if not existing then
+            existing = Instance.new(clothType)
+            existing.Parent = char
+        end
+        if clothingIds[i] ~= 0 then
+            existing[clothingProps[i]] = "rbxassetid://" .. clothingIds[i]
+        else
+            existing:Destroy()
+        end
+    end
+
+    -- Apply face
+    local head = char:FindFirstChild("Head")
+    if head then
+        local face = head:FindFirstChild("face") or head:FindFirstChildOfClass("Decal")
+        if face then face:Destroy() end
+        if desc.Face ~= 0 then
+            face = Instance.new("Decal")
+            face.Name = "face"
+            face.Texture = "rbxassetid://" .. desc.Face
+            face.Parent = head
+        end
+    end
+
+    -- Apply scales
+    local scales = {
+        BodyDepthScale = desc.Depth,
+        BodyHeightScale = desc.Height,
+        BodyWidthScale = desc.Width,
+        HeadScale = desc.Head,
+        BodyProportionScale = desc.Proportion
+    }
+    for scaleName, value in pairs(scales) do
+        local scaleObj = humanoid:FindFirstChild(scaleName)
+        if scaleObj then
+            scaleObj.Value = value
+        end
+    end
+
+    -- Apply accessories by cloning from NPC
+    for _, acc in pairs(char:GetChildren()) do
+        if acc:IsA("Accessory") then acc:Destroy() end
+    end
+    for _, acc in pairs(npc:GetChildren()) do
+        if acc:IsA("Accessory") then
+            local clone = acc:Clone()
+            clone.Parent = char
+        end
+    end
+end
+morphSec:NewButton("Morph into Selected NPC", "Copy appearance from selected NPC", function()
+    if selectedMorphTarget then morphInto(selectedMorphTarget) end
+end)
