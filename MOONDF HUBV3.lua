@@ -115,6 +115,7 @@ local TRANSLATIONS = {
         FARM = "Farm",
         FARM_DESC = "Auto TP",
 
+
         RAIDS = "Raids (Locais)",
         RAIDS_DESC = "Farm de Raids",
         TP_RAID_AREA = "TP Área Raid",
@@ -1832,27 +1833,40 @@ function createHubUI()
         addTopic(T("TOPIC_FARM"), {
             { Type = "Label", Name = T("INFO_LABEL") },
             { Type = "ListAuto", Name = T("EXTRAS_MOBS"), Description = T("EXTRAS_MOBS_DESC"), Options = {
+                -- CORREÇÃO: lógica de trinket substituída pela versão sequencial/aguardante (do MOODFHUBV1)
                 { Type = "Toggle", StateKey = "TrinketFarm", Name = T("TRINKET_FARM"), Description = T("TRINKET_FARM_DESC"), OnEnable = function()
                     trinketFarm = true
                     globalEnv.trinketFarm = true
                     spawn(function()
                         while trinketFarm do
                             task.wait(0.1)
-                            if workspace:FindFirstChild("Trinkets") then
-                                for _, t in pairs(workspace.Trinkets:GetChildren()) do
-                                    if not trinketFarm then break end
-                                    if t:IsA("Part") and t:FindFirstChild("Spawned") and root then
-                                        root.CFrame = t.CFrame * CFrame.new(0,3,0)
-                                        task.wait(0.15)
-                                        VIM:SendKeyEvent(true, Enum.KeyCode.E, false, game)
-                                        task.wait(0.05)
-                                        VIM:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+                            pcall(function()
+                                if workspace:FindFirstChild("Trinkets") then
+                                    for _, trinket in pairs(workspace.Trinkets:GetChildren()) do
+                                        if not trinketFarm then break end
+                                        if trinket:IsA("Part") and trinket:FindFirstChild("Spawned") then
+                                            if root then root.CFrame = trinket.CFrame * CFrame.new(0, 3, 0) end
+                                            task.wait(0.15)
+                                            local attempts = 0
+                                            -- Aguarda até que o trinket seja coletado (Spawned removido) ou até atingir limite de tentativas
+                                            while trinketFarm and trinket.Parent and trinket:FindFirstChild("Spawned") and attempts < 10 do
+                                                VIM:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+                                                task.wait(0.05)
+                                                VIM:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+                                                task.wait(0.1)
+                                                attempts = attempts + 1
+                                            end
+                                        end
                                     end
                                 end
-                            end
+                            end)
                         end
                     end)
-                end, OnDisable = function() trinketFarm = false globalEnv.trinketFarm = false end },
+                end, OnDisable = function()
+                    trinketFarm = false
+                    globalEnv.trinketFarm = false
+                end },
+                -- AutoAttack permanece igual
                 { Type = "Toggle", StateKey = "AutoAttack", Name = T("AUTO_ATTACK"), Description = T("AUTO_ATTACK_DESC"), OnEnable = function() autoAttack = true globalEnv.autoAttack = true spawn(autoAttackLoop) end, OnDisable = function() autoAttack = false globalEnv.autoAttack = false end }
             }},
             { Type = "ListAuto", Name = T("TP_MODE"), Description = T("TP_MODE_DESC"), Options = {
