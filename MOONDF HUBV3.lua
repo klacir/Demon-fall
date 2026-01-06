@@ -1,4 +1,13 @@
--- ==============================================================================
+--[[
+    MOONDF HUB - MERGED (PC & MOBILE COMPATIBLE)
+    - Mantive nomes de funções públicas (setupFly, toggleNoclip, toggleClickTP, etc.)
+    - Popup inicial PC / Mobile. Depois de escolher, o HUD é criado com suporte a toque.
+    - Sliders e redimensionamento compatíveis com Touch e Mouse.
+    - Variáveis de GUI usam uiRoot para evitar conflito com 'root' do personagem (HumanoidRootPart).
+    - Preservadas as funcionalidades do seu V3; apenas organizei a ordem para que callbacks encontrem as funções.
+]]
+
+-- ============================================================================== 
 --  SERVICES
 -- ==============================================================================
 local Players = game:GetService("Players")
@@ -6,9 +15,12 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local CoreGui = game:GetService("CoreGui")
+local Lighting = game:GetService("Lighting")
+local VIM = game:GetService("VirtualInputManager")
+local Camera = workspace and workspace.CurrentCamera
 
 -- =========================
--- SISTEMA DE IDIOMA
+-- SISTEMA DE IDIOMA & TRADUÇÕES (Usadas por UI)
 -- =========================
 local globalEnv = (typeof(getgenv) == "function" and getgenv()) or _G
 globalEnv.CurrentLang = globalEnv.CurrentLang or "PT"
@@ -19,17 +31,20 @@ local TRANSLATIONS = {
         TITLE_MAIN = "MOONDF HUB",
         TOPIC_TEST = "Teste",
         TOPIC_CONFIG = "Configuração",
+        TOPIC_GENERAL = "Geral",
+        TOPIC_MOBS = "Mobs",
+        TOPIC_FARM = "Farm",
+        TOPIC_PLAYERS = "Players",
+        TOPIC_TELEPORTS = "Teleportes",
         FOOTER_TEXT = "Right Ctrl ou use o botão para minimizar • Inputs: Immediate (OK) / Select (no OK)",
-     
-        -- Config
+
         LANG_LABEL = "Idioma / Language",
         LANG_DESC = "Altera todo o texto do menu",
         THEME_LABEL = "Tema / Theme",
         THEME_DESC = "Altera as cores da interface",
         OPACITY_LABEL = "Opacidade / Opacity",
         OPACITY_DESC = "Altera a transparência da janela",
-        
-        -- Test Itens (Mantidos no dicionário para não quebrar referências, mas não usados)
+
         DEMO_LABEL = "Demonstração",
         DEMO_DESC = "Verifique os comentários no código.",
         BTN_HITBOX = "Botão Teste",
@@ -63,13 +78,6 @@ local TRANSLATIONS = {
         TOGGLE_LEVEL_3 = "Toggle Nível 3",
         TOGGLE_LEVEL_3_DESC = "Funcionando",
 
-        -- Adições para MoonDFHub V2.5
-        TOPIC_GENERAL = "Geral",
-        TOPIC_MOBS = "Mobs",
-        TOPIC_FARM = "Farm",
-        TOPIC_PLAYERS = "Players",
-        TOPIC_TELEPORTS = "Teleportes",
-        TOPIC_CONFIG = "Configuração",
         FLY_SPEED = "Fly & Speed",
         FLY_SPEED_DESC = "Controles de movimento",
         ENABLE_FLY = "Ativar Fly",
@@ -80,6 +88,7 @@ local TRANSLATIONS = {
         ENABLE_SPEED_DESC = "Velocidade no chão",
         SPEED_VALUE_SLIDER = "Valor Speed",
         SPEED_VALUE_SLIDER_DESC = "Velocidade de corrida",
+
         EXTRAS = "Extras",
         EXTRAS_DESC = "Utilidades",
         CLICK_TP = "Click TP",
@@ -90,6 +99,7 @@ local TRANSLATIONS = {
         NO_FOG_DESC = "Remover neblina",
         ULTRA_LITE = "Ultra Lite",
         ULTRA_LITE_DESC = "Modo Batata (FPS)",
+
         TP_MODE = "Modo de TP",
         TP_MODE_DESC = "Posição relativa ao mob",
         DISTANCE = "Distância",
@@ -104,6 +114,7 @@ local TRANSLATIONS = {
         FARM_MOBS_LIST_DESC = "Selecione o Mob para farmar",
         FARM = "Farm",
         FARM_DESC = "Auto TP",
+
         RAIDS = "Raids (Locais)",
         RAIDS_DESC = "Farm de Raids",
         TP_RAID_AREA = "TP Área Raid",
@@ -118,6 +129,7 @@ local TRANSLATIONS = {
         TP_KOKUSHIBO_DESC = "Coord 3",
         TRINKET_FARM = "Trinket Farm",
         TRINKET_FARM_DESC = "Coleta automática",
+
         SELECT_PLAYER = "Selecionar Player",
         SELECT_PLAYER_DESC = "Escolha o alvo",
         UPDATE_LIST = "Atualizar Lista",
@@ -138,11 +150,12 @@ local TRANSLATIONS = {
         DISTANCE_SPECTATE_DESC = "Distância camera",
         ENABLE_SPECTATE = "Ativar Spectate",
         ENABLE_SPECTATE_DESC = "Olhar player selecionado",
+
         VILLAGES = "Vilas",
         VILLAGES_DESC = "Locais principais",
-        TP_HAYAKAWA = "Okuya",
+        TP_HAYAKAWA = "Hayakawa",
         TP_HAYAKAWA_DESC = "TP",
-        TP_OKUYA = "Hayakawa",
+        TP_OKUYA = "Okuya",
         TP_OKUYA_DESC = "TP",
         TP_KAMAKURA = "Kamakura",
         TP_KAMAKURA_DESC = "TP",
@@ -152,6 +165,7 @@ local TRANSLATIONS = {
         TP_DISTRITO_DESC = "TP",
         TP_SLAYER_EXAM = "Slayer Exam",
         TP_SLAYER_EXAM_DESC = "TP",
+
         BREATHS = "Respirações",
         BREATHS_DESC = "Trainers",
         TP_MIST = "Mist",
@@ -180,6 +194,7 @@ local TRANSLATIONS = {
         TP_SERPENT_DESC = "TP",
         TP_LOVE = "Love",
         TP_LOVE_DESC = "TP",
+
         LANGUAGE = "Idioma",
         LANGUAGE_DESC = "Altera idioma",
         THEME = "Tema",
@@ -196,15 +211,20 @@ local TRANSLATIONS = {
         TITLE_MAIN = "MOONDF HUB",
         TOPIC_TEST = "Test",
         TOPIC_CONFIG = "Settings",
+        TOPIC_GENERAL = "General",
+        TOPIC_MOBS = "Mobs",
+        TOPIC_FARM = "Farm",
+        TOPIC_PLAYERS = "Players",
+        TOPIC_TELEPORTS = "Teleports",
         FOOTER_TEXT = "Right Ctrl or use button to minimize • Inputs: Immediate (OK) / Select (no OK)",
-        
+
         LANG_LABEL = "Language / Idioma",
         LANG_DESC = "Changes all menu text",
         THEME_LABEL = "Theme / Tema",
         THEME_DESC = "Changes UI colors",
         OPACITY_LABEL = "Opacity / Opacity",
         OPACITY_DESC = "Changes window transparency",
-        
+
         DEMO_LABEL = "Demo",
         DEMO_DESC = "Check code comments.",
         BTN_HITBOX = "Test Button",
@@ -221,30 +241,7 @@ local TRANSLATIONS = {
         INPUT_NO_OK_PLACE = "Text...",
         DROPDOWN = "Option List",
         DROPDOWN_DESC = "Select an option",
-        LIST_GROUP = "Group List",
-        LIST_GROUP_DESC = "Contains other items",
-        ITEM_INNER_1 = "Inner Item 1",
-        ITEM_INNER_DESC_1 = "Toggle inside list",
-        ITEM_INNER_2 = "Inner Item 2",
-        ITEM_INNER_DESC_2 = "Slider inside list",
-        NEST_TEST = "Nesting Test",
-        NEST_TEST_DESC = "Deep levels",
-        LEVEL_1 = "Level 1",
-        LEVEL_1_DESC = "Inside first list",
-        SUB_LIST = "Sub-List",
-        SUB_LIST_DESC = "Level 2",
-        BTN_LEVEL_3 = "Button Level 3",
-        BTN_LEVEL_3_DESC = "Working",
-        TOGGLE_LEVEL_3 = "Toggle Level 3",
-        TOGGLE_LEVEL_3_DESC = "Working",
 
-        -- Adições para MoonDFHub V2.5
-        TOPIC_GENERAL = "General",
-        TOPIC_MOBS = "Mobs",
-        TOPIC_FARM = "Farm",
-        TOPIC_PLAYERS = "Players",
-        TOPIC_TELEPORTS = "Teleports",
-        TOPIC_CONFIG = "Settings",
         FLY_SPEED = "Fly & Speed",
         FLY_SPEED_DESC = "Movement controls",
         ENABLE_FLY = "Enable Fly",
@@ -255,6 +252,7 @@ local TRANSLATIONS = {
         ENABLE_SPEED_DESC = "Ground speed",
         SPEED_VALUE_SLIDER = "Speed Value",
         SPEED_VALUE_SLIDER_DESC = "Running speed",
+
         EXTRAS = "Extras",
         EXTRAS_DESC = "Utilities",
         CLICK_TP = "Click TP",
@@ -265,6 +263,7 @@ local TRANSLATIONS = {
         NO_FOG_DESC = "Remove fog",
         ULTRA_LITE = "Ultra Lite",
         ULTRA_LITE_DESC = "Potato Mode (FPS)",
+
         TP_MODE = "TP Mode",
         TP_MODE_DESC = "Position relative to mob",
         DISTANCE = "Distance",
@@ -279,6 +278,7 @@ local TRANSLATIONS = {
         FARM_MOBS_LIST_DESC = "Select Mob to farm",
         FARM = "Farm",
         FARM_DESC = "Auto TP",
+
         RAIDS = "Raids (Locations)",
         RAIDS_DESC = "Raid Farm",
         TP_RAID_AREA = "TP Raid Area",
@@ -293,6 +293,7 @@ local TRANSLATIONS = {
         TP_KOKUSHIBO_DESC = "Coord 3",
         TRINKET_FARM = "Trinket Farm",
         TRINKET_FARM_DESC = "Auto collect",
+
         SELECT_PLAYER = "Select Player",
         SELECT_PLAYER_DESC = "Choose target",
         UPDATE_LIST = "Update List",
@@ -313,6 +314,7 @@ local TRANSLATIONS = {
         DISTANCE_SPECTATE_DESC = "Camera distance",
         ENABLE_SPECTATE = "Enable Spectate",
         ENABLE_SPECTATE_DESC = "Look at selected player",
+
         VILLAGES = "Villages",
         VILLAGES_DESC = "Main locations",
         TP_HAYAKAWA = "Hayakawa",
@@ -327,6 +329,7 @@ local TRANSLATIONS = {
         TP_DISTRITO_DESC = "TP",
         TP_SLAYER_EXAM = "Slayer Exam",
         TP_SLAYER_EXAM_DESC = "TP",
+
         BREATHS = "Breaths",
         BREATHS_DESC = "Trainers",
         TP_MIST = "Mist",
@@ -355,6 +358,7 @@ local TRANSLATIONS = {
         TP_SERPENT_DESC = "TP",
         TP_LOVE = "Love",
         TP_LOVE_DESC = "TP",
+
         LANGUAGE = "Language",
         LANGUAGE_DESC = "Change language",
         THEME = "Theme",
@@ -370,7 +374,7 @@ local TRANSLATIONS = {
 }
 
 local function T(key)
-    return TRANSLATIONS[CurrentLang][key] or key
+    return TRANSLATIONS[CurrentLang] and TRANSLATIONS[CurrentLang][key] or key
 end
 
 -- =========================
@@ -380,13 +384,7 @@ globalEnv.CurrentThemeName = globalEnv.CurrentThemeName or "Preto / Black"
 local CurrentThemeName = globalEnv.CurrentThemeName
 globalEnv.CurrentOpacity = globalEnv.CurrentOpacity or 0
 local CurrentOpacity = globalEnv.CurrentOpacity
-local DEFAULT_WIDTH = 760
-local DEFAULT_HEIGHT = 520
-local MIN_WIDTH = 420
-local MIN_HEIGHT = 260
-local RIGHT_AREA_SCALE = 0.33 
 
--- DEFINIÇÃO DOS TEMAS
 local THEME_PRESETS = {
     ["Azul / Blue"] = {
         Background = Color3.fromRGB(15, 18, 25),
@@ -399,7 +397,7 @@ local THEME_PRESETS = {
         Hover      = Color3.fromRGB(45, 50, 60),
         Danger     = Color3.fromRGB(255, 60, 60),
         Accent     = Color3.fromRGB(0, 160, 255),
-        KnobColor  = Color3.fromRGB(245, 245, 245) -- Bolinha Slider Padrão
+        KnobColor  = Color3.fromRGB(245, 245, 245)
     },
     ["Vermelho / Red"] = {
         Background = Color3.fromRGB(20, 10, 10),
@@ -437,12 +435,12 @@ local THEME_PRESETS = {
         Border     = Color3.fromRGB(70, 70, 70),
         Hover      = Color3.fromRGB(35, 35, 35),
         Danger     = Color3.fromRGB(150, 50, 50),
-        Accent     = Color3.fromRGB(80, 80, 80), 
+        Accent     = Color3.fromRGB(80, 80, 80),
         KnobColor  = Color3.fromRGB(245, 245, 245)
     },
     ["Branco / White"] = {
-        Background = Color3.fromRGB(255, 255, 255), -- Era PanelBg
-        PanelBg    = Color3.fromRGB(235, 235, 240), -- Era Background
+        Background = Color3.fromRGB(255, 255, 255),
+        PanelBg    = Color3.fromRGB(235, 235, 240),
         Text       = Color3.fromRGB(30, 30, 35),
         SubText    = Color3.fromRGB(100, 100, 110),
         Off        = Color3.fromRGB(210, 210, 220),
@@ -450,7 +448,7 @@ local THEME_PRESETS = {
         Border     = Color3.fromRGB(180, 180, 190),
         Hover      = Color3.fromRGB(245, 245, 250),
         Danger     = Color3.fromRGB(255, 80, 80),
-        Accent     = Color3.fromRGB(255, 255, 255), -- Barra escura para contraste
+        Accent     = Color3.fromRGB(255, 255, 255),
         KnobColor  = Color3.fromRGB(0, 0, 0)
     },
     ["Cinza / Gray"] = {
@@ -468,33 +466,28 @@ local THEME_PRESETS = {
     }
 }
 
--- Tema Inicial e Variáveis Globais
-local THEME = {} 
--- Copia o tema inicial
+local THEME = {}
 for k,v in pairs(THEME_PRESETS[CurrentThemeName]) do THEME[k] = v end
 
--- CORES FIXAS POR TIPO
 local TYPE_COLORS = {
-    Label          = Color3.fromRGB(255, 255, 255), 
-    Single         = Color3.fromRGB(0, 255, 128),   
-    Toggle         = Color3.fromRGB(255, 50, 50),   
+    Label          = Color3.fromRGB(255, 255, 255),
+    Single         = Color3.fromRGB(0, 255, 128),
+    Toggle         = Color3.fromRGB(255, 50, 50),
     Slider         = Color3.fromRGB(0, 170, 255),
-    InputImmediate = Color3.fromRGB(170, 0, 255),   
-    InputSelect    = Color3.fromRGB(200, 0, 255),   
-    ListPersistent = Color3.fromRGB(255, 170, 0),   
-    ListAuto       = Color3.fromRGB(255, 170, 0),   
-    Container      = Color3.fromRGB(255, 255, 0)    
+    InputImmediate = Color3.fromRGB(170, 0, 255),
+    InputSelect    = Color3.fromRGB(200, 0, 255),
+    ListPersistent = Color3.fromRGB(255, 170, 0),
+    ListAuto       = Color3.fromRGB(255, 170, 0),
+    Container      = Color3.fromRGB(255, 255, 0)
 }
 
--- =========================
--- VARIÁVEIS DE ESTADO
--- =========================
+-- Estados globais
 globalEnv._HubStates = globalEnv._HubStates or {}
 globalEnv._HubSelections = globalEnv._HubSelections or {}
 globalEnv._ScriptHubStates = globalEnv._ScriptHubStates or {}
 
 -- =========================
--- FUNÇÕES UTILITÁRIAS
+-- UTILITÁRIAS UI
 -- =========================
 local function new(class, props)
     local o = Instance.new(class)
@@ -518,10 +511,7 @@ local function makeRound(inst, rad) return new("UICorner", {Parent = inst, Corne
 local function makeStroke(inst, col, th) return new("UIStroke", {Parent = inst, Color = col or THEME.Border, Thickness = th or 1}) end
 local function clamp(v, a, b) if v < a then return a end if v > b then return b end return v end
 
--- =========================
--- CRIAÇÃO DA JANELA PRINCIPAL
--- =========================
-
+-- Remove instâncias antigas do Hub
 for _, v in pairs(CoreGui:GetChildren()) do
     if v.Name == "MoonDF_VirginHub" then
         pcall(function() v:Destroy() end)
@@ -530,741 +520,14 @@ end
 
 local screenGui = new("ScreenGui", {Name = "MoonDF_VirginHub", Parent = CoreGui, ZIndexBehavior = Enum.ZIndexBehavior.Sibling})
 
--- ==============================================================================
---  BOTÃO MINIMIZAR (MODIFICADO - TEXTO DF)
--- ==============================================================================
--- Agora é um TextButton, sem imagem
-local miniButton = new("TextButton", { 
-    Name = "MiniButton", 
-    Parent = screenGui,
-    Size = UDim2.new(0, 50, 0, 50),
-    Position = UDim2.new(0.1, 0, 0.1, 0),
-    BackgroundColor3 = THEME.Background,
-    BackgroundTransparency = CurrentOpacity,
-    Text = "DF",
-    TextColor3 = THEME.Accent,
-    Font = Enum.Font.FredokaOne,
-    TextSize = 24,
-    Visible = false,
-    AutoButtonColor = true
-})
-makeRound(miniButton, 12)
-local miniStroke = makeStroke(miniButton, THEME.Accent, 2) 
+-- ======================================================================
+-- GAME LOGIC (preservado / funções públicas mantidas)
+-- ======================================================================
 
-local root = new("Frame", {
-    Name = "Root", Parent = screenGui,
-    AnchorPoint = Vector2.new(0.5, 0.5),
-    Position = UDim2.new(0.5, 0, 0.5, 0),
-    Size = UDim2.new(0, DEFAULT_WIDTH, 0, DEFAULT_HEIGHT),
-    BackgroundColor3 = THEME.Background,
-    BackgroundTransparency = CurrentOpacity,
-    BorderSizePixel = 0,
-    ClipsDescendants = true
-})
-makeRound(root, 10)
-local rootStroke = makeStroke(root, THEME.Border, 2)
-
-local titleBar = new("Frame", {Parent = root, Size = UDim2.new(1, 0, 0, 42), BackgroundTransparency = 1})
-local titleLabel = new("TextLabel", {
-    Parent = titleBar, Position = UDim2.new(0, 12, 0, 8), Size = UDim2.new(1, -120, 1, -12),
-    BackgroundTransparency = 1, Text = T("TITLE_MAIN"), TextColor3 = THEME.Text,
-    Font = Enum.Font.GothamSemibold, TextSize = 18, TextXAlignment = Enum.TextXAlignment.Left
-})
-
-local controlsContainer = new("Frame", {
-    Parent = titleBar, AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -8, 0.5, 0),
-    Size = UDim2.new(0, 70, 0, 30), BackgroundTransparency = 1
-})
-
-local minBtn = new("TextButton", {
-    Parent = controlsContainer, Position = UDim2.new(0, 0, 0, 0),
-    Size = UDim2.new(0, 30, 0, 30), BackgroundColor3 = Color3.fromRGB(50, 50, 55),
-    Text = "-", TextColor3 = Color3.new(1, 1, 1),
-    Font = Enum.Font.GothamBold, TextSize = 18, BorderSizePixel = 0
-})
-makeRound(minBtn, 6)
-
-local closeBtn = new("TextButton", {
-    Parent = controlsContainer, Position = UDim2.new(0, 36, 0, 0),
-    Size = UDim2.new(0, 30, 0, 30), BackgroundColor3 = THEME.Danger,
-    Text = "X", 
-    TextColor3 = Color3.new(1, 1, 1),
-    Font = Enum.Font.GothamBold, TextSize = 14, BorderSizePixel = 0
-})
-makeRound(closeBtn, 6)
-
-local leftPane = new("Frame", {Parent = root, Position = UDim2.new(0, 10, 0, 56), Size = UDim2.new(0, 220, 1, -76), BackgroundTransparency = 1})
-local rightPane = new("Frame", {Parent = root, Position = UDim2.new(0, 240, 0, 56), Size = UDim2.new(1, -250, 1, -76), BackgroundTransparency = 1})
-
-local leftBg = new("Frame", {Parent = leftPane, Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = THEME.Background, BorderSizePixel = 0, BackgroundTransparency = CurrentOpacity})
-makeRound(leftBg, 8);
-local leftStroke = makeStroke(leftBg, THEME.Border, 1)
-
-local topicsList = new("ScrollingFrame", {Parent = leftBg, Position = UDim2.new(0, 8, 0, 8), Size = UDim2.new(1, -16, 1, -16), BackgroundTransparency = 1, ScrollBarThickness = 6, CanvasSize = UDim2.new(0,0,0,0)})
-local topicsLayout = new("UIListLayout", {Parent = topicsList, Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder})
-
-local rightBg = new("Frame", {Parent = rightPane, Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = THEME.Background, BorderSizePixel = 0, BackgroundTransparency = CurrentOpacity})
-makeRound(rightBg, 8);
-local rightStroke = makeStroke(rightBg, THEME.Border, 1)
-
-local scroll = new("ScrollingFrame", {Parent = rightBg, Position = UDim2.new(0, 8, 0, 8), Size = UDim2.new(1, -16, 1, -16), BackgroundTransparency = 1, ScrollBarThickness = 8, CanvasSize = UDim2.new(0,0,0,0)})
-local buttonsLayout = new("UIListLayout", {Parent = scroll, Padding = UDim.new(0, 10)})
-buttonsLayout.SortOrder = Enum.SortOrder.LayoutOrder
-
-local footer = new("TextLabel", {
-    Parent = root, Position = UDim2.new(0, 12, 1, -28), Size = UDim2.new(1, -24, 0, 22),
-    BackgroundTransparency = 1,
-    Text = T("FOOTER_TEXT"),
-    TextColor3 = THEME.SubText, Font = Enum.Font.Gotham, TextSize = 11
-})
-
-local resizer = new("Frame", {Parent = root, AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -10, 1, -10), Size = UDim2.new(0, 18, 0, 18), BackgroundTransparency = 1})
-local resDot = new("Frame", {Parent = resizer, Size = UDim2.new(1, 1, 1, 1), BackgroundColor3 = THEME.Hover, BorderSizePixel = 0});
-makeRound(resDot, 6)
-
--- =========================
--- CONTROLE DE VISIBILIDADE & LÓGICA MINIMIZAR
--- =========================
-local hubVisible = true
-local connections = {}
-
-local function toggleHub()
-    hubVisible = not hubVisible
-    root.Visible = hubVisible
-    miniButton.Visible = not hubVisible
-end
-
--- =========================
--- DRAG SYSTEM (JANELA PRINCIPAL E MINI BUTTON)
--- =========================
-do
-    local dragging, dragOffset = false, Vector2.new(0, 0)
-    table.insert(connections, titleBar.InputBegan:Connect(function(input)
-        if not hubVisible then return end
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            local mp = input.Position or UserInputService:GetMouseLocation()
-            dragOffset = Vector2.new(mp.X - root.AbsolutePosition.X, mp.Y - root.AbsolutePosition.Y)
-        end
-    end))
-    table.insert(connections, UserInputService.InputChanged:Connect(function(input)
-        if not dragging or not hubVisible then return end
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-            local mp = input.Position or UserInputService:GetMouseLocation()
-            local newX = mp.X - dragOffset.X + (root.AbsoluteSize.X * 0.5)
-            local newY = mp.Y - dragOffset.Y + (root.AbsoluteSize.Y * 0.5)
-            root.Position = UDim2.new(0, newX, 0, newY)
-        end
-    end))
-    table.insert(connections, UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = false end
-    end))
-
-    local miniDragging, miniStartPos, miniDragStart = false, Vector2.new(0,0), Vector2.new(0,0)
-    
-    table.insert(connections, miniButton.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            miniDragging = true
-            miniStartPos = Vector2.new(miniButton.AbsolutePosition.X, miniButton.AbsolutePosition.Y)
-            local mp = input.Position
-            miniDragStart = Vector2.new(mp.X, mp.Y)
-        end
-    end))
-    
-    table.insert(connections, UserInputService.InputChanged:Connect(function(input)
-        if miniDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            local delta = input.Position - Vector3.new(miniDragStart.X, miniDragStart.Y, 0)
-            miniButton.Position = UDim2.new(0, miniStartPos.X + delta.X, 0, miniStartPos.Y + delta.Y)
-        end
-    end))
-    
-    table.insert(connections, miniButton.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            miniDragging = false
-            local dist = (Vector2.new(input.Position.X, input.Position.Y) - miniDragStart).Magnitude
-            if dist < 5 then
-                toggleHub() 
-            end
-        end
-    end))
-end
-
-table.insert(connections, minBtn.MouseButton1Click:Connect(toggleHub))
-
-table.insert(connections, closeBtn.MouseButton1Click:Connect(function()
-    for _, conn in pairs(connections) do pcall(function() conn:Disconnect() end) end
-    screenGui:Destroy()
-end))
-
-table.insert(connections, UserInputService.InputBegan:Connect(function(input, gp)
-    if input.KeyCode == Enum.KeyCode.RightControl then
-        toggleHub()
-    end
-end))
-
-local resizing, startSize, startMouse = false, nil, nil
-table.insert(connections, resizer.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        resizing = true; startSize = root.Size; local m = UserInputService:GetMouseLocation(); startMouse = Vector2.new(m.X, m.Y)
-    end
-end))
-table.insert(connections, UserInputService.InputChanged:Connect(function(input)
-    if resizing and input.UserInputType == Enum.UserInputType.MouseMovement then
-        local m = UserInputService:GetMouseLocation()
-        local d = Vector2.new(m.X, m.Y) - startMouse
-        root.Size = UDim2.new(0, math.max(MIN_WIDTH, startSize.X.Offset + d.X), 0, math.max(MIN_HEIGHT, startSize.Y.Offset + d.Y))
-    end
-end))
-table.insert(connections, UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then resizing = false end end))
-
--- =========================
--- FACTORY DE ELEMENTOS UI
--- =========================
-
-local function createHamburger(parent)
-    local icon = new("Frame", {Parent = parent, Size = UDim2.new(0, 28, 0, 20), BackgroundTransparency = 1})
-    local barTop = new("Frame", {Parent = icon, Size = UDim2.new(1, 0, 0, 3), Position = UDim2.new(0, 0, 0, 2), BackgroundColor3 = THEME.SubText, BorderSizePixel = 0});
-    makeRound(barTop, 2)
-    local barMid = new("Frame", {Parent = icon, Size = UDim2.new(1, 0, 0, 3), Position = UDim2.new(0, 0, 0, 8.5), BackgroundColor3 = THEME.SubText, BorderSizePixel = 0});
-    makeRound(barMid, 2)
-    local barBot = new("Frame", {Parent = icon, Size = UDim2.new(1, 0, 0, 3), Position = UDim2.new(0, 0, 0, 15), BackgroundColor3 = THEME.SubText, BorderSizePixel = 0});
-    makeRound(barBot, 2)
-    
-    local function setOpen(val)
-        if val then
-            tween(barTop, {Position = UDim2.new(0, 0, 0, 8.5), Rotation = 45}, 0.18)
-            tween(barMid, {BackgroundTransparency = 1}, 0.12)
-            tween(barBot, {Position = UDim2.new(0, 0, 0, 8.5), Rotation = -45}, 0.18)
-        else
-            tween(barTop, {Position = UDim2.new(0, 0, 0, 2), Rotation = 0}, 0.18)
-            tween(barMid, {BackgroundTransparency = 0}, 0.12)
-            tween(barBot, {Position = UDim2.new(0, 0, 0, 15), Rotation = 0}, 0.18)
-        end
-    end
-    return {Frame = icon, SetOpen = setOpen}
-end
-
-local function makeHoverAnimate(bg, rightScale)
-    local hb = new("TextButton", {Parent = bg, BackgroundTransparency = 1, Text = "", AutoButtonColor = false, ZIndex = 1})
-    hb.Size = UDim2.new(1, 0, 1, 0)
-    table.insert(connections, hb.MouseEnter:Connect(function() if hubVisible then tween(bg, {BackgroundColor3 = THEME.Hover}, 0.12) end end))
-    table.insert(connections, hb.MouseLeave:Connect(function() tween(bg, {BackgroundColor3 = THEME.PanelBg}, 0.12) end))
-    return hb
-end
-
-local function refreshMainScroll()
-    if scroll and scroll.Parent and buttonsLayout then
-        scroll.CanvasSize = UDim2.new(0, 0, 0, buttonsLayout.AbsoluteContentSize.Y + 12)
-    end
-end
-
--- FUNÇÃO RECURSIVA PRINCIPAL PARA CRIAR BOTÕES
-local function createEntry(params, parentFrame, depth, onChildrenChanged)
-    depth = depth or 0
-    local baseH = 60
-    local barColor = params.Color or TYPE_COLORS[params.Type] or THEME.Accent
-
-    local wrapper = new("Frame", {Parent = parentFrame, Name = "Entry", Size = UDim2.new(1, -12, 0, baseH), BackgroundTransparency = 1, ClipsDescendants = true})
-    local entryObj = {Frame = wrapper}
-
-    local bg = new("Frame", {
-        Parent = wrapper, 
-        Name = "ElementBackground", 
-        Size = UDim2.new(1, 0, 0, baseH), 
-        BackgroundColor3 = THEME.PanelBg, 
-        BorderSizePixel = 0,
-        BackgroundTransparency = CurrentOpacity
-    })
-    makeRound(bg, 8);
-    local accent = new("Frame", {Parent = bg, Position = UDim2.new(0, 8 + depth * 12, 0.5, -18), Size = UDim2.new(0, 6, 0, 36), BackgroundColor3 = barColor})
-    makeRound(accent, 6)
-
-    local nameLabel = new("TextLabel", {
-        Parent = bg, Position = UDim2.new(0, 28 + depth * 12, 0, 8), Size = UDim2.new(0.6, -28, 0, 20),
-        BackgroundTransparency = 1, Text = params.Name or "Unnamed", TextColor3 = THEME.Text,
-        Font = Enum.Font.GothamSemibold, TextSize = 15, TextXAlignment = Enum.TextXAlignment.Left,
-        ZIndex = 2
-    })
-    local descLabel = new("TextLabel", {
-        Parent = bg, Position = UDim2.new(0, 28 + depth * 12, 0, 30), Size = UDim2.new(1, -164, 0, 18),
-        BackgroundTransparency = 1, Text = params.Description or "", TextColor3 = THEME.SubText,
-        Font = Enum.Font.Gotham, TextSize = 12, TextXAlignment = Enum.TextXAlignment.Left,
-        ZIndex = 2
-    })
-
-    local rightArea = new("Frame", {
-        Parent = bg, AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -12, 0.5, 0),
-        Size = UDim2.new(RIGHT_AREA_SCALE, -12, 0, 44), BackgroundTransparency = 1, ZIndex = 5
-    })
-
-    local childrenContainer = new("Frame", {Parent = wrapper, Position = UDim2.new(0, 0, 0, baseH), Size = UDim2.new(1, 0, 0, 0), BackgroundTransparency = 1, ClipsDescendants = true})
-    local childrenHolder = new("Frame", {Parent = childrenContainer, Position = UDim2.new(0, 8, 0, 8), Size = UDim2.new(1, -16, 1, -16), BackgroundTransparency = 1})
-    local childrenLayout = new("UIListLayout", {Parent = childrenHolder, Padding = UDim.new(0, 8), VerticalAlignment = Enum.VerticalAlignment.Top})
-    
-    local hoverBox = makeHoverAnimate(bg, RIGHT_AREA_SCALE)
-
-    local expanded = false
-    local childRefs = {}
-
-    local function expandTo(height)
-        tween(wrapper, {Size = UDim2.new(1, -12, 0, baseH + height)}, 0.18)
-        tween(childrenContainer, {Size = UDim2.new(1, 0, 0, height)}, 0.18)
-        task.defer(function() 
-            if onChildrenChanged then onChildrenChanged() end 
-            refreshMainScroll() 
-        end)
-    end
-
-    local function collapse()
-        expandTo(0)
-        expanded = false
-    end
-
-    table.insert(connections, childrenLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-        if expanded then
-            local newTarget = childrenLayout.AbsoluteContentSize.Y + 12
-            expandTo(newTarget)
-        end
-    end))
-
-    local function buildChildren(list)
-        for _, c in pairs(childRefs) do if c and c.Frame then c.Frame:Destroy() end end
-        childRefs = {}
-        for _, childParam in ipairs(list or {}) do
-            local child = createEntry(childParam, childrenHolder, depth + 1, function()
-                if expanded then
-                    local newTarget = childrenLayout.AbsoluteContentSize.Y + 12
-                    expandTo(newTarget)
-                end
-            end)
-            table.insert(childRefs, child)
-        end
-        task.wait() 
-        local target = childrenLayout.AbsoluteContentSize.Y + 12
-        expandTo(target)
-        expanded = true
-    end
-
-    if params.Type == "Label" then
-
-    elseif params.Type == "Toggle" then
-        local state = false
-        if params.StateKey then state = globalEnv._HubStates[params.StateKey] or false end
-        local knob = new("Frame", {Parent = rightArea, Size = UDim2.new(0, 46, 0, 26), Position = UDim2.new(1, -46, 0.5, -13), BackgroundColor3 = THEME.Off});
-        makeRound(knob, 14)
-        local subKnob = new("Frame", {Parent = knob, Size = UDim2.new(0, 18, 0, 18), Position = UDim2.new(0, 4, 0, 4), BackgroundColor3 = Color3.new(1, 1, 1)});
-        makeRound(subKnob, 999)
-        local function applyVisual(s)
-            if s then
-                tween(knob, {BackgroundColor3 = THEME.On}, 0.15)
-                tween(subKnob, {Position = UDim2.new(1, -22, 0, 4)}, 0.15)
-                
-                if CurrentThemeName == "Preto / Black" then
-                     tween(bg, {BackgroundColor3 = Color3.fromRGB(60, 60, 60)}, 0.15)
-                end
-            else
-                tween(knob, {BackgroundColor3 = THEME.Off}, 0.15)
-                tween(subKnob, {Position = UDim2.new(0, 4, 0, 4)}, 0.15)
-                
-                tween(bg, {BackgroundColor3 = THEME.PanelBg}, 0.15)
-            end
-        end
-        local function applyState(s)
-            state = s
-            if params.StateKey then globalEnv._HubStates[params.StateKey] = state end
-            applyVisual(state)
-            if state then
-                if params.OnEnable then pcall(params.OnEnable) end
-            else
-                if params.OnDisable then pcall(params.OnDisable) end
-            end
-        end
-        applyVisual(state)
-        table.insert(connections, hoverBox.MouseButton1Click:Connect(function() if hubVisible then applyState(not state) end end))
-
-    elseif params.Type == "Single" then
-        table.insert(connections, hoverBox.MouseButton1Click:Connect(function()
-            if hubVisible then
-                tween(bg, {BackgroundColor3 = THEME.Hover}, 0.06);
-                task.wait(0.06); tween(bg, {BackgroundColor3 = THEME.PanelBg}, 0.12)
-                if params.Callback then pcall(params.Callback) end
-            end
-        end))
-
-    elseif params.Type == "InputImmediate" then
-        local txtBox = new("TextBox", {Parent = rightArea, Size = UDim2.new(1, -76, 0, 28), Position = UDim2.new(0, 0, 0.5, -14), BackgroundColor3 = THEME.Background, Text = "", PlaceholderText = params.Placeholder or "...", TextColor3 = THEME.Text, Font = Enum.Font.Gotham, TextSize = 14, ClearTextOnFocus = false, ZIndex = 6});
-        makeRound(txtBox, 6)
-        
-        local okBtn = new("TextButton", {
-            Parent = rightArea, 
-            AnchorPoint = Vector2.new(1, 0.5), 
-            Position = UDim2.new(1, 0, 0.5, 0), 
-            Size = UDim2.new(0, 68, 0, 28), 
-            BackgroundColor3 = THEME.Accent,
-            Text = "OK", 
-            TextColor3 = Color3.new(1, 1, 1), 
-            Font = Enum.Font.GothamBold, 
-            TextSize = 14, 
-            ZIndex = 6
-        })
-        makeRound(okBtn, 6)
-        
-        table.insert(connections, okBtn.MouseButton1Click:Connect(function() if hubVisible and params.Callback then params.Callback(txtBox.Text) end end))
-        table.insert(connections, txtBox.FocusLost:Connect(function(enter) if enter and hubVisible and params.Callback then params.Callback(txtBox.Text) end end))
-
-    elseif params.Type == "InputSelect" then
-        local txtBox = new("TextBox", {Parent = rightArea, Size = UDim2.new(1, 0, 0, 28), Position = UDim2.new(0, 0, 0.5, -14), BackgroundColor3 = THEME.Background, Text = params.Default or "", PlaceholderText = params.Placeholder or "...", TextColor3 = THEME.Text, Font = Enum.Font.Gotham, TextSize = 14, ClearTextOnFocus = true, ZIndex = 6});
-        makeRound(txtBox, 6)
-        table.insert(connections, txtBox.FocusLost:Connect(function() if params.StateKey then globalEnv._HubSelections[params.StateKey] = txtBox.Text end end))
-
-    elseif params.Type == "ListAuto" or params.Type == "Container" then
-        local ham = createHamburger(rightArea)
-        ham.Frame.Position = UDim2.new(1, -28, 0, 8)
-        table.insert(connections, hoverBox.MouseButton1Click:Connect(function()
-            if not hubVisible then return end
-            if not expanded then
-                buildChildren(params.Options or params.Children or {})
-                ham.SetOpen(true)
-            else
-                collapse()
-                ham.SetOpen(false)
-            end
-        end))
-
-    elseif params.Type == "ListPersistent" then
-        local ham = createHamburger(rightArea)
-        ham.Frame.Position = UDim2.new(1, -28, 0, 8)
-        local selectedValLabel = new("TextLabel", {Parent = bg, BackgroundTransparency = 1, TextColor3 = THEME.Text, Font = Enum.Font.GothamSemibold, TextSize = 15, TextXAlignment = Enum.TextXAlignment.Left, Text = "", ZIndex = 2})
-        
-        local function updateSelectedLabelPos()
-            local bounds = nameLabel.TextBounds
-            selectedValLabel.Position = UDim2.new(0, 28 + depth * 12 + bounds.X + 4, 0, 8)
-            selectedValLabel.Size = UDim2.new(0, 200, 0, 20)
-        end
-        updateSelectedLabelPos()
-        nameLabel:GetPropertyChangedSignal("TextBounds"):Connect(updateSelectedLabelPos)
-
-        if params.StateKey then
-            local storedVal = globalEnv._HubSelections[params.StateKey]
-            if storedVal then
-                selectedValLabel.Text = ": " .. storedVal
-                updateSelectedLabelPos()
-            end
-        end
-
-        table.insert(connections, hoverBox.MouseButton1Click:Connect(function()
-            if not hubVisible then return end
-            if not expanded then
-                local opts = {}
-                for _, opt in ipairs(params.Options or {}) do
-                    local customColor = nil
-                    if THEME_PRESETS[opt] then customColor = THEME_PRESETS[opt].Accent end
-                    
-                    table.insert(opts, {
-                        Type = "Single", Name = opt, Description = "", Color = customColor,
-                        Callback = function()
-                            selectedValLabel.Text = ": " .. opt
-                            updateSelectedLabelPos()
-                            if params.StateKey then globalEnv._HubSelections[params.StateKey] = opt end
-                            if params.Callback then params.Callback(opt) end
-                            collapse()
-                            ham.SetOpen(false)
-                        end
-                    })
-                end
-                buildChildren(opts)
-                ham.SetOpen(true)
-            else
-                collapse()
-                ham.SetOpen(false)
-            end
-        end))
-
-    elseif params.Type == "Slider" or params.Type == "Intensity" then
-        local minV = tonumber(params.Min) or 0
-        local maxV = tonumber(params.Max) or 100
-        if maxV < minV then maxV = minV end
-        local step = params.Step and tonumber(params.Step) or nil
-        local key = params.StateKey or params.Name or ("Slider_"..tostring(math.random(100000,999999)))
-        
-        local cur = globalEnv._ScriptHubStates[key] ~= nil and globalEnv._ScriptHubStates[key] or (params.Default ~= nil and tonumber(params.Default) or minV)
-        cur = clamp(math.floor(cur + 0.5), minV, maxV)
-        local track = new("Frame", {Parent = rightArea, Size = UDim2.new(1, -28, 0, 8), Position = UDim2.new(0, 8, 0.5, -4), BackgroundColor3 = THEME.Off, BorderSizePixel = 0})
-        makeRound(track, 6)
-        local fill = new("Frame", {Parent = track, Size = UDim2.new(0,0,1,0), Position = UDim2.new(0,0,0,0), BackgroundColor3 = THEME.Accent, BorderSizePixel = 0})
-        makeRound(fill, 6)
-        local knob = new("Frame", {Parent = rightArea, Size = UDim2.new(0,16,0,16), Position = UDim2.new(0,8,0.5,-8), BackgroundColor3 = (THEME.KnobColor or Color3.fromRGB(245,245,245)), BorderSizePixel = 0})
-        makeRound(knob, 999)
-        knob.Active = true; knob.ClipsDescendants = true
-        local valLabel = new("TextLabel", {Parent = rightArea, AnchorPoint = Vector2.new(1,0), Position = UDim2.new(1,-10,0,6), Size = UDim2.new(0,46,0,18), BackgroundTransparency = 1, Text = tostring(cur), TextColor3 = THEME.SubText, Font = Enum.Font.GothamBold, TextSize = 12, TextXAlignment = Enum.TextXAlignment.Right})
-        track.Active = true
-        fill.Active = true
-        local function updateVisuals(instant)
-            local pct = 0
-            if maxV > minV then pct = (cur - minV) / (maxV - minV) end
-            local trackW = math.max(0, track.AbsoluteSize.X)
-            local maxTrackW = math.max(60, trackW)
-            local fillW = math.floor(maxTrackW * pct + 0.5)
-            local knobX = math.floor(8 + fillW - (knob.AbsoluteSize.X / 2) + 0.5)
-            
-            if instant then
-                fill.Size = UDim2.new(0, fillW, 1, 0)
-                knob.Position = UDim2.new(0, knobX, 0.5, -8)
-            else
-                tween(fill, {Size = UDim2.new(0, fillW, 1, 0)}, 0.12)
-                tween(knob, {Position = UDim2.new(0, knobX, 0.5, -8)}, 0.12)
-            end
-            valLabel.Text = tostring(cur)
-        end
-        local function fireChange()
-            globalEnv._ScriptHubStates[key] = cur
-            if params.OnChange then
-                pcall(function() params.OnChange(cur) end)
-            end
-        end
-        local function xToValue(absX)
-            local tx = track.AbsolutePosition.X
-            local tw = track.AbsoluteSize.X
-            if tw <= 0 then return cur end
-            local rel = (absX - tx) / math.max(1, tw)
-            rel = clamp(rel, 0, 1)
-            local raw = minV + (rel * (maxV - minV))
-            if step and step > 0 then
-                raw = math.floor((raw / step) + 0.5) * step
-            end
-            return clamp(math.floor(raw + 0.5), minV, maxV)
-        end
-        table.insert(connections, track:GetPropertyChangedSignal("AbsoluteSize"):Connect(function() updateVisuals(true) end))
-        task.defer(function() updateVisuals(true) end)
-        local dragging = false
-        local dragConnChanged, dragConnEnded
-        table.insert(connections, knob.InputBegan:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                dragging = true
-                dragConnChanged = UserInputService.InputChanged:Connect(function(inp)
-                    if not dragging then return end
-                    if inp.UserInputType == Enum.UserInputType.MouseMovement then
-                        local v = xToValue(inp.Position.X)
-                        if v ~= cur then
-                            cur = v
-                            updateVisuals(false)
-                            fireChange()
-                        end
-                    end
-                end)
-                dragConnEnded = UserInputService.InputEnded:Connect(function(inp)
-                    if inp.UserInputType == Enum.UserInputType.MouseButton1 then
-                        dragging = false
-                        if dragConnChanged then dragConnChanged:Disconnect(); dragConnChanged = nil end
-                        if dragConnEnded then dragConnEnded:Disconnect(); dragConnEnded = nil end
-                    end
-                end)
-                table.insert(connections, dragConnChanged); table.insert(connections, dragConnEnded)
-            end
-        end))
-        table.insert(connections, track.InputBegan:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                local pos = (input.Position and input.Position.X) or UserInputService:GetMouseLocation().X
-                local v = xToValue(pos)
-                if v ~= cur then
-                    cur = v
-                    updateVisuals(false)
-                    fireChange()
-                end
-            end
-        end))
-        table.insert(connections, fill.InputBegan:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                local pos = (input.Position and input.Position.X) or UserInputService:GetMouseLocation().X
-                local v = xToValue(pos)
-                if v ~= cur then
-                    cur = v
-                    updateVisuals(false)
-                    fireChange()
-                end
-            end
-        end))
-        valLabel.Active = true
-        entryObj.Get = function() return cur end
-        entryObj.Set = function(v)
-            cur = clamp(math.floor(tonumber(v) or minV + 0.5), minV, maxV)
-            updateVisuals(false)
-            fireChange()
-        end
-    end
-
-    return entryObj
-end
-
--- =========================
--- GERENCIADOR DE TÓPICOS
--- =========================
-local togglesCreated = {}
-local initTopics
-
-local function addTopic(name, items)
-    local btn = new("TextButton", {
-        Parent = topicsList, 
-        Size = UDim2.new(1, 0, 0, 42), 
-        BackgroundColor3 = THEME.PanelBg, 
-        BorderSizePixel = 0, 
-        Text = name, 
-        TextColor3 = THEME.Text, 
-        Font = Enum.Font.Gotham, 
-        TextSize = 14,
-        BackgroundTransparency = CurrentOpacity
-    })
-    makeRound(btn, 8)
-    
-    table.insert(connections, btn.MouseEnter:Connect(function() tween(btn, {BackgroundColor3 = THEME.Hover}, 0.12) end))
-    table.insert(connections, btn.MouseLeave:Connect(function() tween(btn, {BackgroundColor3 = THEME.PanelBg}, 0.12) end))
-    
-    table.insert(connections, btn.MouseButton1Click:Connect(function()
-        if not hubVisible then return end
-        for _, c in pairs(scroll:GetChildren()) do if c:IsA("Frame") and c.Name == "Entry" then c:Destroy() end end
-        
-        togglesCreated[name] = togglesCreated[name] or {}
-        for _, it in ipairs(items) do
-            createEntry(it, scroll, 0)
-        end
-        refreshMainScroll()
-    end))
-end
-
--- =========================
--- LAYOUT RESPONSIVO
--- =========================
-local function updateLayout()
-    local totalW = root.AbsoluteSize.X
-    local leftWidth = math.clamp(math.floor(totalW * 0.26), 140, 320)
-    leftWidth = math.min(leftWidth, math.max(120, totalW - 220))
-    
-    leftPane.Size = UDim2.new(0, leftWidth, 1, -80)
-    local rightX = leftWidth + 20
-    rightPane.Position = UDim2.new(0, rightX, 0, 56)
-    rightPane.Size = UDim2.new(0, totalW - rightX - 10, 1, -80)
-    
-    refreshMainScroll()
-end
-table.insert(connections, root:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateLayout))
-table.insert(connections, topicsLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-    topicsList.CanvasSize = UDim2.new(0, 0, 0, topicsLayout.AbsoluteContentSize.Y + 12)
-end))
-table.insert(connections, buttonsLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(refreshMainScroll))
-
-task.defer(updateLayout)
-
--- =========================
--- ATUALIZAÇÃO VISUAL DE TEMA ESTÁTICO
--- =========================
-local function refreshStaticUI()
-    root.BackgroundColor3 = THEME.Background
-    leftBg.BackgroundColor3 = THEME.Background 
-    rightBg.BackgroundColor3 = THEME.Background
-    miniButton.BackgroundColor3 = THEME.Background
-    miniButton.BackgroundTransparency = CurrentOpacity
-    
-    miniButton.TextColor3 = THEME.Accent
-    miniStroke.Color = THEME.Accent
-    
-    titleLabel.TextColor3 = THEME.Text
-    footer.TextColor3 = THEME.SubText
-    
-    rootStroke.Color = THEME.Border
-    leftStroke.Color = THEME.Border
-    rightStroke.Color = THEME.Border
-end
-
--- =========================
--- INICIALIZAÇÃO
--- =========================
-
-function initTopics()
-    for _, v in pairs(topicsList:GetChildren()) do
-        if v:IsA("TextButton") then v:Destroy() end
-    end
-    for _, c in pairs(scroll:GetChildren()) do 
-        if c:IsA("Frame") and c.Name == "Entry" then c:Destroy() end 
-    end
-    
-    refreshStaticUI()
-    titleLabel.Text = T("TITLE_MAIN")
-    footer.Text = T("FOOTER_TEXT")
-
-    addTopic(T("TOPIC_CONFIG"), {
-        {
-            Type = "ListPersistent",
-            Name = T("LANG_LABEL"),
-            Description = T("LANG_DESC"),
-            StateKey = "LanguageSelection",
-            Options = {"Português", "English"},
-            Callback = function(val)
-                local oldLang = CurrentLang
-                CurrentLang = (val == "English") and "EN" or "PT"
-                globalEnv.CurrentLang = CurrentLang
-                if oldLang ~= CurrentLang then
-                    initTopics()
-                end
-            end
-        },
-        {
-            Type = "ListPersistent",
-            Name = T("THEME_LABEL") .. " [" .. CurrentThemeName .. "]",
-            Description = T("THEME_DESC"),
-            StateKey = "ThemeSelection",
-            Options = {"Azul / Blue", "Vermelho / Red", "Amarelo / Yellow", "Preto / Black", "Branco / White", "Cinza / Gray"},
-            Callback = function(val)
-                if THEME_PRESETS[val] then
-                    CurrentThemeName = val
-                    globalEnv.CurrentThemeName = val
-                    for k,v in pairs(THEME_PRESETS[val]) do
-                        THEME[k] = v
-                    end
-                    initTopics()
-                end
-            end
-        },
-        {
-            Type = "Slider",
-            StateKey = "OpacityValue",
-            Name = T("OPACITY_LABEL"),
-            Description = T("OPACITY_DESC"),
-            Min = 0, Max = 100, Default = (1 - CurrentOpacity) * 100, 
-            OnChange = function(val)
-                local transp = 1 - (val / 100)
-                CurrentOpacity = transp
-                globalEnv.CurrentOpacity = transp
-                
-                root.BackgroundTransparency = transp
-                leftBg.BackgroundTransparency = transp
-                rightBg.BackgroundTransparency = transp
-                miniButton.BackgroundTransparency = transp
-                
-                for _, desc in pairs(screenGui:GetDescendants()) do
-                    if desc:IsA("Frame") and desc.Name == "ElementBackground" or desc:IsA("TextButton") and desc.Parent == topicsList then
-                        desc.BackgroundTransparency = transp
-                    end
-                end
-            end
-        }
-    })
-end
-
-initTopics()
-
--- ==============================================================================
---  SERVICES & VARIÁVEIS DO MOONDF HUB V1
--- ==============================================================================
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local Lighting = game:GetService("Lighting")
-local VIM = game:GetService("VirtualInputManager")
-local TweenService = game:GetService("TweenService")
 local player = Players.LocalPlayer
-local char = player.Character or player.CharacterAdded:Wait()
-local root = char:WaitForChild("HumanoidRootPart")
-local humanoid = char:WaitForChild("Humanoid")
+local character = player.Character or player.CharacterAdded:Wait()
+local root = character:WaitForChild("HumanoidRootPart") -- 'root' usado pelo game logic (mantido)
+local humanoid = character:WaitForChild("Humanoid")
 
 globalEnv.flyToggle = globalEnv.flyToggle or false
 local flyToggle = globalEnv.flyToggle
@@ -1385,7 +648,7 @@ local function calculateFlySpeed(sliderVal)
     else local excess = sliderVal - 5000 return 400 + (excess * 2) end
 end
 
-local function setupFly()
+function setupFly() -- mantida com mesmo nome
     if not root then return end
     if bg then bg:Destroy() end
     if bv then bv:Destroy() end
@@ -1397,7 +660,7 @@ local function setupFly()
     bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
     bv.Velocity = Vector3.new(0,0,0)
     humanoid.PlatformStand = true
-    
+
     if flyConn then flyConn:Disconnect() end
     flyConn = RunService.Heartbeat:Connect(function()
         if not flyToggle or not root then return end
@@ -1411,14 +674,14 @@ local function setupFly()
     end)
 end
 
-local function toggleNoclip(state)
+function toggleNoclip(state) -- mantida
     noclipToggle = state
     globalEnv.noclipToggle = state
     if state then
         if noclipConn then noclipConn:Disconnect() end
         noclipConn = RunService.Stepped:Connect(function()
-            if char then
-                for _, part in pairs(char:GetDescendants()) do
+            if character then
+                for _, part in pairs(character:GetDescendants()) do
                     if part:IsA("BasePart") and part.CanCollide then part.CanCollide = false end
                 end
             end
@@ -1428,7 +691,7 @@ local function toggleNoclip(state)
     end
 end
 
-local function toggleClickTP(state)
+function toggleClickTP(state) -- mantida
     clickTPToggle = state
     globalEnv.clickTPToggle = state
     if state then
@@ -1444,7 +707,7 @@ local function toggleClickTP(state)
     end
 end
 
-local function applyNoFog(state)
+function applyNoFog(state) -- mantida
     noFogEnabled = state
     globalEnv.noFogEnabled = state
     if state then
@@ -1459,11 +722,11 @@ local function applyNoFog(state)
     end
 end
 
-local function toggleUltraLite(state)
+function toggleUltraLite(state) -- mantida
     ultraLiteEnabled = state
     globalEnv.ultraLiteEnabled = state
     if state then
-        settings().Rendering.QualityLevel = 1
+        pcall(function() settings().Rendering.QualityLevel = 1 end)
         Lighting.GlobalShadows = false
         Lighting.FogEnd = 9e9
         if liteLoop then liteLoop:Disconnect() end
@@ -1496,15 +759,15 @@ local function teleportAndLook()
         if success and pivot then enemyRoot = { Position = pivot.Position, CFrame = pivot } end
         if not enemyRoot then return end
     end
-    
+
     local currentDistance = FARM_DISTANCE
     local isExecuting = false
     if enemy:FindFirstChild("Executing") or enemy:FindFirstChild("Execute") then isExecuting = true end
-    
+
     if isExecuting then
         if Players:GetPlayerFromCharacter(enemy) then currentDistance = PLAYER_EXECUTE_DISTANCE else currentDistance = EXECUTE_DISTANCE end
     end
-    
+
     local offset = Vector3.new(0, 0, 0)
     if teleportMode == "Below" then offset = Vector3.new(0, -currentDistance, 0)
     elseif teleportMode == "Above" then offset = Vector3.new(0, currentDistance, 0)
@@ -1533,7 +796,7 @@ local function teleportAndLookWithKeys()
     end
 end
 
-local function toggleTeleport(enable, mobName)
+function toggleTeleport(enable, mobName) -- mantida
     if enable then
         if connection then connection:Disconnect() end
         teleportAndLookLooping = true
@@ -1604,13 +867,13 @@ end
 local function createESPLabel(hrp, playerName, distance)
     local billboardGui = Instance.new("BillboardGui")
     billboardGui.Size = UDim2.new(0, 120, 0, 50)
-    billboardGui.StudsOffset = Vector3.new(0, 5, 0) 
-    billboardGui.MaxDistance = 3000 
+    billboardGui.StudsOffset = Vector3.new(0, 5, 0)
+    billboardGui.MaxDistance = 3000
     billboardGui.Adornee = hrp
     billboardGui.Parent = hrp
     billboardGui.AlwaysOnTop = true
     local textLabel = Instance.new("TextLabel", billboardGui)
-    textLabel.BackgroundTransparency = 0.5 
+    textLabel.BackgroundTransparency = 0.5
     textLabel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
     textLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
     textLabel.TextScaled = true
@@ -1655,7 +918,7 @@ local function enableESP()
     end)
 end
 
-local function toggleESP(state)
+function toggleESP(state) -- mantida
     espEnabled = state
     globalEnv.espEnabled = state
     if state then
@@ -1667,7 +930,7 @@ local function toggleESP(state)
     end
 end
 
-local function toggleSpectate(state, targetPlayerName)
+function toggleSpectate(state, targetPlayerName) -- mantida
     spectateToggle = state
     globalEnv.spectateToggle = state
     if state then
@@ -1690,9 +953,9 @@ local function toggleSpectate(state, targetPlayerName)
 end
 
 player.CharacterAdded:Connect(function(newChar)
-    char = newChar
-    root = char:WaitForChild("HumanoidRootPart")
-    humanoid = char:WaitForChild("Humanoid")
+    character = newChar
+    root = character:WaitForChild("HumanoidRootPart")
+    humanoid = character:WaitForChild("Humanoid")
     if flyToggle then setupFly() end
     if speedToggle then
         if speedConn then speedConn:Disconnect() end
@@ -1706,161 +969,930 @@ local function getPlayerNames()
     return list
 end
 
--- ==============================================================================
---  DEFINIÇÃO DA UI (INIT TOPICS)
--- ==============================================================================
+-- ======================================================================
+-- UI (POPUP + HUD) - Mobile compatibility & slider touch fixes
+-- ======================================================================
 
-function initTopics()
-    for _, v in pairs(topicsList:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
-    for _, c in pairs(scroll:GetChildren()) do if c:IsA("Frame") and c.Name == "Entry" then c:Destroy() end end
-    refreshStaticUI()
-    titleLabel.Text = "MOONDF HUB V3"
-    footer.Text = "Versão Portada para Nova Base • V3"
+-- UI state
+local isMobile = false
+local SCALE_FACTOR = 1
+local DEFAULT_WIDTH = 760
+local DEFAULT_HEIGHT = 520
+local MIN_WIDTH = 420
+local MIN_HEIGHT = 260
+local RIGHT_AREA_SCALE = 0.33
 
-    addTopic(T("TOPIC_GENERAL"), {
-        { Type = "ListAuto", Name = T("FLY_SPEED"), Description = T("FLY_SPEED_DESC"), Options = {
-            { Type = "Toggle", StateKey = "EnableFly", Name = T("ENABLE_FLY"), Description = T("ENABLE_FLY_DESC"), OnEnable = function() flyToggle = true globalEnv.flyToggle = true setupFly() end, OnDisable = function() flyToggle = false globalEnv.flyToggle = false if bg then bg:Destroy() end if bv then bv:Destroy() end if flyConn then flyConn:Disconnect() end humanoid.PlatformStand = false end },
-            { Type = "Slider", StateKey = "FlySpeedValue", Name = T("FLY_SPEED_SLIDER"), Description = T("FLY_SPEED_SLIDER_DESC"), Min = 0, Max = 10000, Default = 150, OnChange = function(v) flySpeedValue = v globalEnv.flySpeedValue = v end },
-            { Type = "Toggle", StateKey = "EnableSpeed", Name = T("ENABLE_SPEED"), Description = T("ENABLE_SPEED_DESC"), OnEnable = function() speedToggle = true globalEnv.speedToggle = true if speedConn then speedConn:Disconnect() end speedConn = RunService.Heartbeat:Connect(function() if humanoid then humanoid.WalkSpeed = walkSpeed end end) end, OnDisable = function() speedToggle = false globalEnv.speedToggle = false if speedConn then speedConn:Disconnect() end humanoid.WalkSpeed = BASE_WALKSPEED end },
-            { Type = "Slider", StateKey = "WalkSpeed", Name = T("SPEED_VALUE_SLIDER"), Description = T("SPEED_VALUE_SLIDER_DESC"), Min = 16, Max = 500, Default = 16, OnChange = function(v) walkSpeed = v globalEnv.walkSpeed = v end }
-        }},
-        { Type = "ListAuto", Name = T("EXTRAS"), Description = T("EXTRAS_DESC"), Options = {
-            { Type = "Toggle", StateKey = "ClickTP", Name = T("CLICK_TP"), Description = T("CLICK_TP_DESC"), OnEnable = function() toggleClickTP(true) end, OnDisable = function() toggleClickTP(false) end },
-            { Type = "Toggle", StateKey = "NoClip", Name = T("NO_CLIP"), Description = T("NO_CLIP_DESC"), OnEnable = function() toggleNoclip(true) end, OnDisable = function() toggleNoclip(false) end },
-            { Type = "Toggle", StateKey = "NoFog", Name = T("NO_FOG"), Description = T("NO_FOG_DESC"), OnEnable = function() applyNoFog(true) end, OnDisable = function() applyNoFog(false) end },
-            { Type = "Toggle", StateKey = "UltraLite", Name = T("ULTRA_LITE"), Description = T("ULTRA_LITE_DESC"), OnEnable = function() toggleUltraLite(true) end, OnDisable = function() toggleUltraLite(false) end }
-        }}
-    })
+-- Popup UI so user chooses platform
+local userChoice = nil -- "PC" or "MOBILE"
+local popup = new("Frame", {
+    Name = "ModePopup",
+    Parent = screenGui,
+    AnchorPoint = Vector2.new(0.5, 0.5),
+    Position = UDim2.new(0.5, 0, 0.5, 0),
+    Size = UDim2.new(0, 520, 0, 220),
+    BackgroundColor3 = THEME.PanelBg,
+    BorderSizePixel = 0,
+    ZIndex = 50
+})
+makeRound(popup, 12)
+local popupStroke = makeStroke(popup, THEME.Border, 1)
 
-    local mobFarmOptions = {}
-    for _, mob in ipairs(FARM) do
-        table.insert(mobFarmOptions, { Type = "Toggle", StateKey = "Farm" .. mob, Name = T("FARM") .. " " .. mob, Description = T("FARM_DESC"), OnEnable = function() toggleTeleport(true, mob) end, OnDisable = function() toggleTeleport(false) end })
+local popupTitle = new("TextLabel", {
+    Parent = popup,
+    Position = UDim2.new(0, 16, 0, 12),
+    Size = UDim2.new(1, -32, 0, 30),
+    BackgroundTransparency = 1,
+    Text = T("TITLE_MAIN"),
+    TextColor3 = THEME.Text,
+    Font = Enum.Font.GothamBold,
+    TextSize = 18,
+    TextXAlignment = Enum.TextXAlignment.Left
+})
+
+local popupDesc = new("TextLabel", {
+    Parent = popup,
+    Position = UDim2.new(0, 16, 0, 46),
+    Size = UDim2.new(1, -32, 0, 48),
+    BackgroundTransparency = 1,
+    Text = "Selecione a plataforma / Select platform\nPC -> Versão normal | Mobile -> Versão compacta (toque compatível)",
+    TextColor3 = THEME.SubText,
+    Font = Enum.Font.Gotham,
+    TextSize = 14,
+    TextXAlignment = Enum.TextXAlignment.Left
+})
+
+local btnContainer = new("Frame", {Parent = popup, Position = UDim2.new(0, 16, 1, -68), Size = UDim2.new(1, -32, 0, 52), BackgroundTransparency = 1})
+local pcBtn = new("TextButton", {
+    Parent = btnContainer,
+    AnchorPoint = Vector2.new(0, 0),
+    Position = UDim2.new(0, 0, 0, 0),
+    Size = UDim2.new(0.5, -8, 1, 0),
+    BackgroundColor3 = THEME.Accent,
+    Text = "PC",
+    TextColor3 = Color3.new(1,1,1),
+    Font = Enum.Font.GothamBold,
+    TextSize = 16,
+    BorderSizePixel = 0
+})
+makeRound(pcBtn, 8)
+
+local mobileBtn = new("TextButton", {
+    Parent = btnContainer,
+    AnchorPoint = Vector2.new(0, 0),
+    Position = UDim2.new(0.5, 8, 0, 0),
+    Size = UDim2.new(0.5, -8, 1, 0),
+    BackgroundColor3 = THEME.On,
+    Text = "Mobile",
+    TextColor3 = Color3.new(1,1,1),
+    Font = Enum.Font.GothamBold,
+    TextSize = 16,
+    BorderSizePixel = 0
+})
+makeRound(mobileBtn, 8)
+
+local popupClose = new("TextButton", {Parent = popup, AnchorPoint = Vector2.new(1,0), Position = UDim2.new(1, -10, 0, 8), Size = UDim2.new(0, 36, 0, 28), BackgroundColor3 = THEME.Danger, Text = "X", TextColor3 = Color3.new(1,1,1), Font = Enum.Font.GothamBold, TextSize = 14, BorderSizePixel = 0})
+makeRound(popupClose, 6)
+
+local function applyPlatformChoice(choice)
+    userChoice = choice
+    isMobile = (choice == "MOBILE")
+    -- scale adjustments
+    SCALE_FACTOR = isMobile and 0.78 or 1.0
+    -- viewport-based defaults for mobile
+    if Camera and Camera.ViewportSize then
+        local vx, vy = Camera.ViewportSize.X, Camera.ViewportSize.Y
+        if isMobile then
+            DEFAULT_WIDTH = math.floor(math.clamp(vx * 0.86, 320, 760))
+            DEFAULT_HEIGHT = math.floor(math.clamp(vy * 0.62, 240, 520))
+            MIN_WIDTH = 300
+            MIN_HEIGHT = 200
+            RIGHT_AREA_SCALE = 0.35
+        else
+            DEFAULT_WIDTH = 760
+            DEFAULT_HEIGHT = 520
+            MIN_WIDTH = 420
+            MIN_HEIGHT = 260
+            RIGHT_AREA_SCALE = 0.33
+        end
+    end
+    if popup and popup.Parent then popup:Destroy() end
+    -- Create HUD after popup selection
+    createHubUI()
+end
+
+pcBtn.MouseButton1Click:Connect(function() applyPlatformChoice("PC") end)
+mobileBtn.MouseButton1Click:Connect(function() applyPlatformChoice("MOBILE") end)
+popupClose.MouseButton1Click:Connect(function()
+    for _, v in pairs(screenGui:GetDescendants()) do pcall(function() if v and v.Parent then v:Destroy() end end) end
+end)
+
+-- If user never chooses, auto-detect after short delay (optional)
+spawn(function()
+    task.wait(6)
+    if not userChoice then
+        -- detect touch support
+        local usingTouch = UserInputService.TouchEnabled
+        applyPlatformChoice(usingTouch and "MOBILE" or "PC")
+    end
+end)
+
+-- =========================
+-- Main UI creation function
+-- =========================
+-- Will be called after user selects PC/MOBILE
+function createHubUI()
+    -- Cleanup any old instances
+    for _, v in pairs(screenGui:GetChildren()) do
+        if v.Name == "MoonDF_VirginHub_Root" then
+            pcall(function() v:Destroy() end)
+        end
     end
 
-    -- Localized options for TP Mode (Behind/Above/Below) - show in PT when language is PT, EN otherwise
-    local tp_mode_options = (CurrentLang == "EN") and {"Behind", "Above", "Below"} or {"Atrás", "Acima", "Abaixo"}
-    local tp_mode_map = {
-        ["Behind"] = "Behind", ["Above"] = "Above", ["Below"] = "Below",
-        ["Atrás"] = "Behind", ["Acima"] = "Above", ["Abaixo"] = "Below"
-    }
+    local connections = {} -- local GUI-only connections
+    local hubVisible = true
 
-    addTopic(T("TOPIC_FARM"), {
-        { Type = "Label", Name = T("INFO_LABEL") },
-        { Type = "ListAuto", Name = T("EXTRAS_MOBS"), Description = T("EXTRAS_MOBS_DESC"), Options = {
-            { Type = "Toggle", StateKey = "TrinketFarm", Name = T("TRINKET_FARM"), Description = T("TRINKET_FARM_DESC"), OnEnable = function()
-                trinketFarm = true
-                globalEnv.trinketFarm = true
-                spawn(function()
-                    while trinketFarm do
-                        task.wait(0.1)
-                        if workspace:FindFirstChild("Trinkets") then
-                            for _, t in pairs(workspace.Trinkets:GetChildren()) do
-                                if not trinketFarm then break end
-                                if t:IsA("Part") and t:FindFirstChild("Spawned") and root then
-                                    root.CFrame = t.CFrame * CFrame.new(0,3,0)
-                                    task.wait(0.15)
-                                    VIM:SendKeyEvent(true, Enum.KeyCode.E, false, game)
-                                    task.wait(0.05)
-                                    VIM:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+    -- MINI BUTTON
+    local miniButton = new("TextButton", {
+        Name = "MiniButton",
+        Parent = screenGui,
+        Size = UDim2.new(0, isMobile and 44 or 50, 0, isMobile and 44 or 50),
+        Position = UDim2.new(0.1, 0, 0.1, 0),
+        BackgroundColor3 = THEME.Background,
+        BackgroundTransparency = CurrentOpacity,
+        Text = "DF",
+        TextColor3 = THEME.Accent,
+        Font = Enum.Font.FredokaOne,
+        TextSize = (isMobile and 22 or 24),
+        Visible = false,
+        AutoButtonColor = true,
+        ZIndex = 30
+    })
+    makeRound(miniButton, isMobile and 10 or 12)
+    local miniStroke = makeStroke(miniButton, THEME.Accent, 2)
+
+    -- UI ROOT (renomeado para uiRoot para evitar conflito com game 'root')
+    local uiRoot = new("Frame", {
+        Name = "MoonDF_VirginHub_Root",
+        Parent = screenGui,
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        Position = UDim2.new(0.5, 0, 0.5, 0),
+        Size = UDim2.new(0, DEFAULT_WIDTH, 0, DEFAULT_HEIGHT),
+        BackgroundColor3 = THEME.Background,
+        BackgroundTransparency = CurrentOpacity,
+        BorderSizePixel = 0,
+        ClipsDescendants = true,
+        ZIndex = 20
+    })
+    makeRound(uiRoot, 10)
+    local uiRootStroke = makeStroke(uiRoot, THEME.Border, 2)
+
+    local titleBar = new("Frame", {Parent = uiRoot, Size = UDim2.new(1, 0, 0, isMobile and 38 or 42), BackgroundTransparency = 1})
+    local titleLabel = new("TextLabel", {
+        Parent = titleBar, Position = UDim2.new(0, 12, 0, isMobile and 6 or 8), Size = UDim2.new(1, -120, 1, isMobile and -12 or -12),
+        BackgroundTransparency = 1, Text = T("TITLE_MAIN"), TextColor3 = THEME.Text,
+        Font = Enum.Font.GothamSemibold, TextSize = (isMobile and 16 or 18), TextXAlignment = Enum.TextXAlignment.Left
+    })
+
+    local controlsContainer = new("Frame", {
+        Parent = titleBar, AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -8, 0.5, 0),
+        Size = UDim2.new(0, isMobile and 62 or 70, 0, isMobile and 26 or 30), BackgroundTransparency = 1
+    })
+
+    local minBtn = new("TextButton", {
+        Parent = controlsContainer, Position = UDim2.new(0, 0, 0, 0),
+        Size = UDim2.new(0, isMobile and 26 or 30, 0, isMobile and 26 or 30), BackgroundColor3 = Color3.fromRGB(50, 50, 55),
+        Text = "-", TextColor3 = Color3.new(1, 1, 1),
+        Font = Enum.Font.GothamBold, TextSize = (isMobile and 16 or 18), BorderSizePixel = 0
+    })
+    makeRound(minBtn, 6)
+
+    local closeBtn = new("TextButton", {
+        Parent = controlsContainer, Position = UDim2.new(0, isMobile and 32 or 36, 0, 0),
+        Size = UDim2.new(0, isMobile and 26 or 30, 0, isMobile and 26 or 30), BackgroundColor3 = THEME.Danger,
+        Text = "X",
+        TextColor3 = Color3.new(1, 1, 1),
+        Font = Enum.Font.GothamBold, TextSize = (isMobile and 12 or 14), BorderSizePixel = 0
+    })
+    makeRound(closeBtn, 6)
+
+    local leftPane = new("Frame", {Parent = uiRoot, Position = UDim2.new(0, 10, 0, isMobile and 50 or 56), Size = UDim2.new(0, isMobile and 180 or 220, 1, isMobile and -70 or -76), BackgroundTransparency = 1})
+    local rightPane = new("Frame", {Parent = uiRoot, Position = UDim2.new(0, (isMobile and 200 or 240), 0, isMobile and 50 or 56), Size = UDim2.new(1, -(isMobile and 210 or 250), 1, isMobile and -70 or -76), BackgroundTransparency = 1})
+
+    local leftBg = new("Frame", {Parent = leftPane, Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = THEME.Background, BorderSizePixel = 0, BackgroundTransparency = CurrentOpacity})
+    makeRound(leftBg, 8);
+    local leftStroke = makeStroke(leftBg, THEME.Border, 1)
+
+    local topicsList = new("ScrollingFrame", {Parent = leftBg, Position = UDim2.new(0, 8, 0, 8), Size = UDim2.new(1, -16, 1, -16), BackgroundTransparency = 1, ScrollBarThickness = isMobile and 8 or 6, CanvasSize = UDim2.new(0,0,0,0)})
+    local topicsLayout = new("UIListLayout", {Parent = topicsList, Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder})
+
+    local rightBg = new("Frame", {Parent = rightPane, Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = THEME.Background, BorderSizePixel = 0, BackgroundTransparency = CurrentOpacity})
+    makeRound(rightBg, 8);
+    local rightStroke = makeStroke(rightBg, THEME.Border, 1)
+
+    local scroll = new("ScrollingFrame", {Parent = rightBg, Position = UDim2.new(0, 8, 0, 8), Size = UDim2.new(1, -16, 1, -16), BackgroundTransparency = 1, ScrollBarThickness = isMobile and 10 or 8, CanvasSize = UDim2.new(0,0,0,0)})
+    local buttonsLayout = new("UIListLayout", {Parent = scroll, Padding = UDim.new(0, 10)})
+    buttonsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+    local footer = new("TextLabel", {
+        Parent = uiRoot, Position = UDim2.new(0, 12, 1, isMobile and -26 or -28), Size = UDim2.new(1, -24, 0, isMobile and 20 or 22),
+        BackgroundTransparency = 1,
+        Text = T("FOOTER_TEXT"),
+        TextColor3 = THEME.SubText, Font = Enum.Font.Gotham, TextSize = (isMobile and 10 or 11)
+    })
+
+    local resizer = new("Frame", {Parent = uiRoot, AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, isMobile and -8 or -10, 1, isMobile and -8 or -10), Size = UDim2.new(0, isMobile and 14 or 18, 0, isMobile and 14 or 18), BackgroundTransparency = 1})
+    local resDot = new("Frame", {Parent = resizer, Size = UDim2.new(1, 1, 1, 1), BackgroundColor3 = THEME.Hover, BorderSizePixel = 0});
+    makeRound(resDot, isMobile and 6 or 6)
+
+    -- Helper factories (hamburger, hover)
+    local function createHamburger(parent)
+        local icon = new("Frame", {Parent = parent, Size = UDim2.new(0, isMobile and 24 or 28, 0, isMobile and 16 or 20), BackgroundTransparency = 1})
+        local barTop = new("Frame", {Parent = icon, Size = UDim2.new(1, 0, 0, 3), Position = UDim2.new(0, 0, 0, 2), BackgroundColor3 = THEME.SubText, BorderSizePixel = 0});
+        makeRound(barTop, 2)
+        local barMid = new("Frame", {Parent = icon, Size = UDim2.new(1, 0, 0, 3), Position = UDim2.new(0, 0, 0, 8.5), BackgroundColor3 = THEME.SubText, BorderSizePixel = 0});
+        makeRound(barMid, 2)
+        local barBot = new("Frame", {Parent = icon, Size = UDim2.new(1, 0, 0, 3), Position = UDim2.new(0, 0, 0, 15), BackgroundColor3 = THEME.SubText, BorderSizePixel = 0});
+        makeRound(barBot, 2)
+
+        local function setOpen(val)
+            if val then
+                tween(barTop, {Position = UDim2.new(0, 0, 0, 8.5), Rotation = 45}, 0.18)
+                tween(barMid, {BackgroundTransparency = 1}, 0.12)
+                tween(barBot, {Position = UDim2.new(0, 0, 0, 8.5), Rotation = -45}, 0.18)
+            else
+                tween(barTop, {Position = UDim2.new(0, 0, 0, 2), Rotation = 0}, 0.18)
+                tween(barMid, {BackgroundTransparency = 0}, 0.12)
+                tween(barBot, {Position = UDim2.new(0, 0, 0, 15), Rotation = 0}, 0.18)
+            end
+        end
+        return {Frame = icon, SetOpen = setOpen}
+    end
+
+    local function makeHoverAnimate(bg)
+        local hb = new("TextButton", {Parent = bg, BackgroundTransparency = 1, Text = "", AutoButtonColor = false, ZIndex = 1})
+        hb.Size = UDim2.new(1, 0, 1, 0)
+        table.insert(connections, hb.MouseEnter:Connect(function() if hubVisible then tween(bg, {BackgroundColor3 = THEME.Hover}, 0.12) end end))
+        table.insert(connections, hb.MouseLeave:Connect(function() tween(bg, {BackgroundColor3 = THEME.PanelBg}, 0.12) end))
+        return hb
+    end
+
+    local function refreshMainScroll()
+        if scroll and scroll.Parent and buttonsLayout then
+            scroll.CanvasSize = UDim2.new(0, 0, 0, buttonsLayout.AbsoluteContentSize.Y + 12)
+        end
+    end
+
+    -- Recursive entry factory (kept most of original behavior, with touch fixes for sliders)
+    local function createEntry(params, parentFrame, depth, onChildrenChanged)
+        depth = depth or 0
+        local baseH = isMobile and 52 or 60
+        local barColor = params.Color or TYPE_COLORS[params.Type] or THEME.Accent
+
+        local wrapper = new("Frame", {Parent = parentFrame, Name = "Entry", Size = UDim2.new(1, -12, 0, baseH), BackgroundTransparency = 1, ClipsDescendants = true})
+        local entryObj = {Frame = wrapper}
+
+        local bg = new("Frame", {
+            Parent = wrapper,
+            Name = "ElementBackground",
+            Size = UDim2.new(1, 0, 0, baseH),
+            BackgroundColor3 = THEME.PanelBg,
+            BorderSizePixel = 0,
+            BackgroundTransparency = CurrentOpacity
+        })
+        makeRound(bg, 8);
+        local accent = new("Frame", {Parent = bg, Position = UDim2.new(0, 8 + depth * 12, 0.5, isMobile and -16 or -18), Size = UDim2.new(0, 6, 0, isMobile and 32 or 36), BackgroundColor3 = barColor})
+        makeRound(accent, 6)
+
+        local nameLabel = new("TextLabel", {
+            Parent = bg, Position = UDim2.new(0, 28 + depth * 12, 0, 8), Size = UDim2.new(0.6, -28, 0, isMobile and 18 or 20),
+            BackgroundTransparency = 1, Text = params.Name or "Unnamed", TextColor3 = THEME.Text,
+            Font = Enum.Font.GothamSemibold, TextSize = (isMobile and 13 or 15), TextXAlignment = Enum.TextXAlignment.Left,
+            ZIndex = 2
+        })
+        local descLabel = new("TextLabel", {
+            Parent = bg, Position = UDim2.new(0, 28 + depth * 12, 0, isMobile and 28 or 30), Size = UDim2.new(1, -164, 0, isMobile and 16 or 18),
+            BackgroundTransparency = 1, Text = params.Description or "", TextColor3 = THEME.SubText,
+            Font = Enum.Font.Gotham, TextSize = (isMobile and 11 or 12), TextXAlignment = Enum.TextXAlignment.Left,
+            ZIndex = 2
+        })
+
+        local rightArea = new("Frame", {
+            Parent = bg, AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -12, 0.5, 0),
+            Size = UDim2.new(RIGHT_AREA_SCALE, -12, 0, isMobile and 40 or 44), BackgroundTransparency = 1, ZIndex = 5
+        })
+
+        local childrenContainer = new("Frame", {Parent = wrapper, Position = UDim2.new(0, 0, 0, baseH), Size = UDim2.new(1, 0, 0, 0), BackgroundTransparency = 1, ClipsDescendants = true})
+        local childrenHolder = new("Frame", {Parent = childrenContainer, Position = UDim2.new(0, 8, 0, 8), Size = UDim2.new(1, -16, 1, -16), BackgroundTransparency = 1})
+        local childrenLayout = new("UIListLayout", {Parent = childrenHolder, Padding = UDim.new(0, 8), VerticalAlignment = Enum.VerticalAlignment.Top})
+
+        local hoverBox = makeHoverAnimate(bg)
+
+        local expanded = false
+        local childRefs = {}
+
+        local function expandTo(height)
+            tween(wrapper, {Size = UDim2.new(1, -12, 0, baseH + height)}, 0.18)
+            tween(childrenContainer, {Size = UDim2.new(1, 0, 0, height)}, 0.18)
+            task.defer(function()
+                if onChildrenChanged then onChildrenChanged() end
+                refreshMainScroll()
+            end)
+        end
+
+        local function collapse()
+            expandTo(0)
+            expanded = false
+        end
+
+        table.insert(connections, childrenLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+            if expanded then
+                local newTarget = childrenLayout.AbsoluteContentSize.Y + 12
+                expandTo(newTarget)
+            end
+        end))
+
+        local function buildChildren(list)
+            for _, c in pairs(childRefs) do if c and c.Frame then c.Frame:Destroy() end end
+            childRefs = {}
+            for _, childParam in ipairs(list or {}) do
+                local child = createEntry(childParam, childrenHolder, depth + 1, function()
+                    if expanded then
+                        local newTarget = childrenLayout.AbsoluteContentSize.Y + 12
+                        expandTo(newTarget)
+                    end
+                end)
+                table.insert(childRefs, child)
+            end
+            task.wait()
+            local target = childrenLayout.AbsoluteContentSize.Y + 12
+            expandTo(target)
+            expanded = true
+        end
+
+        -- Types handling (Toggle, Single, InputImmediate, InputSelect, ListAuto, ListPersistent, Slider)
+        if params.Type == "Label" then
+            -- nothing
+
+        elseif params.Type == "Toggle" then
+            local state = false
+            if params.StateKey then state = globalEnv._HubStates[params.StateKey] or false end
+            local knob = new("Frame", {Parent = rightArea, Size = UDim2.new(0, isMobile and 40 or 46, 0, isMobile and 22 or 26), Position = UDim2.new(1, isMobile and -40 or -46, 0.5, isMobile and -11 or -13), BackgroundColor3 = THEME.Off});
+            makeRound(knob, 14)
+            local subKnob = new("Frame", {Parent = knob, Size = UDim2.new(0, isMobile and 16 or 18, 0, isMobile and 16 or 18), Position = UDim2.new(0, isMobile and 3 or 4, 0, isMobile and 3 or 4), BackgroundColor3 = Color3.new(1, 1, 1)});
+            makeRound(subKnob, 999)
+            local function applyVisual(s)
+                if s then
+                    tween(knob, {BackgroundColor3 = THEME.On}, 0.15)
+                    tween(subKnob, {Position = UDim2.new(1, isMobile and -18 or -22, 0, isMobile and 3 or 4)}, 0.15)
+                    if CurrentThemeName == "Preto / Black" then
+                        tween(bg, {BackgroundColor3 = Color3.fromRGB(60, 60, 60)}, 0.15)
+                    end
+                else
+                    tween(knob, {BackgroundColor3 = THEME.Off}, 0.15)
+                    tween(subKnob, {Position = UDim2.new(0, isMobile and 3 or 4, 0, isMobile and 3 or 4)}, 0.15)
+                    tween(bg, {BackgroundColor3 = THEME.PanelBg}, 0.15)
+                end
+            end
+            local function applyState(s)
+                state = s
+                if params.StateKey then globalEnv._HubStates[params.StateKey] = state end
+                applyVisual(state)
+                if state then
+                    if params.OnEnable then pcall(params.OnEnable) end
+                else
+                    if params.OnDisable then pcall(params.OnDisable) end
+                end
+            end
+            applyVisual(state)
+            table.insert(connections, hoverBox.MouseButton1Click:Connect(function() if hubVisible then applyState(not state) end end))
+
+        elseif params.Type == "Single" then
+            table.insert(connections, hoverBox.MouseButton1Click:Connect(function()
+                if hubVisible then
+                    tween(bg, {BackgroundColor3 = THEME.Hover}, 0.06);
+                    task.wait(0.06); tween(bg, {BackgroundColor3 = THEME.PanelBg}, 0.12)
+                    if params.Callback then pcall(params.Callback) end
+                end
+            end))
+
+        elseif params.Type == "InputImmediate" then
+            local txtBox = new("TextBox", {Parent = rightArea, Size = UDim2.new(1, -76, 0, isMobile and 26 or 28), Position = UDim2.new(0, 0, 0.5, isMobile and -13 or -14), BackgroundColor3 = THEME.Background, Text = "", PlaceholderText = params.Placeholder or "...", TextColor3 = THEME.Text, Font = Enum.Font.Gotham, TextSize = (isMobile and 12 or 14), ClearTextOnFocus = false, ZIndex = 6});
+            makeRound(txtBox, 6)
+
+            local okBtn = new("TextButton", {
+                Parent = rightArea,
+                AnchorPoint = Vector2.new(1, 0.5),
+                Position = UDim2.new(1, 0, 0.5, 0),
+                Size = UDim2.new(0, isMobile and 60 or 68, 0, isMobile and 26 or 28),
+                BackgroundColor3 = THEME.Accent,
+                Text = "OK",
+                TextColor3 = Color3.new(1, 1, 1),
+                Font = Enum.Font.GothamBold,
+                TextSize = (isMobile and 12 or 14),
+                ZIndex = 6
+            })
+            makeRound(okBtn, 6)
+
+            table.insert(connections, okBtn.MouseButton1Click:Connect(function() if hubVisible and params.Callback then params.Callback(txtBox.Text) end end))
+            table.insert(connections, txtBox.FocusLost:Connect(function(enter) if enter and hubVisible and params.Callback then params.Callback(txtBox.Text) end end))
+
+        elseif params.Type == "InputSelect" then
+            local txtBox = new("TextBox", {Parent = rightArea, Size = UDim2.new(1, 0, 0, isMobile and 26 or 28), Position = UDim2.new(0, 0, 0.5, isMobile and -13 or -14), BackgroundColor3 = THEME.Background, Text = params.Default or "", PlaceholderText = params.Placeholder or "...", TextColor3 = THEME.Text, Font = Enum.Font.Gotham, TextSize = (isMobile and 12 or 14), ClearTextOnFocus = true, ZIndex = 6});
+            makeRound(txtBox, 6)
+            table.insert(connections, txtBox.FocusLost:Connect(function() if params.StateKey then globalEnv._HubSelections[params.StateKey] = txtBox.Text end end))
+
+        elseif params.Type == "ListAuto" or params.Type == "Container" then
+            local ham = createHamburger(rightArea)
+            ham.Frame.Position = UDim2.new(1, isMobile and -24 or -28, 0, isMobile and 6 or 8)
+            table.insert(connections, hoverBox.MouseButton1Click:Connect(function()
+                if not hubVisible then return end
+                if not expanded then
+                    buildChildren(params.Options or params.Children or {})
+                    ham.SetOpen(true)
+                else
+                    collapse()
+                    ham.SetOpen(false)
+                end
+            end))
+
+        elseif params.Type == "ListPersistent" then
+            local ham = createHamburger(rightArea)
+            ham.Frame.Position = UDim2.new(1, isMobile and -24 or -28, 0, isMobile and 6 or 8)
+            local selectedValLabel = new("TextLabel", {Parent = bg, BackgroundTransparency = 1, TextColor3 = THEME.Text, Font = Enum.Font.GothamSemibold, TextSize = (isMobile and 13 or 15), TextXAlignment = Enum.TextXAlignment.Left, Text = "", ZIndex = 2})
+
+            local function updateSelectedLabelPos()
+                local bounds = nameLabel.TextBounds
+                selectedValLabel.Position = UDim2.new(0, 28 + depth * 12 + bounds.X + 4, 0, 8)
+                selectedValLabel.Size = UDim2.new(0, isMobile and 140 or 200, 0, isMobile and 16 or 20)
+            end
+            updateSelectedLabelPos()
+            nameLabel:GetPropertyChangedSignal("TextBounds"):Connect(updateSelectedLabelPos)
+
+            if params.StateKey then
+                local storedVal = globalEnv._HubSelections[params.StateKey]
+                if storedVal then
+                    selectedValLabel.Text = ": " .. storedVal
+                    updateSelectedLabelPos()
+                end
+            end
+
+            table.insert(connections, hoverBox.MouseButton1Click:Connect(function()
+                if not hubVisible then return end
+                if not expanded then
+                    local opts = {}
+                    for _, opt in ipairs(params.Options or {}) do
+                        local customColor = nil
+                        if THEME_PRESETS[opt] then customColor = THEME_PRESETS[opt].Accent end
+
+                        table.insert(opts, {
+                            Type = "Single", Name = opt, Description = "", Color = customColor,
+                            Callback = function()
+                                selectedValLabel.Text = ": " .. opt
+                                updateSelectedLabelPos()
+                                if params.StateKey then globalEnv._HubSelections[params.StateKey] = opt end
+                                if params.Callback then params.Callback(opt) end
+                                collapse()
+                                ham.SetOpen(false)
+                            end
+                        })
+                    end
+                    buildChildren(opts)
+                    ham.SetOpen(true)
+                else
+                    collapse()
+                    ham.SetOpen(false)
+                end
+            end))
+
+        elseif params.Type == "Slider" or params.Type == "Intensity" then
+            local minV = tonumber(params.Min) or 0
+            local maxV = tonumber(params.Max) or 100
+            if maxV < minV then maxV = minV end
+            local step = params.Step and tonumber(params.Step) or nil
+            local key = params.StateKey or params.Name or ("Slider_"..tostring(math.random(100000,999999)))
+
+            local cur = globalEnv._ScriptHubStates[key] ~= nil and globalEnv._ScriptHubStates[key] or (params.Default ~= nil and tonumber(params.Default) or minV)
+            cur = clamp(math.floor(cur + 0.5), minV, maxV)
+            local track = new("Frame", {Parent = rightArea, Size = UDim2.new(1, -28, 0, isMobile and 6 or 8), Position = UDim2.new(0, 8, 0.5, isMobile and -3 or -4), BackgroundColor3 = THEME.Off, BorderSizePixel = 0})
+            makeRound(track, 6)
+            local fill = new("Frame", {Parent = track, Size = UDim2.new(0,0,1,0), Position = UDim2.new(0,0,0,0), BackgroundColor3 = THEME.Accent, BorderSizePixel = 0})
+            makeRound(fill, 6)
+            local knob = new("Frame", {Parent = rightArea, Size = UDim2.new(0,isMobile and 14 or 16,0,isMobile and 14 or 16), Position = UDim2.new(0,8,0.5,isMobile and -7 or -8), BackgroundColor3 = (THEME.KnobColor or Color3.fromRGB(245,245,245)), BorderSizePixel = 0})
+            makeRound(knob, 999)
+            knob.Active = true; knob.ClipsDescendants = true
+            local valLabel = new("TextLabel", {Parent = rightArea, AnchorPoint = Vector2.new(1,0.5), Position = UDim2.new(1, -4, 0.5, 0), Size = UDim2.new(0, isMobile and 44 or 52, 0, isMobile and 16 or 18), BackgroundTransparency = 1, Text = tostring(cur), TextColor3 = THEME.SubText, Font = Enum.Font.GothamBold, TextSize = (isMobile and 11 or 12), TextXAlignment = Enum.TextXAlignment.Right})
+            track.Active = true
+            fill.Active = true
+            local function updateVisuals(instant)
+                local pct = 0
+                if maxV > minV then pct = (cur - minV) / (maxV - minV) end
+                local trackW = math.max(0, track.AbsoluteSize.X)
+                local maxTrackW = math.max(60, trackW)
+                local fillW = math.floor(maxTrackW * pct + 0.5)
+                local knobX = math.floor(8 + fillW - (knob.AbsoluteSize.X / 2) + 0.5)
+
+                if instant then
+                    fill.Size = UDim2.new(0, fillW, 1, 0)
+                    knob.Position = UDim2.new(0, knobX, 0.5, isMobile and -7 or -8)
+                else
+                    tween(fill, {Size = UDim2.new(0, fillW, 1, 0)}, 0.12)
+                    tween(knob, {Position = UDim2.new(0, knobX, 0.5, isMobile and -7 or -8)}, 0.12)
+                end
+                valLabel.Text = tostring(cur)
+            end
+            local function fireChange()
+                globalEnv._ScriptHubStates[key] = cur
+                if params.OnChange then
+                    pcall(function() params.OnChange(cur) end)
+                end
+            end
+            local function xToValue(absX)
+                local tx = track.AbsolutePosition.X
+                local tw = track.AbsoluteSize.X
+                if tw <= 0 then return cur end
+                local rel = (absX - tx) / math.max(1, tw)
+                rel = clamp(rel, 0, 1)
+                local raw = minV + (rel * (maxV - minV))
+                if step and step > 0 then
+                    raw = math.floor((raw / step) + 0.5) * step
+                end
+                return clamp(math.floor(raw + 0.5), minV, maxV)
+            end
+            table.insert(connections, track:GetPropertyChangedSignal("AbsoluteSize"):Connect(function() updateVisuals(true) end))
+            task.defer(function() updateVisuals(true) end)
+            local dragging = false
+            local dragConnChanged, dragConnEnded
+            table.insert(connections, knob.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                    dragging = true
+                    dragConnChanged = UserInputService.InputChanged:Connect(function(inp)
+                        if not dragging then return end
+                        if inp.UserInputType == Enum.UserInputType.MouseMovement or inp.UserInputType == Enum.UserInputType.Touch then
+                            local pos = inp.Position or UserInputService:GetMouseLocation()
+                            local v = xToValue(pos.X)
+                            if v ~= cur then
+                                cur = v
+                                updateVisuals(false)
+                                fireChange()
+                            end
+                        end
+                    end)
+                    dragConnEnded = UserInputService.InputEnded:Connect(function(inp)
+                        if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then
+                            dragging = false
+                            if dragConnChanged then dragConnChanged:Disconnect(); dragConnChanged = nil end
+                            if dragConnEnded then dragConnEnded:Disconnect(); dragConnEnded = nil end
+                        end
+                    end)
+                    table.insert(connections, dragConnChanged); table.insert(connections, dragConnEnded)
+                end
+            end))
+            table.insert(connections, track.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                    local posX = (input.Position and input.Position.X) or UserInputService:GetMouseLocation().X
+                    local v = xToValue(posX)
+                    if v ~= cur then
+                        cur = v
+                        updateVisuals(false)
+                        fireChange()
+                    end
+                end
+            end))
+            table.insert(connections, fill.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                    local posX = (input.Position and input.Position.X) or UserInputService:GetMouseLocation().X
+                    local v = xToValue(posX)
+                    if v ~= cur then
+                        cur = v
+                        updateVisuals(false)
+                        fireChange()
+                    end
+                end
+            end))
+            valLabel.Active = true
+            entryObj.Get = function() return cur end
+            entryObj.Set = function(v)
+                cur = clamp(math.floor(tonumber(v) or minV + 0.5), minV, maxV)
+                updateVisuals(false)
+                fireChange()
+            end
+        end
+
+        return entryObj
+    end
+
+    -- Topics manager
+    local togglesCreated = {}
+
+    local function addTopic(name, items)
+        local btn = new("TextButton", {
+            Parent = topicsList,
+            Size = UDim2.new(1, 0, 0, isMobile and 36 or 42),
+            BackgroundColor3 = THEME.PanelBg,
+            BorderSizePixel = 0,
+            Text = name,
+            TextColor3 = THEME.Text,
+            Font = Enum.Font.Gotham,
+            TextSize = (isMobile and 12 or 14),
+            BackgroundTransparency = CurrentOpacity
+        })
+        makeRound(btn, 8)
+
+        table.insert(connections, btn.MouseEnter:Connect(function() tween(btn, {BackgroundColor3 = THEME.Hover}, 0.12) end))
+        table.insert(connections, btn.MouseLeave:Connect(function() tween(btn, {BackgroundColor3 = THEME.PanelBg}, 0.12) end))
+
+        table.insert(connections, btn.MouseButton1Click:Connect(function()
+            if not uiRoot or not uiRoot.Parent or not uiRoot.Visible then return end
+            for _, c in pairs(scroll:GetChildren()) do if c:IsA("Frame") and c.Name == "Entry" then c:Destroy() end end
+
+            togglesCreated[name] = togglesCreated[name] or {}
+            for _, it in ipairs(items) do
+                createEntry(it, scroll, 0)
+            end
+            refreshMainScroll()
+        end))
+    end
+
+    local function updateLayout()
+        local totalW = uiRoot.AbsoluteSize.X
+        local leftWidth = math.clamp(math.floor(totalW * (isMobile and 0.28 or 0.26)), 120, 320)
+        leftWidth = math.min(leftWidth, math.max(100, totalW - 160))
+        leftPane.Size = UDim2.new(0, leftWidth, 1, isMobile and -70 or -80)
+        local rightX = leftWidth + 20
+        rightPane.Position = UDim2.new(0, rightX, 0, isMobile and 50 or 56)
+        rightPane.Size = UDim2.new(0, totalW - rightX - 10, 1, isMobile and -70 or -80)
+        refreshMainScroll()
+    end
+
+    table.insert(connections, uiRoot:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateLayout))
+    table.insert(connections, topicsLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        topicsList.CanvasSize = UDim2.new(0, 0, 0, topicsLayout.AbsoluteContentSize.Y + 12)
+    end))
+    table.insert(connections, buttonsLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(refreshMainScroll))
+
+    task.defer(updateLayout)
+
+    -- Visibility controls & interactions
+    local function toggleHub()
+        hubVisible = not hubVisible
+        uiRoot.Visible = hubVisible
+        miniButton.Visible = not hubVisible
+    end
+
+    -- Dragging UI
+    do
+        local dragging, dragOffset = false, Vector2.new(0,0)
+        table.insert(connections, titleBar.InputBegan:Connect(function(input)
+            if not hubVisible then return end
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                dragging = true
+                local mp = input.Position or UserInputService:GetMouseLocation()
+                dragOffset = Vector2.new(mp.X - uiRoot.AbsolutePosition.X, mp.Y - uiRoot.AbsolutePosition.Y)
+            end
+        end))
+        table.insert(connections, UserInputService.InputChanged:Connect(function(input)
+            if not dragging or not hubVisible then return end
+            if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+                local mp = input.Position or UserInputService:GetMouseLocation()
+                local newX = mp.X - dragOffset.X + (uiRoot.AbsoluteSize.X * 0.5)
+                local newY = mp.Y - dragOffset.Y + (uiRoot.AbsoluteSize.Y * 0.5)
+                uiRoot.Position = UDim2.new(0, newX, 0, newY)
+            end
+        end))
+        table.insert(connections, UserInputService.InputEnded:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = false end
+        end))
+
+        -- Mini button drag/click
+        local miniDragging, miniStartPos, miniDragStart = false, Vector2.new(0,0), Vector2.new(0,0)
+        table.insert(connections, miniButton.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                miniDragging = true
+                miniStartPos = Vector2.new(miniButton.AbsolutePosition.X, miniButton.AbsolutePosition.Y)
+                local mp = input.Position or UserInputService:GetMouseLocation()
+                miniDragStart = Vector2.new(mp.X, mp.Y)
+            end
+        end))
+        table.insert(connections, UserInputService.InputChanged:Connect(function(input)
+            if miniDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+                local delta = input.Position - Vector3.new(miniDragStart.X, miniDragStart.Y, 0)
+                miniButton.Position = UDim2.new(0, miniStartPos.X + delta.X, 0, miniStartPos.Y + delta.Y)
+            end
+        end))
+        table.insert(connections, miniButton.InputEnded:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                miniDragging = false
+                local dist = (Vector2.new(input.Position.X, input.Position.Y) - miniDragStart).Magnitude
+                if dist < 5 then
+                    toggleHub()
+                end
+            end
+        end))
+    end
+
+    table.insert(connections, minBtn.MouseButton1Click:Connect(toggleHub))
+    table.insert(connections, closeBtn.MouseButton1Click:Connect(function()
+        for _, conn in pairs(connections) do pcall(function() conn:Disconnect() end) end
+        screenGui:Destroy()
+    end))
+
+    table.insert(connections, UserInputService.InputBegan:Connect(function(input, gp)
+        if input.KeyCode == Enum.KeyCode.RightControl then
+            toggleHub()
+        end
+    end))
+
+    -- Resizer: support touch & mouse
+    local resizing, startSize, startMouse = false, nil, nil
+    table.insert(connections, resizer.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            resizing = true; startSize = uiRoot.Size; local m = input.Position or UserInputService:GetMouseLocation(); startMouse = Vector2.new(m.X, m.Y)
+        end
+    end))
+    table.insert(connections, UserInputService.InputChanged:Connect(function(input)
+        if resizing and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local m = input.Position or UserInputService:GetMouseLocation()
+            local d = Vector2.new(m.X, m.Y) - startMouse
+            uiRoot.Size = UDim2.new(0, math.max(MIN_WIDTH, startSize.X.Offset + d.X), 0, math.max(MIN_HEIGHT, startSize.Y.Offset + d.Y))
+        end
+    end))
+    table.insert(connections, UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then resizing = false end end))
+
+    -- =========================
+    -- INICIALIZAÇÃO DOS TÓPICOS (usa addTopic e createEntry)
+    -- =========================
+
+    function initTopics()
+        -- limpeza
+        for _, v in pairs(topicsList:GetChildren()) do
+            if v:IsA("TextButton") then v:Destroy() end
+        end
+        for _, c in pairs(scroll:GetChildren()) do
+            if c:IsA("Frame") and c.Name == "Entry" then c:Destroy() end
+        end
+
+        -- Atualiza UI estática
+        uiRoot.BackgroundColor3 = THEME.Background
+        leftBg.BackgroundColor3 = THEME.Background
+        rightBg.BackgroundColor3 = THEME.Background
+        miniButton.BackgroundColor3 = THEME.Background
+        miniButton.BackgroundTransparency = CurrentOpacity
+        miniButton.TextColor3 = THEME.Accent
+        miniStroke.Color = THEME.Accent
+        titleLabel.TextColor3 = THEME.Text
+        footer.TextColor3 = THEME.SubText
+        uiRootStroke.Color = THEME.Border
+        leftStroke.Color = THEME.Border
+        rightStroke.Color = THEME.Border
+
+        titleLabel.Text = T("TITLE_MAIN")
+        footer.Text = T("FOOTER_TEXT")
+
+        -- Tópicos: geral
+        addTopic(T("TOPIC_GENERAL"), {
+            { Type = "ListAuto", Name = T("FLY_SPEED"), Description = T("FLY_SPEED_DESC"), Options = {
+                { Type = "Toggle", StateKey = "EnableFly", Name = T("ENABLE_FLY"), Description = T("ENABLE_FLY_DESC"), OnEnable = function() flyToggle = true globalEnv.flyToggle = true setupFly() end, OnDisable = function() flyToggle = false globalEnv.flyToggle = false if bg then bg:Destroy() end if bv then bv:Destroy() end if flyConn then flyConn:Disconnect() end humanoid.PlatformStand = false end },
+                { Type = "Slider", StateKey = "FlySpeedValue", Name = T("FLY_SPEED_SLIDER"), Description = T("FLY_SPEED_SLIDER_DESC"), Min = 0, Max = 10000, Default = 150, OnChange = function(v) flySpeedValue = v globalEnv.flySpeedValue = v end },
+                { Type = "Toggle", StateKey = "EnableSpeed", Name = T("ENABLE_SPEED"), Description = T("ENABLE_SPEED_DESC"), OnEnable = function() speedToggle = true globalEnv.speedToggle = true if speedConn then speedConn:Disconnect() end speedConn = RunService.Heartbeat:Connect(function() if humanoid then humanoid.WalkSpeed = walkSpeed end end) end, OnDisable = function() speedToggle = false globalEnv.speedToggle = false if speedConn then speedConn:Disconnect() end humanoid.WalkSpeed = BASE_WALKSPEED end },
+                { Type = "Slider", StateKey = "WalkSpeed", Name = T("SPEED_VALUE_SLIDER"), Description = T("SPEED_VALUE_SLIDER_DESC"), Min = 16, Max = 500, Default = 16, OnChange = function(v) walkSpeed = v globalEnv.walkSpeed = v end }
+            }},
+            { Type = "ListAuto", Name = T("EXTRAS"), Description = T("EXTRAS_DESC"), Options = {
+                { Type = "Toggle", StateKey = "ClickTP", Name = T("CLICK_TP"), Description = T("CLICK_TP_DESC"), OnEnable = function() toggleClickTP(true) end, OnDisable = function() toggleClickTP(false) end },
+                { Type = "Toggle", StateKey = "NoClip", Name = T("NO_CLIP"), Description = T("NO_CLIP_DESC"), OnEnable = function() toggleNoclip(true) end, OnDisable = function() toggleNoclip(false) end },
+                { Type = "Toggle", StateKey = "NoFog", Name = T("NO_FOG"), Description = T("NO_FOG_DESC"), OnEnable = function() applyNoFog(true) end, OnDisable = function() applyNoFog(false) end },
+                { Type = "Toggle", StateKey = "UltraLite", Name = T("ULTRA_LITE"), Description = T("ULTRA_LITE_DESC"), OnEnable = function() toggleUltraLite(true) end, OnDisable = function() toggleUltraLite(false) end }
+            }}
+        })
+
+        -- Farm Topic
+        local mobFarmOptions = {}
+        for _, mob in ipairs(FARM) do
+            table.insert(mobFarmOptions, { Type = "Toggle", StateKey = "Farm" .. mob, Name = T("FARM") .. " " .. mob, Description = T("FARM_DESC"), OnEnable = function() toggleTeleport(true, mob) end, OnDisable = function() toggleTeleport(false) end })
+        end
+
+        local tp_mode_options = (CurrentLang == "EN") and {"Behind", "Above", "Below"} or {"Atrás", "Acima", "Abaixo"}
+        local tp_mode_map = {
+            ["Behind"] = "Behind", ["Above"] = "Above", ["Below"] = "Below",
+            ["Atrás"] = "Behind", ["Acima"] = "Above", ["Abaixo"] = "Below"
+        }
+
+        addTopic(T("TOPIC_FARM"), {
+            { Type = "Label", Name = T("INFO_LABEL") },
+            { Type = "ListAuto", Name = T("EXTRAS_MOBS"), Description = T("EXTRAS_MOBS_DESC"), Options = {
+                { Type = "Toggle", StateKey = "TrinketFarm", Name = T("TRINKET_FARM"), Description = T("TRINKET_FARM_DESC"), OnEnable = function()
+                    trinketFarm = true
+                    globalEnv.trinketFarm = true
+                    spawn(function()
+                        while trinketFarm do
+                            task.wait(0.1)
+                            if workspace:FindFirstChild("Trinkets") then
+                                for _, t in pairs(workspace.Trinkets:GetChildren()) do
+                                    if not trinketFarm then break end
+                                    if t:IsA("Part") and t:FindFirstChild("Spawned") and root then
+                                        root.CFrame = t.CFrame * CFrame.new(0,3,0)
+                                        task.wait(0.15)
+                                        VIM:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+                                        task.wait(0.05)
+                                        VIM:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+                                    end
                                 end
                             end
                         end
+                    end)
+                end, OnDisable = function() trinketFarm = false globalEnv.trinketFarm = false end },
+                { Type = "Toggle", StateKey = "AutoAttack", Name = T("AUTO_ATTACK"), Description = T("AUTO_ATTACK_DESC"), OnEnable = function() autoAttack = true globalEnv.autoAttack = true spawn(autoAttackLoop) end, OnDisable = function() autoAttack = false globalEnv.autoAttack = false end }
+            }},
+            { Type = "ListAuto", Name = T("TP_MODE"), Description = T("TP_MODE_DESC"), Options = {
+                { Type = "ListPersistent", StateKey = "TeleportMode", Name = T("TP_MODE"), Description = T("TP_MODE_DESC"), Options = tp_mode_options, Callback = function(v)
+                    local mapped = tp_mode_map[v] or "Behind"
+                    teleportMode = mapped
+                    globalEnv.teleportMode = mapped
+                end },
+                { Type = "Slider", StateKey = "FarmDistance", Name = T("DISTANCE"), Description = T("DISTANCE_DESC"), Min = 0, Max = 50, Default = 4, OnChange = function(v) FARM_DISTANCE = v globalEnv.FARM_DISTANCE = v end },
+                { Type = "Slider", StateKey = "ExecuteDistance", Name = T("EXECUTE_DISTANCE"), Description = T("EXECUTE_DISTANCE_DESC"), Min = 0, Max = 100, Default = 20, OnChange = function(v) EXECUTE_DISTANCE = v globalEnv.EXECUTE_DISTANCE = v end }
+            }},
+            { Type = "ListAuto", Name = T("FARM_MOBS_LIST"), Description = T("FARM_MOBS_LIST_DESC"), Options = mobFarmOptions },
+            { Type = "ListAuto", Name = T("RAIDS"), Description = T("RAIDS_DESC"), Options = {
+                { Type = "Single", Name = T("TP_RAID_AREA"), Description = T("TP_RAID_AREA_DESC"), Callback = function() if root then root.CFrame = LOCATIONS.Raid end end },
+                { Type = "Toggle", StateKey = "FarmShinobuRaid", Name = T("FARM") .. " Shinobu Raid", Description = T("FARM_DESC"), OnEnable = function() toggleTeleport(true, "ShinoubuRaid") end, OnDisable = function() toggleTeleport(false) end },
+                { Type = "Toggle", StateKey = "FarmRengokuRaid", Name = T("FARM") .. " Rengoku Raid", Description = T("FARM_DESC"), OnEnable = function() toggleTeleport(true, "RengokuRaid") end, OnDisable = function() toggleTeleport(false) end },
+                { Type = "Toggle", StateKey = "FarmKokushiboRaid", Name = T("FARM") .. " Kokushibo Raid", Description = T("FARM_DESC"), OnEnable = function() toggleTeleport(true, "KokushiboRaid") end, OnDisable = function() toggleTeleport(false) end },
+                { Type = "Toggle", StateKey = "FarmEnemyRaid", Name = T("FARM") .. " Enemy Raid", Description = "Foca no inimigo 'Enemy'", OnEnable = function() toggleTeleport(true, "Enemy") end, OnDisable = function() toggleTeleport(false) end },
+                { Type = "Toggle", StateKey = "FarmYoriichi", Name = T("FARM") .. " Yoriichi", Description = T("FARM_DESC"), OnEnable = function() toggleTeleport(true, "Yoriichi") end, OnDisable = function() toggleTeleport(false) end }
+            }}
+        })
+
+        -- Players
+        addTopic(T("TOPIC_PLAYERS"), {
+            { Type = "ListPersistent", StateKey = "SelectedPlayer", Name = T("SELECT_PLAYER"), Description = T("SELECT_PLAYER_DESC"), Options = getPlayerNames(), Callback = function(v) selectedPlayerName = v globalEnv.selectedPlayerName = v end },
+            { Type = "Single", Name = T("UPDATE_LIST"), Description = T("UPDATE_LIST_DESC"), Callback = function() initTopics() end },
+            { Type = "ListAuto", Name = T("PLAYER_ACTIONS"), Description = T("PLAYER_ACTIONS_DESC"), Options = {
+                { Type = "Single", Name = T("GO_TO_PLAYER"), Description = T("GO_TO_PLAYER_DESC"), Callback = function()
+                    local t = Players:FindFirstChild(selectedPlayerName)
+                    if t and t.Character and t.Character:FindFirstChild("HumanoidRootPart") and root then
+                        root.CFrame = t.Character.HumanoidRootPart.CFrame + Vector3.new(0,3,0)
                     end
-                end)
-            end, OnDisable = function() trinketFarm = false globalEnv.trinketFarm = false end },
-            { Type = "Toggle", StateKey = "AutoAttack", Name = T("AUTO_ATTACK"), Description = T("AUTO_ATTACK_DESC"), OnEnable = function() autoAttack = true globalEnv.autoAttack = true spawn(autoAttackLoop) end, OnDisable = function() autoAttack = false globalEnv.autoAttack = false end }
-        }},
-        { Type = "ListAuto", Name = T("TP_MODE"), Description = T("TP_MODE_DESC"), Options = {
-            { Type = "ListPersistent", StateKey = "TeleportMode", Name = T("TP_MODE"), Description = T("TP_MODE_DESC"), Options = tp_mode_options, Callback = function(v)
-                local mapped = tp_mode_map[v] or "Behind"
-                teleportMode = mapped
-                globalEnv.teleportMode = mapped
-            end },
-            { Type = "Slider", StateKey = "FarmDistance", Name = T("DISTANCE"), Description = T("DISTANCE_DESC"), Min = 0, Max = 50, Default = 4, OnChange = function(v) FARM_DISTANCE = v globalEnv.FARM_DISTANCE = v end },
-            { Type = "Slider", StateKey = "ExecuteDistance", Name = T("EXECUTE_DISTANCE"), Description = T("EXECUTE_DISTANCE_DESC"), Min = 0, Max = 100, Default = 20, OnChange = function(v) EXECUTE_DISTANCE = v globalEnv.EXECUTE_DISTANCE = v end }
-        }},
-        { Type = "ListAuto", Name = T("FARM_MOBS_LIST"), Description = T("FARM_MOBS_LIST_DESC"), Options = mobFarmOptions },
-        { Type = "ListAuto", Name = T("RAIDS"), Description = T("RAIDS_DESC"), Options = {
-            { Type = "Single", Name = T("TP_RAID_AREA"), Description = T("TP_RAID_AREA_DESC"), Callback = function() if root then root.CFrame = LOCATIONS.Raid end end },
-            { Type = "Toggle", StateKey = "FarmShinobuRaid", Name = T("FARM") .. " Shinobu Raid", Description = T("FARM_DESC"), OnEnable = function() toggleTeleport(true, "ShinoubuRaid") end, OnDisable = function() toggleTeleport(false) end },
-            { Type = "Toggle", StateKey = "FarmRengokuRaid", Name = T("FARM") .. " Rengoku Raid", Description = T("FARM_DESC"), OnEnable = function() toggleTeleport(true, "RengokuRaid") end, OnDisable = function() toggleTeleport(false) end },
-            { Type = "Toggle", StateKey = "FarmKokushiboRaid", Name = T("FARM") .. " Kokushibo Raid", Description = T("FARM_DESC"), OnEnable = function() toggleTeleport(true, "KokushiboRaid") end, OnDisable = function() toggleTeleport(false) end },
-            { Type = "Toggle", StateKey = "FarmEnemyRaid", Name = T("FARM") .. " Enemy Raid", Description = "Foca no inimigo 'Enemy'", OnEnable = function() toggleTeleport(true, "Enemy") end, OnDisable = function() toggleTeleport(false) end },
-            { Type = "Toggle", StateKey = "FarmYoriichi", Name = T("FARM") .. " Yoriichi", Description = T("FARM_DESC"), OnEnable = function() toggleTeleport(true, "Yoriichi") end, OnDisable = function() toggleTeleport(false) end }
-        }},
-        { Type = "ListAuto", Name = T("INFINITE_CASTLE"), Description = T("INFINITE_CASTLE_DESC"), Options = {
-            { Type = "Single", Name = T("TP_SLAYER_CORPS"), Description = T("TP_SLAYER_CORPS_DESC"), Callback = function() if root then root.CFrame = LOCATIONS.Castelo1 end end },
-            { Type = "Single", Name = T("TP_AKAZA_DOMA"), Description = T("TP_AKAZA_DOMA_DESC"), Callback = function() if root then root.CFrame = LOCATIONS.Castelo2 end end },
-            { Type = "Single", Name = T("TP_KOKUSHIBO"), Description = T("TP_KOKUSHIBO_DESC"), Callback = function() if root then root.CFrame = LOCATIONS.Castelo3 end end },
-            { Type = "Toggle", StateKey = "FarmAkaza", Name = T("FARM") .. " Akaza", Description = T("FARM_DESC"), OnEnable = function() toggleTeleport(true, "Akaza") end, OnDisable = function() toggleTeleport(false) end },
-            { Type = "Toggle", StateKey = "FarmDoma", Name = T("FARM") .. " Doma", Description = T("FARM_DESC"), OnEnable = function() toggleTeleport(true, "Doma") end, OnDisable = function() toggleTeleport(false) end },
-            { Type = "Toggle", StateKey = "FarmKokushibo", Name = T("FARM") .. " Kokushibo", Description = T("FARM_DESC"), OnEnable = function() toggleTeleport(true, "Kokushibo") end, OnDisable = function() toggleTeleport(false) end }
-        }}
-    })
+                end},
+                { Type = "Toggle", StateKey = "ESPPlayers", Name = T("ESP_PLAYERS"), Description = T("ESP_PLAYERS_DESC"), OnEnable = function() toggleESP(true) end, OnDisable = function() toggleESP(false) end },
+                { Type = "Toggle", StateKey = "FarmPlayer", Name = T("FARM_PLAYER"), Description = T("FARM_PLAYER_DESC"), OnEnable = function() if selectedPlayerName then toggleTeleport(true, selectedPlayerName) end end, OnDisable = function() toggleTeleport(false) end }
+            }},
+            { Type = "ListAuto", Name = T("SPECTATE"), Description = T("SPECTATE_DESC"), Options = {
+                { Type = "Slider", StateKey = "SpectateHeight", Name = T("HEIGHT"), Description = T("HEIGHT_DESC"), Min = 5, Max = 100, Default = 20, OnChange = function(v) spectateHeight = v globalEnv.spectateHeight = v end },
+                { Type = "Slider", StateKey = "SpectateDistance", Name = T("DISTANCE_SPECTATE"), Description = T("DISTANCE_SPECTATE_DESC"), Min = 5, Max = 100, Default = 5, OnChange = function(v) spectateDistance = v globalEnv.spectateDistance = v end },
+                { Type = "Toggle", StateKey = "EnableSpectate", Name = T("ENABLE_SPECTATE"), Description = T("ENABLE_SPECTATE_DESC"), OnEnable = function() if selectedPlayerName then toggleSpectate(true, selectedPlayerName) end end, OnDisable = function() toggleSpectate(false) end }
+            }}
+        })
 
-    addTopic(T("TOPIC_PLAYERS"), {
-        { Type = "ListPersistent", StateKey = "SelectedPlayer", Name = T("SELECT_PLAYER"), Description = T("SELECT_PLAYER_DESC"), Options = getPlayerNames(), Callback = function(v) selectedPlayerName = v globalEnv.selectedPlayerName = v end },
-        { Type = "Single", Name = T("UPDATE_LIST"), Description = T("UPDATE_LIST_DESC"), Callback = function() initTopics() end },
-        { Type = "ListAuto", Name = T("PLAYER_ACTIONS"), Description = T("PLAYER_ACTIONS_DESC"), Options = {
-            { Type = "Single", Name = T("GO_TO_PLAYER"), Description = T("GO_TO_PLAYER_DESC"), Callback = function() 
-                local t = Players:FindFirstChild(selectedPlayerName)
-                if t and t.Character and t.Character:FindFirstChild("HumanoidRootPart") and root then
-                    root.CFrame = t.Character.HumanoidRootPart.CFrame + Vector3.new(0,3,0)
-                end
-            end},
-            { Type = "Toggle", StateKey = "ESPPlayers", Name = T("ESP_PLAYERS"), Description = T("ESP_PLAYERS_DESC"), OnEnable = function() toggleESP(true) end, OnDisable = function() toggleESP(false) end },
-            { Type = "Toggle", StateKey = "FarmPlayer", Name = T("FARM_PLAYER"), Description = T("FARM_PLAYER_DESC"), OnEnable = function() if selectedPlayerName then toggleTeleport(true, selectedPlayerName) end end, OnDisable = function() toggleTeleport(false) end }
-        }},
-        { Type = "ListAuto", Name = T("SPECTATE"), Description = T("SPECTATE_DESC"), Options = {
-            { Type = "Slider", StateKey = "SpectateHeight", Name = T("HEIGHT"), Description = T("HEIGHT_DESC"), Min = 5, Max = 100, Default = 20, OnChange = function(v) spectateHeight = v globalEnv.spectateHeight = v end },
-            { Type = "Slider", StateKey = "SpectateDistance", Name = T("DISTANCE_SPECTATE"), Description = T("DISTANCE_SPECTATE_DESC"), Min = 5, Max = 100, Default = 5, OnChange = function(v) spectateDistance = v globalEnv.spectateDistance = v end },
-            { Type = "Toggle", StateKey = "EnableSpectate", Name = T("ENABLE_SPECTATE"), Description = T("ENABLE_SPECTATE_DESC"), OnEnable = function() if selectedPlayerName then toggleSpectate(true, selectedPlayerName) end end, OnDisable = function() toggleSpectate(false) end }
-        }}
-    })
+        -- Teleports & Map
+        addTopic(T("TOPIC_TELEPORTS"), {
+            { Type = "Single", Name = T("LOAD_MOBS"), Description = T("LOAD_MOBS_DESC"), Callback = loadAllMobs },
+            { Type = "Single", Name = T("LOAD_MAP"), Description = T("LOAD_MAP_DESC"), Callback = loadAllMap },
+            { Type = "ListAuto", Name = T("VILLAGES"), Description = T("VILLAGES_DESC"), Options = {
+                { Type = "Single", Name = T("TP_HAYAKAWA"), Description = T("TP_HAYAKAWA_DESC"), Callback = function() if root then root.CFrame = LOCATIONS.Hayakawa end end },
+                { Type = "Single", Name = T("TP_OKUYA"), Description = T("TP_OKUYA_DESC"), Callback = function() if root then root.CFrame = LOCATIONS.Okuya end end },
+                { Type = "Single", Name = T("TP_KAMAKURA"), Description = T("TP_KAMAKURA_DESC"), Callback = function() if root then root.CFrame = LOCATIONS.Kamakura end end },
+                { Type = "Single", Name = T("TP_SLAYER"), Description = T("TP_SLAYER_DESC"), Callback = function() if root then root.CFrame = LOCATIONS.Slayer end end },
+                { Type = "Single", Name = T("TP_DISTRITO"), Description = T("TP_DISTRITO_DESC"), Callback = function() if root then root.CFrame = LOCATIONS.Distrito end end },
+                { Type = "Single", Name = T("TP_SLAYER_EXAM"), Description = T("TP_SLAYER_EXAM_DESC"), Callback = function() if root then root.CFrame = LOCATIONS.SlayerExam end end }
+            }},
+            { Type = "ListAuto", Name = T("BREATHS"), Description = T("BREATHS_DESC"), Options = {
+                { Type = "Single", Name = T("TP_MIST"), Description = T("TP_MIST_DESC"), Callback = function() if root then root.CFrame = BREATHS.Mist end end },
+                { Type = "Single", Name = T("TP_WATER"), Description = T("TP_WATER_DESC"), Callback = function() if root then root.CFrame = BREATHS.Water end end },
+                { Type = "Single", Name = T("TP_WIND"), Description = T("TP_WIND_DESC"), Callback = function() if root then root.CFrame = BREATHS.Wind end end },
+                { Type = "Single", Name = T("TP_THUNDER"), Description = T("TP_THUNDER_DESC"), Callback = function() if root then root.CFrame = BREATHS.Thunder end end },
+                { Type = "Single", Name = T("TP_INSECT"), Description = T("TP_INSECT_DESC"), Callback = function() if root then root.CFrame = BREATHS.Insect end end },
+                { Type = "Single", Name = T("TP_FLAME"), Description = T("TP_FLAME_DESC"), Callback = function() if root then root.CFrame = BREATHS.Flame end end },
+                { Type = "Single", Name = T("TP_SUN"), Description = T("TP_SUN_DESC"), Callback = function() if root then root.CFrame = BREATHS.Sun end end },
+                { Type = "Single", Name = T("TP_MOON"), Description = T("TP_MOON_DESC"), Callback = function() if root then root.CFrame = BREATHS.Moon end end },
+                { Type = "Single", Name = T("TP_BEAST"), Description = T("TP_BEAST_DESC"), Callback = function() if root then root.CFrame = BREATHS.Beast end end },
+                { Type = "Single", Name = T("TP_SOUND"), Description = T("TP_SOUND_DESC"), Callback = function() if root then root.CFrame = BREATHS.Sound end end },
+                { Type = "Single", Name = T("TP_FLOWER"), Description = T("TP_FLOWER_DESC"), Callback = function() if root then root.CFrame = BREATHS.Flower end end },
+                { Type = "Single", Name = T("TP_SERPENT"), Description = T("TP_SERPENT_DESC"), Callback = function() if root then root.CFrame = BREATHS.Serpent end end },
+                { Type = "Single", Name = T("TP_LOVE"), Description = T("TP_LOVE_DESC"), Callback = function() if root then root.CFrame = BREATHS.Love end end }
+            }}
+        })
 
-    addTopic(T("TOPIC_TELEPORTS"), {
-        { Type = "Single", Name = T("LOAD_MOBS"), Description = T("LOAD_MOBS_DESC"), Callback = loadAllMobs },
-        { Type = "Single", Name = T("LOAD_MAP"), Description = T("LOAD_MAP_DESC"), Callback = loadAllMap },
-        { Type = "ListAuto", Name = T("VILLAGES"), Description = T("VILLAGES_DESC"), Options = {
-            { Type = "Single", Name = T("TP_HAYAKAWA"), Description = T("TP_HAYAKAWA_DESC"), Callback = function() if root then root.CFrame = LOCATIONS.Hayakawa end end },
-            { Type = "Single", Name = T("TP_OKUYA"), Description = T("TP_OKUYA_DESC"), Callback = function() if root then root.CFrame = LOCATIONS.Okuya end end },
-            { Type = "Single", Name = T("TP_KAMAKURA"), Description = T("TP_KAMAKURA_DESC"), Callback = function() if root then root.CFrame = LOCATIONS.Kamakura end end },
-            { Type = "Single", Name = T("TP_SLAYER"), Description = T("TP_SLAYER_DESC"), Callback = function() if root then root.CFrame = LOCATIONS.Slayer end end },
-            { Type = "Single", Name = T("TP_DISTRITO"), Description = T("TP_DISTRITO_DESC"), Callback = function() if root then root.CFrame = LOCATIONS.Distrito end end },
-            { Type = "Single", Name = T("TP_SLAYER_EXAM"), Description = T("TP_SLAYER_EXAM_DESC"), Callback = function() if root then root.CFrame = LOCATIONS.SlayerExam end end }
-        }},
-        { Type = "ListAuto", Name = T("BREATHS"), Description = T("BREATHS_DESC"), Options = {
-            { Type = "Single", Name = T("TP_MIST"), Description = T("TP_MIST_DESC"), Callback = function() if root then root.CFrame = BREATHS.Mist end end },
-            { Type = "Single", Name = T("TP_WATER"), Description = T("TP_WATER_DESC"), Callback = function() if root then root.CFrame = BREATHS.Water end end },
-            { Type = "Single", Name = T("TP_WIND"), Description = T("TP_WIND_DESC"), Callback = function() if root then root.CFrame = BREATHS.Wind end end },
-            { Type = "Single", Name = T("TP_THUNDER"), Description = T("TP_THUNDER_DESC"), Callback = function() if root then root.CFrame = BREATHS.Thunder end end },
-            { Type = "Single", Name = T("TP_INSECT"), Description = T("TP_INSECT_DESC"), Callback = function() if root then root.CFrame = BREATHS.Insect end end },
-            { Type = "Single", Name = T("TP_FLAME"), Description = T("TP_FLAME_DESC"), Callback = function() if root then root.CFrame = BREATHS.Flame end end },
-            { Type = "Single", Name = T("TP_SUN"), Description = T("TP_SUN_DESC"), Callback = function() if root then root.CFrame = BREATHS.Sun end end },
-            { Type = "Single", Name = T("TP_MOON"), Description = T("TP_MOON_DESC"), Callback = function() if root then root.CFrame = BREATHS.Moon end end },
-            { Type = "Single", Name = T("TP_BEAST"), Description = T("TP_BEAST_DESC"), Callback = function() if root then root.CFrame = BREATHS.Beast end end },
-            { Type = "Single", Name = T("TP_SOUND"), Description = T("TP_SOUND_DESC"), Callback = function() if root then root.CFrame = BREATHS.Sound end end },
-            { Type = "Single", Name = T("TP_FLOWER"), Description = T("TP_FLOWER_DESC"), Callback = function() if root then root.CFrame = BREATHS.Flower end end },
-            { Type = "Single", Name = T("TP_SERPENT"), Description = T("TP_SERPENT_DESC"), Callback = function() if root then root.CFrame = BREATHS.Serpent end end },
-            { Type = "Single", Name = T("TP_LOVE"), Description = T("TP_LOVE_DESC"), Callback = function() if root then root.CFrame = BREATHS.Love end end }
-        }}
-    })
+        -- Config
+        addTopic(T("TOPIC_CONFIG"), {
+            { Type = "ListPersistent", Name = T("LANGUAGE"), Description = T("LANGUAGE_DESC"), Options = {"Português", "English"}, Callback = function(val) CurrentLang = (val == "English") and "EN" or "PT" globalEnv.CurrentLang = CurrentLang initTopics() end },
+            { Type = "ListPersistent", Name = T("THEME"), Description = T("THEME_DESC"), Options = {"Azul / Blue", "Vermelho / Red", "Amarelo / Yellow", "Preto / Black", "Branco / White", "Cinza / Gray"}, Callback = function(val) if THEME_PRESETS[val] then CurrentThemeName = val globalEnv.CurrentThemeName = val for k,v in pairs(THEME_PRESETS[val]) do THEME[k] = v end initTopics() end end },
+            { Type = "Slider", Name = T("OPACITY"), Description = T("OPACITY_DESC"), Min = 0, Max = 100, Default = (1 - CurrentOpacity) * 100, OnChange = function(val)
+                local transp = 1 - (val / 100)
+                CurrentOpacity = transp
+                globalEnv.CurrentOpacity = transp
+                uiRoot.BackgroundTransparency = transp
+                leftBg.BackgroundTransparency = transp
+                rightBg.BackgroundTransparency = transp
+                miniButton.BackgroundTransparency = transp
+                for _, desc in pairs(uiRoot:GetDescendants()) do if desc.Name == "ElementBackground" and desc:IsA("Frame") then desc.BackgroundTransparency = transp end end
+                for _, desc in pairs(topicsList:GetDescendants()) do if desc:IsA("TextButton") then desc.BackgroundTransparency = transp end end
+            end }
+        })
+    end
 
-    addTopic(T("TOPIC_CONFIG"), {
-        { Type = "ListPersistent", Name = T("LANGUAGE"), Description = T("LANGUAGE_DESC"), Options = {"Português", "English"}, Callback = function(val) CurrentLang = (val == "English") and "EN" or "PT" globalEnv.CurrentLang = CurrentLang initTopics() end },
-        { Type = "ListPersistent", Name = T("THEME"), Description = T("THEME_DESC"), Options = {"Azul / Blue", "Vermelho / Red", "Amarelo / Yellow", "Preto / Black", "Branco / White", "Cinza / Gray"}, Callback = function(val) if THEME_PRESETS[val] then CurrentThemeName = val globalEnv.CurrentThemeName = val for k,v in pairs(THEME_PRESETS[val]) do THEME[k] = v end initTopics() end end },
-        { Type = "Slider", Name = T("OPACITY"), Description = T("OPACITY_DESC"), Min = 0, Max = 100, Default = (1 - CurrentOpacity) * 100, OnChange = function(val)
-            local transp = 1 - (val / 100)
-            CurrentOpacity = transp
-            globalEnv.CurrentOpacity = transp
-            root.BackgroundTransparency = transp
-            leftBg.BackgroundTransparency = transp
-            rightBg.BackgroundTransparency = transp
-            miniButton.BackgroundTransparency = transp
-            for _, desc in pairs(scroll:GetDescendants()) do if desc.Name == "ElementBackground" then desc.BackgroundTransparency = transp end end
-            for _, desc in pairs(topicsList:GetDescendants()) do if desc:IsA("TextButton") then desc.BackgroundTransparency = transp end end
-        end }
-    })
+    -- finalmente inicializa tópicos após definir tudo
+    initTopics()
 end
 
-initTopics()
+-- A interface é criada apenas depois do popup chamar createHubUI (handled in applyPlatformChoice)
+-- caso o popup tenha sido destruído automaticamente, createHubUI já foi chamada.
