@@ -5,7 +5,9 @@ local Player = Players.LocalPlayer
 
 -- ID do Jogo Demonfall
 local gameID = 5094651510
-
+-- 4855457388  HUB
+-- 5094651510  Modo Historia
+-- 7099028688  Ranked
 -- Função para realizar o teleporte
 local function teleport()
     print("Teleportando para Demonfall...")
