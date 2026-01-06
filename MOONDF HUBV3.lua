@@ -66,6 +66,7 @@ local TRANSLATIONS = {
         -- Adições para MoonDFHub V2.5
         TOPIC_GENERAL = "Geral",
         TOPIC_MOBS = "Mobs",
+        TOPIC_FARM = "Farm",
         TOPIC_PLAYERS = "Players",
         TOPIC_TELEPORTS = "Teleportes",
         TOPIC_CONFIG = "Configuração",
@@ -201,7 +202,7 @@ local TRANSLATIONS = {
         LANG_DESC = "Changes all menu text",
         THEME_LABEL = "Theme / Tema",
         THEME_DESC = "Changes UI colors",
-        OPACITY_LABEL = "Opacity / Opacidade",
+        OPACITY_LABEL = "Opacity / Opacity",
         OPACITY_DESC = "Changes window transparency",
         
         DEMO_LABEL = "Demo",
@@ -240,6 +241,7 @@ local TRANSLATIONS = {
         -- Adições para MoonDFHub V2.5
         TOPIC_GENERAL = "General",
         TOPIC_MOBS = "Mobs",
+        TOPIC_FARM = "Farm",
         TOPIC_PLAYERS = "Players",
         TOPIC_TELEPORTS = "Teleports",
         TOPIC_CONFIG = "Settings",
@@ -539,15 +541,14 @@ local miniButton = new("TextButton", {
     Position = UDim2.new(0.1, 0, 0.1, 0),
     BackgroundColor3 = THEME.Background,
     BackgroundTransparency = CurrentOpacity,
-    Text = "DF", -- TEXTO DF
+    Text = "DF",
     TextColor3 = THEME.Accent,
-    Font = Enum.Font.FredokaOne, -- FONTE GORDINHA
+    Font = Enum.Font.FredokaOne,
     TextSize = 24,
     Visible = false,
     AutoButtonColor = true
 })
 makeRound(miniButton, 12)
--- Sem borda ou com borda conforme tema (deixei borda no mini para visibilidade se fundo for igual)
 local miniStroke = makeStroke(miniButton, THEME.Accent, 2) 
 
 local root = new("Frame", {
@@ -563,7 +564,6 @@ local root = new("Frame", {
 makeRound(root, 10)
 local rootStroke = makeStroke(root, THEME.Border, 2)
 
--- BARRA DE TÍTULO
 local titleBar = new("Frame", {Parent = root, Size = UDim2.new(1, 0, 0, 42), BackgroundTransparency = 1})
 local titleLabel = new("TextLabel", {
     Parent = titleBar, Position = UDim2.new(0, 12, 0, 8), Size = UDim2.new(1, -120, 1, -12),
@@ -571,7 +571,6 @@ local titleLabel = new("TextLabel", {
     Font = Enum.Font.GothamSemibold, TextSize = 18, TextXAlignment = Enum.TextXAlignment.Left
 })
 
--- BOTÕES DE CONTROLE DA JANELA
 local controlsContainer = new("Frame", {
     Parent = titleBar, AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -8, 0.5, 0),
     Size = UDim2.new(0, 70, 0, 30), BackgroundTransparency = 1
@@ -594,11 +593,9 @@ local closeBtn = new("TextButton", {
 })
 makeRound(closeBtn, 6)
 
--- PAINÉIS (LAYOUT)
 local leftPane = new("Frame", {Parent = root, Position = UDim2.new(0, 10, 0, 56), Size = UDim2.new(0, 220, 1, -76), BackgroundTransparency = 1})
 local rightPane = new("Frame", {Parent = root, Position = UDim2.new(0, 240, 0, 56), Size = UDim2.new(1, -250, 1, -76), BackgroundTransparency = 1})
 
--- MODIFICAÇÃO: Containers aplicam opacidade inicial
 local leftBg = new("Frame", {Parent = leftPane, Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = THEME.Background, BorderSizePixel = 0, BackgroundTransparency = CurrentOpacity})
 makeRound(leftBg, 8);
 local leftStroke = makeStroke(leftBg, THEME.Border, 1)
@@ -614,7 +611,6 @@ local scroll = new("ScrollingFrame", {Parent = rightBg, Position = UDim2.new(0, 
 local buttonsLayout = new("UIListLayout", {Parent = scroll, Padding = UDim.new(0, 10)})
 buttonsLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
--- RODAPÉ
 local footer = new("TextLabel", {
     Parent = root, Position = UDim2.new(0, 12, 1, -28), Size = UDim2.new(1, -24, 0, 22),
     BackgroundTransparency = 1,
@@ -622,7 +618,6 @@ local footer = new("TextLabel", {
     TextColor3 = THEME.SubText, Font = Enum.Font.Gotham, TextSize = 11
 })
 
--- REDIMENSIONADOR
 local resizer = new("Frame", {Parent = root, AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -10, 1, -10), Size = UDim2.new(0, 18, 0, 18), BackgroundTransparency = 1})
 local resDot = new("Frame", {Parent = resizer, Size = UDim2.new(1, 1, 1, 1), BackgroundColor3 = THEME.Hover, BorderSizePixel = 0});
 makeRound(resDot, 6)
@@ -643,7 +638,6 @@ end
 -- DRAG SYSTEM (JANELA PRINCIPAL E MINI BUTTON)
 -- =========================
 do
-    -- Lógica de arrastar Janela Principal
     local dragging, dragOffset = false, Vector2.new(0, 0)
     table.insert(connections, titleBar.InputBegan:Connect(function(input)
         if not hubVisible then return end
@@ -666,7 +660,6 @@ do
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = false end
     end))
 
-    -- Lógica de arrastar/clicar Botão Flutuante (MiniButton)
     local miniDragging, miniStartPos, miniDragStart = false, Vector2.new(0,0), Vector2.new(0,0)
     
     table.insert(connections, miniButton.InputBegan:Connect(function(input)
@@ -696,23 +689,19 @@ do
     end))
 end
 
--- Botão Minimizar
 table.insert(connections, minBtn.MouseButton1Click:Connect(toggleHub))
 
--- Botão Fechar
 table.insert(connections, closeBtn.MouseButton1Click:Connect(function()
     for _, conn in pairs(connections) do pcall(function() conn:Disconnect() end) end
     screenGui:Destroy()
 end))
 
--- Keybind (Right Control)
 table.insert(connections, UserInputService.InputBegan:Connect(function(input, gp)
     if input.KeyCode == Enum.KeyCode.RightControl then
         toggleHub()
     end
 end))
 
--- Resize (Simplificado)
 local resizing, startSize, startMouse = false, nil, nil
 table.insert(connections, resizer.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -727,7 +716,6 @@ table.insert(connections, UserInputService.InputChanged:Connect(function(input)
     end
 end))
 table.insert(connections, UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then resizing = false end end))
-
 
 -- =========================
 -- FACTORY DE ELEMENTOS UI
@@ -857,9 +845,7 @@ local function createEntry(params, parentFrame, depth, onChildrenChanged)
         expanded = true
     end
 
-    -- LOGICA POR TIPO
     if params.Type == "Label" then
-        -- Visual apenas
 
     elseif params.Type == "Toggle" then
         local state = false
@@ -909,13 +895,12 @@ local function createEntry(params, parentFrame, depth, onChildrenChanged)
         local txtBox = new("TextBox", {Parent = rightArea, Size = UDim2.new(1, -76, 0, 28), Position = UDim2.new(0, 0, 0.5, -14), BackgroundColor3 = THEME.Background, Text = "", PlaceholderText = params.Placeholder or "...", TextColor3 = THEME.Text, Font = Enum.Font.Gotham, TextSize = 14, ClearTextOnFocus = false, ZIndex = 6});
         makeRound(txtBox, 6)
         
-        -- Botão OK Centralizado
         local okBtn = new("TextButton", {
             Parent = rightArea, 
             AnchorPoint = Vector2.new(1, 0.5), 
             Position = UDim2.new(1, 0, 0.5, 0), 
             Size = UDim2.new(0, 68, 0, 28), 
-            BackgroundColor3 = THEME.Accent, -- [MODIFICADO] No tema preto, Accent agora é cinza
+            BackgroundColor3 = THEME.Accent,
             Text = "OK", 
             TextColor3 = Color3.new(1, 1, 1), 
             Font = Enum.Font.GothamBold, 
@@ -1115,7 +1100,7 @@ end
 -- GERENCIADOR DE TÓPICOS
 -- =========================
 local togglesCreated = {}
-local initTopics -- Declaração antecipada
+local initTopics
 
 local function addTopic(name, items)
     local btn = new("TextButton", {
@@ -1173,22 +1158,18 @@ task.defer(updateLayout)
 -- ATUALIZAÇÃO VISUAL DE TEMA ESTÁTICO
 -- =========================
 local function refreshStaticUI()
-    -- Atualiza Frames Base
     root.BackgroundColor3 = THEME.Background
     leftBg.BackgroundColor3 = THEME.Background 
     rightBg.BackgroundColor3 = THEME.Background
     miniButton.BackgroundColor3 = THEME.Background
     miniButton.BackgroundTransparency = CurrentOpacity
     
-    -- MODIFICAÇÃO: Atualiza cores do Botão DF
     miniButton.TextColor3 = THEME.Accent
     miniStroke.Color = THEME.Accent
     
-    -- Atualiza Textos
     titleLabel.TextColor3 = THEME.Text
     footer.TextColor3 = THEME.SubText
     
-    -- Atualiza Bordas (Strokes)
     rootStroke.Color = THEME.Border
     leftStroke.Color = THEME.Border
     rightStroke.Color = THEME.Border
@@ -1199,27 +1180,18 @@ end
 -- =========================
 
 function initTopics()
-    -- Limpa lista lateral
     for _, v in pairs(topicsList:GetChildren()) do
         if v:IsA("TextButton") then v:Destroy() end
     end
-    -- Limpa conteúdo principal
     for _, c in pairs(scroll:GetChildren()) do 
         if c:IsA("Frame") and c.Name == "Entry" then c:Destroy() end 
     end
     
-    -- Atualiza textos globais e cores
     refreshStaticUI()
     titleLabel.Text = T("TITLE_MAIN")
     footer.Text = T("FOOTER_TEXT")
 
-    -- AQUI FICAVA A ABA TESTE (REMOVIDA)
-
-    -- =========================
-    -- TÓPICO: CONFIGURAÇÃO
-    -- =========================
     addTopic(T("TOPIC_CONFIG"), {
-        -- Seletor de Idioma
         {
             Type = "ListPersistent",
             Name = T("LANG_LABEL"),
@@ -1235,7 +1207,6 @@ function initTopics()
                 end
             end
         },
-        -- Seletor de Temas
         {
             Type = "ListPersistent",
             Name = T("THEME_LABEL") .. " [" .. CurrentThemeName .. "]",
@@ -1253,7 +1224,6 @@ function initTopics()
                 end
             end
         },
-        -- Slider de Opacidade
         {
             Type = "Slider",
             StateKey = "OpacityValue",
@@ -1265,7 +1235,6 @@ function initTopics()
                 CurrentOpacity = transp
                 globalEnv.CurrentOpacity = transp
                 
-                -- Aplica no background principal
                 root.BackgroundTransparency = transp
                 leftBg.BackgroundTransparency = transp
                 rightBg.BackgroundTransparency = transp
@@ -1281,15 +1250,7 @@ function initTopics()
     })
 end
 
--- Inicialização
 initTopics()
-
-
-
-
-
-
-
 
 -- ==============================================================================
 --  SERVICES & VARIÁVEIS DO MOONDF HUB V1
@@ -1305,7 +1266,6 @@ local char = player.Character or player.CharacterAdded:Wait()
 local root = char:WaitForChild("HumanoidRootPart")
 local humanoid = char:WaitForChild("Humanoid")
 
--- Variáveis de Voo e Speed
 globalEnv.flyToggle = globalEnv.flyToggle or false
 local flyToggle = globalEnv.flyToggle
 globalEnv.flySpeedValue = globalEnv.flySpeedValue or 150
@@ -1318,7 +1278,6 @@ local walkSpeed = globalEnv.walkSpeed
 local speedConn
 local BASE_WALKSPEED = 16
 
--- Variáveis Visuais
 local coordsEnabled = false
 local coordsGui, coordsLabel, coordsConn
 globalEnv.noFogEnabled = globalEnv.noFogEnabled or false
@@ -1327,7 +1286,6 @@ globalEnv.ultraLiteEnabled = globalEnv.ultraLiteEnabled or false
 local ultraLiteEnabled = globalEnv.ultraLiteEnabled
 local liteLoop = nil
 
--- Variáveis de Farm e Combate
 globalEnv.trinketFarm = globalEnv.trinketFarm or false
 local trinketFarm = globalEnv.trinketFarm
 globalEnv.autoAttack = globalEnv.autoAttack or false
@@ -1347,7 +1305,6 @@ globalEnv.EXECUTE_DISTANCE = globalEnv.EXECUTE_DISTANCE or 1
 local EXECUTE_DISTANCE = globalEnv.EXECUTE_DISTANCE
 local PLAYER_EXECUTE_DISTANCE = 20
 
--- Variáveis Diversas
 globalEnv.clickTPToggle = globalEnv.clickTPToggle or false
 local clickTPToggle = globalEnv.clickTPToggle
 local clickTPConn = nil
@@ -1369,13 +1326,12 @@ local espConnections = {}
 local espUpdateLoop = nil
 local espPlayers = {}
 
--- Tabelas e Coordenadas
 local blockedStates = {
     Enum.HumanoidStateType.FallingDown, Enum.HumanoidStateType.Freefall, Enum.HumanoidStateType.GettingUp,
     Enum.HumanoidStateType.Seated, Enum.HumanoidStateType.PlatformStanding, Enum.HumanoidStateType.Dead, Enum.HumanoidStateType.Physics,
 }
 
-local MOBS = { "GenericSlayer", "GenericOni", "FrostyOni", "Green Demon", "Blue Demon", "Zenitsu", "Gyutaro", "Kaigaku" }
+local FARM = { "GenericSlayer", "GenericOni", "FrostyOni", "Green Demon", "Blue Demon", "Zenitsu", "Gyutaro", "Kaigaku" }
 
 local LOCATIONS = {
     Raid = CFrame.new(7099.3, 1762.3, 1342.9),
@@ -1416,10 +1372,6 @@ local LOAD_COORDINATES = {
     Vector3.new(1406.2, 769.3, -6549.3),
     Vector3.new(893.3, 772.6, -2260.9),
 }
-
--- ==========================================
--- FUNÇÕES LÓGICAS (PORTADAS)
--- ==========================================
 
 local function isInBlockedState(h)
     if not h then return true end
@@ -1529,7 +1481,6 @@ local function toggleUltraLite(state)
     end
 end
 
--- Lógica de Farm
 local function findEnemy(mobName)
     local targetPlayer = Players:FindFirstChild(mobName)
     if targetPlayer and targetPlayer.Character then return targetPlayer.Character end
@@ -1650,7 +1601,6 @@ local function loadAllMap()
     loadingAllMobs = false
 end
 
--- ESP e Spectate
 local function createESPLabel(hrp, playerName, distance)
     local billboardGui = Instance.new("BillboardGui")
     billboardGui.Size = UDim2.new(0, 120, 0, 50)
@@ -1764,10 +1714,9 @@ function initTopics()
     for _, v in pairs(topicsList:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
     for _, c in pairs(scroll:GetChildren()) do if c:IsA("Frame") and c.Name == "Entry" then c:Destroy() end end
     refreshStaticUI()
-    titleLabel.Text = "MOONDF HUB V2.5"
-    footer.Text = "Versão Portada para Nova Base • V2.5"
+    titleLabel.Text = "MOONDF HUB V3"
+    footer.Text = "Versão Portada para Nova Base • V3"
 
-    -- GERAL
     addTopic(T("TOPIC_GENERAL"), {
         { Type = "ListAuto", Name = T("FLY_SPEED"), Description = T("FLY_SPEED_DESC"), Options = {
             { Type = "Toggle", StateKey = "EnableFly", Name = T("ENABLE_FLY"), Description = T("ENABLE_FLY_DESC"), OnEnable = function() flyToggle = true globalEnv.flyToggle = true setupFly() end, OnDisable = function() flyToggle = false globalEnv.flyToggle = false if bg then bg:Destroy() end if bv then bv:Destroy() end if flyConn then flyConn:Disconnect() end humanoid.PlatformStand = false end },
@@ -1783,13 +1732,19 @@ function initTopics()
         }}
     })
 
-    -- FARM & MOBS (REORGANIZADO)
     local mobFarmOptions = {}
-    for _, mob in ipairs(MOBS) do
+    for _, mob in ipairs(FARM) do
         table.insert(mobFarmOptions, { Type = "Toggle", StateKey = "Farm" .. mob, Name = T("FARM") .. " " .. mob, Description = T("FARM_DESC"), OnEnable = function() toggleTeleport(true, mob) end, OnDisable = function() toggleTeleport(false) end })
     end
 
-    addTopic(T("TOPIC_MOBS"), {
+    -- Localized options for TP Mode (Behind/Above/Below) - show in PT when language is PT, EN otherwise
+    local tp_mode_options = (CurrentLang == "EN") and {"Behind", "Above", "Below"} or {"Atrás", "Acima", "Abaixo"}
+    local tp_mode_map = {
+        ["Behind"] = "Behind", ["Above"] = "Above", ["Below"] = "Below",
+        ["Atrás"] = "Behind", ["Acima"] = "Above", ["Abaixo"] = "Below"
+    }
+
+    addTopic(T("TOPIC_FARM"), {
         { Type = "Label", Name = T("INFO_LABEL") },
         { Type = "ListAuto", Name = T("EXTRAS_MOBS"), Description = T("EXTRAS_MOBS_DESC"), Options = {
             { Type = "Toggle", StateKey = "TrinketFarm", Name = T("TRINKET_FARM"), Description = T("TRINKET_FARM_DESC"), OnEnable = function()
@@ -1816,7 +1771,11 @@ function initTopics()
             { Type = "Toggle", StateKey = "AutoAttack", Name = T("AUTO_ATTACK"), Description = T("AUTO_ATTACK_DESC"), OnEnable = function() autoAttack = true globalEnv.autoAttack = true spawn(autoAttackLoop) end, OnDisable = function() autoAttack = false globalEnv.autoAttack = false end }
         }},
         { Type = "ListAuto", Name = T("TP_MODE"), Description = T("TP_MODE_DESC"), Options = {
-            { Type = "ListPersistent", StateKey = "TeleportMode", Name = T("TP_MODE"), Description = T("TP_MODE_DESC"), Options = {"Behind", "Above", "Below"}, Callback = function(v) teleportMode = v globalEnv.teleportMode = v end },
+            { Type = "ListPersistent", StateKey = "TeleportMode", Name = T("TP_MODE"), Description = T("TP_MODE_DESC"), Options = tp_mode_options, Callback = function(v)
+                local mapped = tp_mode_map[v] or "Behind"
+                teleportMode = mapped
+                globalEnv.teleportMode = mapped
+            end },
             { Type = "Slider", StateKey = "FarmDistance", Name = T("DISTANCE"), Description = T("DISTANCE_DESC"), Min = 0, Max = 50, Default = 4, OnChange = function(v) FARM_DISTANCE = v globalEnv.FARM_DISTANCE = v end },
             { Type = "Slider", StateKey = "ExecuteDistance", Name = T("EXECUTE_DISTANCE"), Description = T("EXECUTE_DISTANCE_DESC"), Min = 0, Max = 100, Default = 20, OnChange = function(v) EXECUTE_DISTANCE = v globalEnv.EXECUTE_DISTANCE = v end }
         }},
@@ -1826,6 +1785,7 @@ function initTopics()
             { Type = "Toggle", StateKey = "FarmShinobuRaid", Name = T("FARM") .. " Shinobu Raid", Description = T("FARM_DESC"), OnEnable = function() toggleTeleport(true, "ShinoubuRaid") end, OnDisable = function() toggleTeleport(false) end },
             { Type = "Toggle", StateKey = "FarmRengokuRaid", Name = T("FARM") .. " Rengoku Raid", Description = T("FARM_DESC"), OnEnable = function() toggleTeleport(true, "RengokuRaid") end, OnDisable = function() toggleTeleport(false) end },
             { Type = "Toggle", StateKey = "FarmKokushiboRaid", Name = T("FARM") .. " Kokushibo Raid", Description = T("FARM_DESC"), OnEnable = function() toggleTeleport(true, "KokushiboRaid") end, OnDisable = function() toggleTeleport(false) end },
+            { Type = "Toggle", StateKey = "FarmEnemyRaid", Name = T("FARM") .. " Enemy Raid", Description = "Foca no inimigo 'Enemy'", OnEnable = function() toggleTeleport(true, "Enemy") end, OnDisable = function() toggleTeleport(false) end },
             { Type = "Toggle", StateKey = "FarmYoriichi", Name = T("FARM") .. " Yoriichi", Description = T("FARM_DESC"), OnEnable = function() toggleTeleport(true, "Yoriichi") end, OnDisable = function() toggleTeleport(false) end }
         }},
         { Type = "ListAuto", Name = T("INFINITE_CASTLE"), Description = T("INFINITE_CASTLE_DESC"), Options = {
@@ -1838,7 +1798,6 @@ function initTopics()
         }}
     })
 
-    -- PLAYERS (REORGANIZADO)
     addTopic(T("TOPIC_PLAYERS"), {
         { Type = "ListPersistent", StateKey = "SelectedPlayer", Name = T("SELECT_PLAYER"), Description = T("SELECT_PLAYER_DESC"), Options = getPlayerNames(), Callback = function(v) selectedPlayerName = v globalEnv.selectedPlayerName = v end },
         { Type = "Single", Name = T("UPDATE_LIST"), Description = T("UPDATE_LIST_DESC"), Callback = function() initTopics() end },
@@ -1859,7 +1818,6 @@ function initTopics()
         }}
     })
 
-    -- TELEPORTES
     addTopic(T("TOPIC_TELEPORTS"), {
         { Type = "Single", Name = T("LOAD_MOBS"), Description = T("LOAD_MOBS_DESC"), Callback = loadAllMobs },
         { Type = "Single", Name = T("LOAD_MAP"), Description = T("LOAD_MAP_DESC"), Callback = loadAllMap },
@@ -1888,7 +1846,6 @@ function initTopics()
         }}
     })
 
-    -- CONFIGURAÇÃO
     addTopic(T("TOPIC_CONFIG"), {
         { Type = "ListPersistent", Name = T("LANGUAGE"), Description = T("LANGUAGE_DESC"), Options = {"Português", "English"}, Callback = function(val) CurrentLang = (val == "English") and "EN" or "PT" globalEnv.CurrentLang = CurrentLang initTopics() end },
         { Type = "ListPersistent", Name = T("THEME"), Description = T("THEME_DESC"), Options = {"Azul / Blue", "Vermelho / Red", "Amarelo / Yellow", "Preto / Black", "Branco / White", "Cinza / Gray"}, Callback = function(val) if THEME_PRESETS[val] then CurrentThemeName = val globalEnv.CurrentThemeName = val for k,v in pairs(THEME_PRESETS[val]) do THEME[k] = v end initTopics() end end },
