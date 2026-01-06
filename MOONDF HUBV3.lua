@@ -9,7 +9,7 @@
 
 -- ============================================================================== 
 --  SERVICES
--- ==============================================================================
+-- ============================================================================== 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -662,15 +662,68 @@ function setupFly() -- mantida com mesmo nome
     humanoid.PlatformStand = true
 
     if flyConn then flyConn:Disconnect() end
+
+    -- Helper: retorna inputs de movimento (suporte teclado + fallback para humanoid.MoveDirection)
+    local function getMoveInputs(cam)
+        -- Inputs diretos (teclado)
+        local forward = 0
+        local right = 0
+        -- WASD
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then forward = forward + 1 end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then forward = forward - 1 end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then right = right + 1 end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then right = right - 1 end
+
+        -- Se não houver input de teclado (ex: mobile / touch), caímos em humanoid.MoveDirection projetado nos eixos da câmera
+        if math.abs(forward) < 1e-6 and math.abs(right) < 1e-6 then
+            local md = (humanoid and humanoid.MoveDirection) or Vector3.new(0,0,0)
+            if md and md.Magnitude > 0.01 and cam then
+                -- projeta MoveDirection nos eixos da câmera (Look e Right) para obter componentes forward/right relativos à câmera
+                forward = md:Dot(cam.CFrame.LookVector)
+                right = md:Dot(cam.CFrame.RightVector)
+            end
+        end
+
+        return forward, right
+    end
+
     flyConn = RunService.Heartbeat:Connect(function()
         if not flyToggle or not root then return end
         local cam = workspace.CurrentCamera
-        local vertical = 0
+        if not cam then return end
+
         local currentSpeed = calculateFlySpeed(flySpeedValue)
-        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then vertical += currentSpeed end
-        if UserInputService:IsKeyDown(Enum.KeyCode.C) then vertical -= currentSpeed end
-        bv.Velocity = humanoid.MoveDirection * currentSpeed + Vector3.new(0, vertical, 0)
-        bg.CFrame = cam.CFrame
+
+        -- Vertical manual (Space/C) continua sendo subida/descida global
+        local vertical = 0
+        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then vertical = vertical + currentSpeed end
+        if UserInputService:IsKeyDown(Enum.KeyCode.C) then vertical = vertical - currentSpeed end
+
+        -- Obtem componentes de movimento forward/right (possuem valores -1..1 ou projeção contínua para touch)
+        local fComp, rComp = getMoveInputs(cam)
+
+        -- Constrói vetor de movimento usando LookVector (contendo componente vertical) e RightVector da câmera.
+        local moveVec = Vector3.new(0,0,0)
+        if math.abs(fComp) > 1e-6 or math.abs(rComp) > 1e-6 then
+            moveVec = (cam.CFrame.LookVector * fComp) + (cam.CFrame.RightVector * rComp)
+            -- Se moveVec for quase zero, evita unidade incorreta
+            if moveVec.Magnitude > 0.001 then
+                moveVec = moveVec.Unit * currentSpeed
+            else
+                moveVec = Vector3.new(0,0,0)
+            end
+        else
+            moveVec = Vector3.new(0,0,0)
+        end
+
+        -- Aplica velocidade final (componente vertical global adicionada)
+        bv.Velocity = moveVec + Vector3.new(0, vertical, 0)
+
+        -- Orienta o corpo para olhar na direção da câmera sem alterar posição (mantém alinhamento com moveVec)
+        -- Usa root.Position como origem para evitar deslocamento do BodyGyro causado pela posição da câmera
+        if cam.CFrame.LookVector then
+            bg.CFrame = CFrame.new(root.Position, root.Position + cam.CFrame.LookVector)
+        end
     end)
 end
 
