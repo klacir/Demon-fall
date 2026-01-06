@@ -154,9 +154,9 @@ local TRANSLATIONS = {
 
         VILLAGES = "Vilas",
         VILLAGES_DESC = "Locais principais",
-        TP_HAYAKAWA = "Hayakawa",
+        TP_HAYAKAWA = "Okuya",
         TP_HAYAKAWA_DESC = "TP",
-        TP_OKUYA = "Okuya",
+        TP_OKUYA = "Hayakawa",
         TP_OKUYA_DESC = "TP",
         TP_KAMAKURA = "Kamakura",
         TP_KAMAKURA_DESC = "TP",
@@ -318,9 +318,9 @@ local TRANSLATIONS = {
 
         VILLAGES = "Villages",
         VILLAGES_DESC = "Main locations",
-        TP_HAYAKAWA = "Hayakawa",
+        TP_HAYAKAWA = "Okuya",
         TP_HAYAKAWA_DESC = "TP",
-        TP_OKUYA = "Okuya",
+        TP_OKUYA = "Hayakawa",
         TP_OKUYA_DESC = "TP",
         TP_KAMAKURA = "Kamakura",
         TP_KAMAKURA_DESC = "TP",
@@ -1963,3 +1963,4 @@ end
 
 -- A interface é criada apenas depois do popup chamar createHubUI (handled in applyPlatformChoice)
 -- caso o popup tenha sido destruído automaticamente, createHubUI já foi chamada.
+
