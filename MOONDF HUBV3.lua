@@ -36,7 +36,43 @@ local TRANSLATIONS = {
         TOPIC_FARM = "Farm",
         TOPIC_PLAYERS = "Players",
         TOPIC_TELEPORTS = "Teleportes",
+        TOPIC_DEV = "Developer",
         FOOTER_TEXT = "Right Ctrl ou use o botão para minimizar • Inputs: Immediate (OK) / Select (no OK)",
+
+        DEV_TOOLS = "Ferramentas",
+        DEV_TOOLS_DESC = "Coords e utilidades",
+        DEV_COORDS = "Copiar Coordenadas",
+        DEV_COORDS_DESC = "Copia CFrame atual pro clipboard",
+        DEV_FUNNY = "Funções Engraçadas",
+        DEV_FUNNY_DESC = "Troll / meme",
+        DEV_SPIN = "Girar sem parar",
+        DEV_SPIN_DESC = "Personagem gira (outros veem)",
+        DEV_DISCO = "Disco RGB",
+        DEV_DISCO_DESC = "Corpo arco-íris (local)",
+        DEV_MOONWALK = "Moonwalk",
+        DEV_MOONWALK_DESC = "Anda de costas",
+        DEV_GIANT = "Gigante",
+        DEV_GIANT_DESC = "Personagem enorme (local)",
+        DEV_TINY = "Miniatura",
+        DEV_TINY_DESC = "Personagem minúsculo (local)",
+        DEV_FLING = "Se lançar",
+        DEV_FLING_DESC = "Joga você pro espaço",
+        DEV_RAGDOLL = "Ragdoll",
+        DEV_RAGDOLL_DESC = "Cai mole por 1s",
+        ICE_SLIDE = "Gelo Deslizante",
+        ICE_SLIDE_DESC = "Caído no chão desliza + ricochete na parede",
+        ICE_INTENSITY = "Intensidade do Gelo",
+        ICE_INTENSITY_DESC = "Quanto desliza e ricocheteia",
+        DEV_HELI = "Helicóptero",
+        DEV_HELI_DESC = "Gira e sobe (visível)",
+        DEV_DRUNK = "Bêbado",
+        DEV_DRUNK_DESC = "Anda torto aleatório (visível)",
+        DEV_BALLOON = "Balão",
+        DEV_BALLOON_DESC = "Flutua girando pra cima",
+        DEV_ROLL = "Mortal",
+        DEV_ROLL_DESC = "Rola no chão sem parar",
+        DEV_HOP = "Pulo-pula",
+        DEV_HOP_DESC = "Pula enquanto anda",
 
         LANG_LABEL = "Idioma / Language",
         LANG_DESC = "Altera todo o texto do menu",
@@ -99,6 +135,12 @@ local TRANSLATIONS = {
         NO_FOG_DESC = "Remover neblina",
         ULTRA_LITE = "Ultra Lite",
         ULTRA_LITE_DESC = "Modo Batata (FPS)",
+        INFINITE_JUMP = "Infinite Jump",
+        INFINITE_JUMP_DESC = "Pulo infinito (segure Espaço)",
+        INFINITE_STAMINA = "Infinite Stamina",
+        INFINITE_STAMINA_DESC = "Stamina nunca cai (ataque/pulo/formas)",
+        ANTI_COMBAT = "Anti Combat",
+        ANTI_COMBAT_DESC = "Remove caveira e efeitos do modo combate",
 
         TP_MODE = "Modo de TP",
         TP_MODE_DESC = "Posição relativa ao mob",
@@ -130,6 +172,8 @@ local TRANSLATIONS = {
         TP_KOKUSHIBO_DESC = "Coord 3",
         TRINKET_FARM = "Trinket Farm",
         TRINKET_FARM_DESC = "Coleta automática",
+        ORE_FARM = "Farm Minérios",
+        ORE_FARM_DESC = "TP + minera com picareta (Z)",
 
         SELECT_PLAYER = "Selecionar Player",
         SELECT_PLAYER_DESC = "Escolha o alvo",
@@ -217,7 +261,43 @@ local TRANSLATIONS = {
         TOPIC_FARM = "Farm",
         TOPIC_PLAYERS = "Players",
         TOPIC_TELEPORTS = "Teleports",
+        TOPIC_DEV = "Developer",
         FOOTER_TEXT = "Right Ctrl or use button to minimize • Inputs: Immediate (OK) / Select (no OK)",
+
+        DEV_TOOLS = "Tools",
+        DEV_TOOLS_DESC = "Coords and utilities",
+        DEV_COORDS = "Copy Coordinates",
+        DEV_COORDS_DESC = "Copies current CFrame to clipboard",
+        DEV_FUNNY = "Funny Functions",
+        DEV_FUNNY_DESC = "Troll / meme",
+        DEV_SPIN = "Spin Forever",
+        DEV_SPIN_DESC = "Character spins (others see)",
+        DEV_DISCO = "Disco RGB",
+        DEV_DISCO_DESC = "Rainbow body (local)",
+        DEV_MOONWALK = "Moonwalk",
+        DEV_MOONWALK_DESC = "Walk backwards",
+        DEV_GIANT = "Giant",
+        DEV_GIANT_DESC = "Huge character (local)",
+        DEV_TINY = "Tiny",
+        DEV_TINY_DESC = "Tiny character (local)",
+        DEV_FLING = "Fling Self",
+        DEV_FLING_DESC = "Yeet yourself",
+        DEV_RAGDOLL = "Ragdoll",
+        DEV_RAGDOLL_DESC = "Go limp for 1s",
+        ICE_SLIDE = "Ice Slide",
+        ICE_SLIDE_DESC = "While downed slides + wall bounce",
+        ICE_INTENSITY = "Ice Intensity",
+        ICE_INTENSITY_DESC = "How much you slide and bounce",
+        DEV_HELI = "Helicopter",
+        DEV_HELI_DESC = "Spin and rise (visible)",
+        DEV_DRUNK = "Drunk",
+        DEV_DRUNK_DESC = "Random wobbly movement",
+        DEV_BALLOON = "Balloon",
+        DEV_BALLOON_DESC = "Float upward spinning",
+        DEV_ROLL = "Cartwheel",
+        DEV_ROLL_DESC = "Roll on the ground",
+        DEV_HOP = "Bunny Hop",
+        DEV_HOP_DESC = "Hop while walking",
 
         LANG_LABEL = "Language / Idioma",
         LANG_DESC = "Changes all menu text",
@@ -264,6 +344,12 @@ local TRANSLATIONS = {
         NO_FOG_DESC = "Remove fog",
         ULTRA_LITE = "Ultra Lite",
         ULTRA_LITE_DESC = "Potato Mode (FPS)",
+        INFINITE_JUMP = "Infinite Jump",
+        INFINITE_JUMP_DESC = "Infinite jump (hold Space)",
+        INFINITE_STAMINA = "Infinite Stamina",
+        INFINITE_STAMINA_DESC = "Stamina never drops (attack/jump/forms)",
+        ANTI_COMBAT = "Anti Combat",
+        ANTI_COMBAT_DESC = "Remove skull and combat mode effects",
 
         TP_MODE = "TP Mode",
         TP_MODE_DESC = "Position relative to mob",
@@ -294,6 +380,8 @@ local TRANSLATIONS = {
         TP_KOKUSHIBO_DESC = "Coord 3",
         TRINKET_FARM = "Trinket Farm",
         TRINKET_FARM_DESC = "Auto collect",
+        ORE_FARM = "Ore Farm",
+        ORE_FARM_DESC = "TP + mine with pickaxe (Z)",
 
         SELECT_PLAYER = "Select Player",
         SELECT_PLAYER_DESC = "Choose target",
@@ -387,83 +475,89 @@ globalEnv.CurrentOpacity = globalEnv.CurrentOpacity or 0
 local CurrentOpacity = globalEnv.CurrentOpacity
 
 local THEME_PRESETS = {
+    -- Azul: navy profundo + ciano elétrico (estilo glass / cyber)
     ["Azul / Blue"] = {
-        Background = Color3.fromRGB(15, 18, 25),
-        PanelBg    = Color3.fromRGB(30, 35, 45),
-        Text       = Color3.fromRGB(240, 245, 255),
-        SubText    = Color3.fromRGB(150, 160, 180),
-        Off        = Color3.fromRGB(50, 55, 65),
-        On         = Color3.fromRGB(0, 160, 255),
-        Border     = Color3.fromRGB(60, 100, 140),
-        Hover      = Color3.fromRGB(45, 50, 60),
-        Danger     = Color3.fromRGB(255, 60, 60),
-        Accent     = Color3.fromRGB(0, 160, 255),
-        KnobColor  = Color3.fromRGB(245, 245, 245)
+        Background = Color3.fromRGB(8, 12, 22),
+        PanelBg    = Color3.fromRGB(16, 24, 40),
+        Text       = Color3.fromRGB(236, 244, 255),
+        SubText    = Color3.fromRGB(120, 150, 190),
+        Off        = Color3.fromRGB(28, 38, 55),
+        On         = Color3.fromRGB(0, 200, 255),
+        Border     = Color3.fromRGB(40, 90, 150),
+        Hover      = Color3.fromRGB(22, 36, 58),
+        Danger     = Color3.fromRGB(255, 70, 90),
+        Accent     = Color3.fromRGB(0, 190, 255),
+        KnobColor  = Color3.fromRGB(255, 255, 255)
     },
+    -- Vermelho: vinho escuro + carmesim neon
     ["Vermelho / Red"] = {
-        Background = Color3.fromRGB(20, 10, 10),
-        PanelBg    = Color3.fromRGB(40, 25, 25),
-        Text       = Color3.fromRGB(255, 230, 230),
-        SubText    = Color3.fromRGB(180, 140, 140),
-        Off        = Color3.fromRGB(60, 40, 40),
-        On         = Color3.fromRGB(220, 50, 50),
-        Border     = Color3.fromRGB(120, 60, 60),
-        Hover      = Color3.fromRGB(55, 30, 30),
-        Danger     = Color3.fromRGB(255, 0, 0),
-        Accent     = Color3.fromRGB(220, 50, 50),
-        KnobColor  = Color3.fromRGB(245, 245, 245)
+        Background = Color3.fromRGB(14, 6, 8),
+        PanelBg    = Color3.fromRGB(28, 12, 16),
+        Text       = Color3.fromRGB(255, 236, 238),
+        SubText    = Color3.fromRGB(190, 120, 130),
+        Off        = Color3.fromRGB(48, 22, 28),
+        On         = Color3.fromRGB(255, 45, 75),
+        Border     = Color3.fromRGB(120, 40, 55),
+        Hover      = Color3.fromRGB(40, 16, 22),
+        Danger     = Color3.fromRGB(255, 30, 50),
+        Accent     = Color3.fromRGB(255, 55, 85),
+        KnobColor  = Color3.fromRGB(255, 245, 245)
     },
+    -- Amarelo: charcoal + âmbar dourado
     ["Amarelo / Yellow"] = {
-        Background = Color3.fromRGB(25, 25, 20),
-        PanelBg    = Color3.fromRGB(45, 45, 30),
-        Text       = Color3.fromRGB(255, 255, 240),
-        SubText    = Color3.fromRGB(180, 180, 150),
-        Off        = Color3.fromRGB(75, 75, 50),
-        On         = Color3.fromRGB(255, 200, 0),
-        Border     = Color3.fromRGB(100, 100, 60),
-        Hover      = Color3.fromRGB(55, 55, 40),
-        Danger     = Color3.fromRGB(220, 60, 60),
-        Accent     = Color3.fromRGB(255, 200, 0),
-        KnobColor  = Color3.fromRGB(245, 245, 245)
+        Background = Color3.fromRGB(14, 12, 6),
+        PanelBg    = Color3.fromRGB(28, 24, 12),
+        Text       = Color3.fromRGB(255, 250, 230),
+        SubText    = Color3.fromRGB(190, 170, 100),
+        Off        = Color3.fromRGB(48, 42, 22),
+        On         = Color3.fromRGB(255, 196, 0),
+        Border     = Color3.fromRGB(120, 100, 40),
+        Hover      = Color3.fromRGB(38, 32, 14),
+        Danger     = Color3.fromRGB(255, 70, 60),
+        Accent     = Color3.fromRGB(255, 200, 30),
+        KnobColor  = Color3.fromRGB(255, 250, 240)
     },
+    -- Preto: OLED + violeta suave (contraste moderno)
     ["Preto / Black"] = {
-        Background = Color3.fromRGB(5, 5, 5),
-        PanelBg    = Color3.fromRGB(25, 25, 25),
-        Text       = Color3.fromRGB(220, 220, 220),
-        SubText    = Color3.fromRGB(120, 120, 120),
-        Off        = Color3.fromRGB(40, 40, 40),
-        On         = Color3.fromRGB(100, 100, 100),
-        Border     = Color3.fromRGB(70, 70, 70),
-        Hover      = Color3.fromRGB(35, 35, 35),
-        Danger     = Color3.fromRGB(150, 50, 50),
-        Accent     = Color3.fromRGB(80, 80, 80),
-        KnobColor  = Color3.fromRGB(245, 245, 245)
+        Background = Color3.fromRGB(6, 6, 8),
+        PanelBg    = Color3.fromRGB(18, 18, 22),
+        Text       = Color3.fromRGB(245, 245, 250),
+        SubText    = Color3.fromRGB(130, 130, 145),
+        Off        = Color3.fromRGB(36, 36, 42),
+        On         = Color3.fromRGB(160, 120, 255),
+        Border     = Color3.fromRGB(55, 50, 70),
+        Hover      = Color3.fromRGB(28, 28, 34),
+        Danger     = Color3.fromRGB(220, 60, 80),
+        Accent     = Color3.fromRGB(170, 130, 255),
+        KnobColor  = Color3.fromRGB(255, 255, 255)
     },
+    -- Branco: off-white clean + índigo
     ["Branco / White"] = {
-        Background = Color3.fromRGB(255, 255, 255),
-        PanelBg    = Color3.fromRGB(235, 235, 240),
-        Text       = Color3.fromRGB(30, 30, 35),
-        SubText    = Color3.fromRGB(100, 100, 110),
-        Off        = Color3.fromRGB(210, 210, 220),
-        On         = Color3.fromRGB(40, 40, 40),
-        Border     = Color3.fromRGB(180, 180, 190),
-        Hover      = Color3.fromRGB(245, 245, 250),
-        Danger     = Color3.fromRGB(255, 80, 80),
-        Accent     = Color3.fromRGB(255, 255, 255),
-        KnobColor  = Color3.fromRGB(0, 0, 0)
+        Background = Color3.fromRGB(248, 249, 252),
+        PanelBg    = Color3.fromRGB(236, 238, 245),
+        Text       = Color3.fromRGB(22, 24, 32),
+        SubText    = Color3.fromRGB(100, 105, 125),
+        Off        = Color3.fromRGB(210, 214, 228),
+        On         = Color3.fromRGB(70, 90, 220),
+        Border     = Color3.fromRGB(190, 195, 215),
+        Hover      = Color3.fromRGB(228, 230, 240),
+        Danger     = Color3.fromRGB(230, 55, 70),
+        Accent     = Color3.fromRGB(75, 95, 230),
+        KnobColor  = Color3.fromRGB(255, 255, 255)
     },
+    -- Cinza: slate + teal
     ["Cinza / Gray"] = {
-        Background = Color3.fromRGB(30, 30, 30),
-        PanelBg    = Color3.fromRGB(48, 48, 48),
-        Text       = Color3.fromRGB(200, 200, 200),
-        SubText    = Color3.fromRGB(140, 140, 140),
-        Off        = Color3.fromRGB(65, 65, 65),
-        On         = Color3.fromRGB(130, 130, 130),
-        Border     = Color3.fromRGB(90, 90, 90),
-        Hover      = Color3.fromRGB(55, 55, 55),
-        Danger     = Color3.fromRGB(100, 50, 50),
-        Accent     = Color3.fromRGB(160, 160, 160),
-        KnobColor  = Color3.fromRGB(245, 245, 245)
+        Background = Color3.fromRGB(18, 20, 22),
+        PanelBg    = Color3.fromRGB(32, 36, 40),
+        Text       = Color3.fromRGB(230, 235, 240),
+        SubText    = Color3.fromRGB(130, 145, 155),
+        Off        = Color3.fromRGB(48, 54, 58),
+        On         = Color3.fromRGB(0, 200, 180),
+        Border     = Color3.fromRGB(70, 80, 88),
+        Hover      = Color3.fromRGB(42, 48, 52),
+        Danger     = Color3.fromRGB(220, 70, 80),
+        Accent     = Color3.fromRGB(0, 210, 190),
+        KnobColor  = Color3.fromRGB(245, 250, 250)
     }
 }
 
@@ -519,7 +613,16 @@ for _, v in pairs(CoreGui:GetChildren()) do
     end
 end
 
-local screenGui = new("ScreenGui", {Name = "MoonDF_VirginHub", Parent = CoreGui, ZIndexBehavior = Enum.ZIndexBehavior.Sibling})
+local screenGui = new("ScreenGui", {
+    Name = "MoonDF_VirginHub",
+    Parent = CoreGui,
+    ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+    ResetOnSpawn = false,
+    DisplayOrder = 50,
+    IgnoreGuiInset = true,
+})
+-- Garante que a HUD não capture toques fora dela (analógico mobile)
+pcall(function() screenGui.Enabled = true end)
 
 -- ======================================================================
 -- GAME LOGIC (preservado / funções públicas mantidas)
@@ -552,6 +655,8 @@ local liteLoop = nil
 
 globalEnv.trinketFarm = globalEnv.trinketFarm or false
 local trinketFarm = globalEnv.trinketFarm
+globalEnv.oreFarm = globalEnv.oreFarm or false
+local oreFarm = globalEnv.oreFarm
 globalEnv.autoAttack = globalEnv.autoAttack or false
 local autoAttack = globalEnv.autoAttack
 local currentMob = nil
@@ -582,13 +687,45 @@ local spectateConn = nil
 local originalCFrame = nil
 globalEnv.spectateHeight = globalEnv.spectateHeight or 20
 local spectateHeight = globalEnv.spectateHeight
-globalEnv.spectateDistance = globalEnv.spectateDistance or 5
+globalEnv.spectateDistance = globalEnv.spectateDistance or 12
 local spectateDistance = globalEnv.spectateDistance
+-- Spectate orbit (from ESPECTATE.lua logic)
+local cameraAngleX = 0
+local cameraAngleY = 15
+local isMouseDownSpec = false
+local lastMousePosSpec = nil
+local shiftLockMode = false
+local spectateInputBegan, spectateInputEnded, spectateInputChanged = nil, nil, nil
+
 globalEnv.espEnabled = globalEnv.espEnabled or false
 local espEnabled = globalEnv.espEnabled
-local espConnections = {}
 local espUpdateLoop = nil
-local espPlayers = {}
+-- Health ESP + Glow (from vida respawn.lua logic)
+local ABSOLUTE_MAX_HP = 280
+local maxHealthCache = {}
+local playerSpawnTime = {}
+-- Folder fora do Character (jogos removem Highlight do char) — Adornee aponta pro personagem
+local espFolder = Instance.new("Folder")
+espFolder.Name = "MoonDF_ESPFolder"
+pcall(function() espFolder.Parent = CoreGui end)
+if not espFolder.Parent then
+    pcall(function() espFolder.Parent = player:WaitForChild("PlayerGui") end)
+end
+
+-- Infinite Jump
+globalEnv.infiniteJump = globalEnv.infiniteJump or false
+local infiniteJump = globalEnv.infiniteJump
+local infJumpConn, infJumpRequestConn = nil, nil
+
+-- Infinite Stamina + Anti Combat (Demon Fall: Character children Combat/Aggro/Stamina debuffs)
+globalEnv.infiniteStamina = globalEnv.infiniteStamina or false
+local infiniteStamina = globalEnv.infiniteStamina
+globalEnv.antiCombat = globalEnv.antiCombat or false
+local antiCombat = globalEnv.antiCombat
+local staminaCombatConn = nil
+-- Tags que scripts open-source do Demon Fall removem continuamente
+local COMBAT_TAGS = { Combat = true, Aggro = true, Busy = true, Stun = true, Down = true, Ragdoll = true }
+local STAMINA_TAGS = { Stamina = true } -- debuff instances named Stamina
 
 local blockedStates = {
     Enum.HumanoidStateType.FallingDown, Enum.HumanoidStateType.Freefall, Enum.HumanoidStateType.GettingUp,
@@ -636,6 +773,16 @@ local LOAD_COORDINATES = {
     Vector3.new(1406.2, 769.3, -6549.3),
     Vector3.new(893.3, 772.6, -2260.9),
 }
+
+-- Coordenadas das áreas de minérios (Esquadrão) — carrega apenas na PRIMEIRA ativação do Ore Farm
+local ORE_LOAD_COORDS = {
+    Vector3.new(-3627.3, 1310.7, -2810.3),
+    Vector3.new(-2065.2, 846.2, -3978.5),
+    Vector3.new(-3891.5, 817.8, 1027.7),
+    Vector3.new(-1977.2, 845.9, -2708.2),
+}
+globalEnv.oreAreasLoaded = globalEnv.oreAreasLoaded or false
+local oreAreasLoaded = globalEnv.oreAreasLoaded
 
 local function isInBlockedState(h)
     if not h then return true end
@@ -728,6 +875,32 @@ function setupFly() -- mantida com mesmo nome
     end)
 end
 
+-- Fly exclusivo do Ore Farm: anti-queda + mantém a orientação atual do personagem
+-- (não força olhar para a câmera — o loop de mineração controla o olhar para o minério)
+function setupOreFly()
+    if not root then return end
+    if bg then bg:Destroy() end
+    if bv then bv:Destroy() end
+    bg = Instance.new("BodyGyro", root)
+    bg.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
+    bg.P = 9e4
+    bg.CFrame = root.CFrame
+    bv = Instance.new("BodyVelocity", root)
+    bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+    bv.Velocity = Vector3.new(0, 0, 0)
+    humanoid.PlatformStand = true
+
+    if flyConn then flyConn:Disconnect() end
+
+    flyConn = RunService.Heartbeat:Connect(function()
+        if not oreFarm or not root then return end
+        -- Mantém a rotação que o loop de mineração definiu (olhando pro minério)
+        bg.CFrame = root.CFrame
+        -- Zera velocidade para não cair / não deslizar (o TP do loop posiciona o personagem)
+        bv.Velocity = Vector3.new(0, 0, 0)
+    end)
+end
+
 function toggleNoclip(state) -- mantida
     noclipToggle = state
     globalEnv.noclipToggle = state
@@ -750,14 +923,27 @@ function toggleClickTP(state) -- mantida
     globalEnv.clickTPToggle = state
     if state then
         if clickTPConn then clickTPConn:Disconnect() end
-        local mouse = player:GetMouse()
-        clickTPConn = mouse.Button1Down:Connect(function()
-            if clickTPToggle and mouse.Target and root then
+        -- PC: Ctrl + Click | Mobile: NÃO usa toque solto (quebrava o analógico)
+        -- No mobile exige toque longo com 2 dedos ou fica desativado no touch puro
+        clickTPConn = UserInputService.InputBegan:Connect(function(input, gp)
+            if not clickTPToggle or gp then return end
+            if input.UserInputType ~= Enum.UserInputType.MouseButton1 and input.UserInputType ~= Enum.UserInputType.Touch then return end
+            -- Mobile/touch: ignora (evita sumir analógico / TP acidental ao andar)
+            if input.UserInputType == Enum.UserInputType.Touch or UserInputService.TouchEnabled then
+                return
+            end
+            -- PC: só com Ctrl
+            if not UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) and not UserInputService:IsKeyDown(Enum.KeyCode.RightControl) then
+                return
+            end
+            if not root then return end
+            local mouse = player:GetMouse()
+            if mouse and mouse.Hit then
                 root.CFrame = CFrame.new(mouse.Hit.Position + Vector3.new(0, 3, 0))
             end
         end)
     else
-        if clickTPConn then clickTPConn:Disconnect() end
+        if clickTPConn then clickTPConn:Disconnect(); clickTPConn = nil end
     end
 end
 
@@ -850,6 +1036,226 @@ local function teleportAndLookWithKeys()
     end
 end
 
+-- ============================================================
+-- ATAQUE INTELIGENTE + GUARD BREAK (Demon Fall)
+-- Detecta defesa (filho "Block" / atributos / animação) e usa M2
+-- até a guarda cair; caso contrário spamma M1.
+-- ============================================================
+
+local farmAttackLooping = false
+
+local function getCombatRemote()
+    local rs = game:GetService("ReplicatedStorage")
+    local remotes = rs:FindFirstChild("Remotes")
+    if remotes then
+        local async = remotes:FindFirstChild("Async")
+        if async then return async end
+    end
+    return nil
+end
+
+-- Detecta se o alvo está defendendo (Demon Fall prioritário: child "Block")
+local function isTargetBlocking(char)
+    if not char or not char.Parent then return false end
+
+    -- Método principal no Demon Fall: Instance "Block" no character
+    if char:FindFirstChild("Block") then return true end
+
+    -- BoolValue / ObjectValue com nome de bloqueio
+    for _, child in ipairs(char:GetChildren()) do
+        local n = child.Name:lower()
+        if (n == "block" or n == "blocking" or n == "isblocking" or n == "guard") then
+            if child:IsA("BoolValue") then
+                if child.Value == true then return true end
+            else
+                return true
+            end
+        end
+    end
+
+    -- Atributos no Character
+    local attrs = {"IsBlocking", "Blocking", "Block", "Guarding", "IsGuard", "HoldingBlock"}
+    for _, name in ipairs(attrs) do
+        local ok, val = pcall(function() return char:GetAttribute(name) end)
+        if ok and (val == true or val == 1 or val == "true") then return true end
+    end
+
+    -- Pastas Status / States
+    local status = char:FindFirstChild("Status") or char:FindFirstChild("States") or char:FindFirstChild("State")
+    if status then
+        if status:FindFirstChild("Block") or status:FindFirstChild("Blocking") or status:FindFirstChild("IsBlocking") then
+            return true
+        end
+        local stateVal = status:FindFirstChild("State") or status:FindFirstChild("CurrentState")
+        if stateVal and stateVal:IsA("ValueBase") then
+            local s = tostring(stateVal.Value):lower()
+            if s:find("block") or s:find("guard") or s == "defending" then
+                return true
+            end
+        end
+    end
+
+    -- Humanoid attributes
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if hum then
+        for _, name in ipairs(attrs) do
+            local ok, val = pcall(function() return hum:GetAttribute(name) end)
+            if ok and (val == true or val == 1) then return true end
+        end
+        -- Animação de bloqueio tocando
+        local animator = hum:FindFirstChildOfClass("Animator")
+        if animator then
+            for _, track in ipairs(animator:GetPlayingAnimationTracks()) do
+                local an = (track.Name or ""):lower()
+                local id = ""
+                pcall(function()
+                    if track.Animation then id = tostring(track.Animation.AnimationId or ""):lower() end
+                end)
+                if an:find("block") or an:find("guard") or an:find("defend") or id:find("block") then
+                    return true
+                end
+            end
+        end
+    end
+
+    -- CollectionService tag
+    local okTag, hasTag = pcall(function()
+        return game:GetService("CollectionService"):HasTag(char, "Blocking")
+            or game:GetService("CollectionService"):HasTag(char, "Block")
+    end)
+    if okTag and hasTag then return true end
+
+    return false
+end
+
+local function getCurrentFarmCharacter()
+    if not currentMob then return nil end
+    return findEnemy(currentMob)
+end
+
+-- Evita que o spam de M1/M2 do VirtualInputManager dispute com o toque/clique na HUD
+-- hubInteracting fica true enquanto o usuário segura (arrastar janela, slider, resize, etc.)
+local hubInteracting = false
+
+local function isPointerOverHub()
+    local ok, over = pcall(function()
+        if not screenGui or not screenGui.Parent then return false end
+        local pos = UserInputService:GetMouseLocation()
+        -- Checa qualquer GuiObject visível do hub (sem exigir Active —
+        -- titleBar/resizer/track são Frames e Active=false por padrão)
+        for _, gui in ipairs(screenGui:GetDescendants()) do
+            if gui:IsA("GuiObject") and gui.Visible then
+                local ap, as = gui.AbsolutePosition, gui.AbsoluteSize
+                if as.X > 0 and as.Y > 0
+                    and pos.X >= ap.X and pos.X <= ap.X + as.X
+                    and pos.Y >= ap.Y and pos.Y <= ap.Y + as.Y then
+                    return true
+                end
+            end
+        end
+        return false
+    end)
+    return ok and over
+end
+
+-- Pausa o clique visual enquanto o ponteiro está na HUD ou durante interação longa (drag/slider/resize)
+local function shouldSkipVisualClick()
+    if hubInteracting then return true end
+    if isPointerOverHub() then return true end
+    return false
+end
+
+-- Rastreia pressionar/soltar na HUD para não interromper arraste/slider/resize
+UserInputService.InputBegan:Connect(function(input, _gp)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+        if isPointerOverHub() then
+            hubInteracting = true
+        end
+    end
+end)
+UserInputService.InputEnded:Connect(function(input, _gp)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+        hubInteracting = false
+    end
+end)
+
+local function sendM1()
+    -- Remote nativo do Demon Fall (light = "Server") — não interfere na HUD
+    pcall(function()
+        local remote = getCombatRemote()
+        if remote then
+            remote:FireServer("Combat", "Server")
+        end
+    end)
+    -- Input visual (M1) só quando NÃO está interagindo com a HUD
+    if not shouldSkipVisualClick() then
+        pcall(function()
+            VIM:SendMouseButtonEvent(0, 0, 0, true, game, 1)
+            task.wait(0.04)
+            VIM:SendMouseButtonEvent(0, 0, 0, false, game, 1)
+        end)
+    end
+end
+
+local function sendM2()
+    -- Remote nativo do Demon Fall (heavy = "Heavy")
+    pcall(function()
+        local remote = getCombatRemote()
+        if remote then
+            remote:FireServer("Combat", "Heavy")
+        end
+    end)
+    -- Input visual (M2) só quando NÃO está interagindo com a HUD
+    if not shouldSkipVisualClick() then
+        pcall(function()
+            VIM:SendMouseButtonEvent(0, 0, 1, true, game, 1)
+            task.wait(0.05)
+            VIM:SendMouseButtonEvent(0, 0, 1, false, game, 1)
+        end)
+    end
+end
+
+-- Uma rodada de ataque: se estiver bloqueando, spamma M2 até soltar a guarda; senão M1
+local function smartAttackOnce()
+    local enemy = getCurrentFarmCharacter()
+    if enemy and isTargetBlocking(enemy) then
+        local safety = 0
+        while (autoAttack or isEnabled) and safety < 40 do
+            enemy = getCurrentFarmCharacter()
+            if not enemy or not enemy.Parent or not isTargetBlocking(enemy) then break end
+            sendM2()
+            task.wait(0.11)
+            safety = safety + 1
+        end
+    else
+        sendM1()
+    end
+end
+
+local function autoAttackLoop()
+    while autoAttack do
+        -- Se farm ativo, usa o alvo do farm; senão só spamma M1 genérico
+        if isEnabled and currentMob then
+            smartAttackOnce()
+        else
+            sendM1()
+        end
+        task.wait(0.14)
+    end
+end
+
+local function farmAttackLoop()
+    while farmAttackLooping and isEnabled do
+        -- Evita double-spam se Auto Attack separado já estiver rodando
+        if not autoAttack then
+            smartAttackOnce()
+        end
+        task.wait(0.14)
+    end
+end
+
 function toggleTeleport(enable, mobName) -- mantida
     if enable then
         if connection then connection:Disconnect() end
@@ -858,20 +1264,141 @@ function toggleTeleport(enable, mobName) -- mantida
         spawn(teleportAndLookWithKeys)
         currentMob = mobName
         isEnabled = true
+        -- Inicia ataque + guard-break automático junto com o farm
+        farmAttackLooping = true
+        spawn(farmAttackLoop)
     else
         if connection then connection:Disconnect() connection = nil end
         teleportAndLookLooping = false
+        farmAttackLooping = false
         isEnabled = false
         currentMob = nil
     end
 end
 
-local function autoAttackLoop()
-    while autoAttack do
-        VIM:SendMouseButtonEvent(0, 0, 0, true, game, 1)
-        task.wait(0.05)
-        VIM:SendMouseButtonEvent(0, 0, 0, false, game, 1)
-        task.wait(0.15)
+-- ============================================================
+-- ORE FARM (Demon Fall)
+-- workspace.Map.Minerals > Mineral (MeshPart) com MineralName + Spawn
+-- Minera via remote Pickaxe + tecla Z (slot da picareta)
+-- ============================================================
+
+local function getAllAvailableOres()
+    local list = {}
+    local map = workspace:FindFirstChild("Map")
+    local minerals = map and map:FindFirstChild("Minerals")
+    if not minerals then
+        -- fallback: procura em todo workspace
+        for _, v in ipairs(workspace:GetDescendants()) do
+            if v.Name == "Mineral" and (v:IsA("MeshPart") or v:IsA("BasePart")) then
+                local nameVal = v:FindFirstChild("MineralName")
+                local spawnVal = v:FindFirstChild("Spawn")
+                if nameVal and spawnVal and spawnVal.Value ~= nil then
+                    table.insert(list, v)
+                end
+            end
+        end
+        return list
+    end
+    for _, v in ipairs(minerals:GetDescendants()) do
+        if v.Name == "Mineral" and (v:IsA("MeshPart") or v:IsA("BasePart")) then
+            local nameVal = v:FindFirstChild("MineralName")
+            local spawnVal = v:FindFirstChild("Spawn")
+            if nameVal and spawnVal and spawnVal.Value ~= nil then
+                table.insert(list, v)
+            end
+        end
+    end
+    return list
+end
+
+local function isOreStillAvailable(ore)
+    if not ore or not ore.Parent then return false end
+    local spawnVal = ore:FindFirstChild("Spawn")
+    if not spawnVal then return false end
+    if spawnVal.Value == nil then return false end
+    return true
+end
+
+local function mineHit()
+    -- Remote nativo do Demon Fall
+    pcall(function()
+        local rs = game:GetService("ReplicatedStorage")
+        local remotes = rs:FindFirstChild("Remotes")
+        if remotes then
+            local sync = remotes:FindFirstChild("Sync")
+            if sync then
+                sync:InvokeServer("Pickaxe", "Server")
+            end
+            local async = remotes:FindFirstChild("Async")
+            if async then
+                async:FireServer("Pickaxe", "Server")
+            end
+        end
+    end)
+    -- Tecla Z (slot de item / picareta no hotbar)
+    pcall(function()
+        VIM:SendKeyEvent(true, Enum.KeyCode.Z, false, game)
+        task.wait(0.03)
+        VIM:SendKeyEvent(false, Enum.KeyCode.Z, false, game)
+    end)
+end
+
+local function oreFarmLoop()
+    -- Carrega as áreas de minérios SOMENTE na primeira ativação (coords das fotos)
+    if not oreAreasLoaded and root then
+        for _, coord in ipairs(ORE_LOAD_COORDS) do
+            if not oreFarm then return end
+            root.CFrame = CFrame.new(coord)
+            task.wait(1)
+        end
+        oreAreasLoaded = true
+        globalEnv.oreAreasLoaded = true
+    end
+
+    while oreFarm do
+        local ok, err = pcall(function()
+            if not root or not character then
+                task.wait(0.3)
+                return
+            end
+            -- Garante o fly exclusivo do ore (anti-queda, sem forçar olhar da câmera)
+            if not flyToggle then
+                flyToggle = true
+                globalEnv.flyToggle = true
+                setupOreFly()
+            end
+            local ores = getAllAvailableOres()
+            if #ores == 0 then
+                task.wait(1)
+                return
+            end
+            for _, ore in ipairs(ores) do
+                if not oreFarm then break end
+                if isOreStillAvailable(ore) then
+                    -- TP instantâneo até o minério (personagem olhando para o minério)
+                    local pos = ore.Position
+                    root.CFrame = CFrame.new(pos + Vector3.new(0, -1.5, -2), pos)
+                    pcall(function() root.AssemblyLinearVelocity = Vector3.new(0, 0, 0) end)
+                    pcall(function() root.Velocity = Vector3.new(0, 0, 0) end)
+
+                    -- Minera até o Spawn acabar (ou limite de segurança)
+                    local hits = 0
+                    while oreFarm and isOreStillAvailable(ore) and hits < 12 do
+                        -- Sempre olhando para o minério
+                        root.CFrame = CFrame.new(ore.Position + Vector3.new(0, -1.5, -2), ore.Position)
+                        mineHit()
+                        hits = hits + 1
+                        task.wait(0.35)
+                    end
+                    task.wait(0.08)
+                end
+            end
+        end)
+        if not ok then
+            task.wait(0.5)
+        else
+            task.wait(0.1)
+        end
     end
 end
 
@@ -918,91 +1445,845 @@ local function loadAllMap()
     loadingAllMobs = false
 end
 
-local function createESPLabel(hrp, playerName, distance)
-    local billboardGui = Instance.new("BillboardGui")
-    billboardGui.Size = UDim2.new(0, 120, 0, 50)
-    billboardGui.StudsOffset = Vector3.new(0, 5, 0)
-    billboardGui.MaxDistance = 3000
-    billboardGui.Adornee = hrp
-    billboardGui.Parent = hrp
-    billboardGui.AlwaysOnTop = true
-    local textLabel = Instance.new("TextLabel", billboardGui)
-    textLabel.BackgroundTransparency = 0.5
-    textLabel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    textLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
-    textLabel.TextScaled = true
-    textLabel.Size = UDim2.new(1, 0, 1, 0)
-    return billboardGui, textLabel
+-- ============================================================
+-- HEALTH ESP + GLOW (lógica de vida respawn.lua) + SPECTATE
+-- (lógica de ESPECTATE.lua) — substitui o ESP/Spectate antigos
+-- ============================================================
+
+local function setupHealthPlayer(plr)
+    plr.CharacterAdded:Connect(function()
+        maxHealthCache[plr.UserId] = nil
+        playerSpawnTime[plr.UserId] = os.clock()
+    end)
 end
 
-local function enableESP()
-    for _, v in pairs(espPlayers) do if v.box then v.box:Destroy() end if v.billGui then v.billGui:Destroy() end end
-    espPlayers = {}
-    if espUpdateLoop then espUpdateLoop:Disconnect() end
-    for _, plr in ipairs(Players:GetPlayers()) do
-        if plr ~= player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-            local hrp = plr.Character.HumanoidRootPart
-            local box = Instance.new("BoxHandleAdornment", hrp)
-            box.Size = Vector3.new(3, 6, 2)
-            box.Adornee = hrp
-            box.Color3 = Color3.new(1, 0, 0)
-            box.Transparency = 0.6
-            box.AlwaysOnTop = true
-            box.ZIndex = 10
-            local billGui, textLabel = createESPLabel(hrp, plr.Name, 0)
-            espPlayers[plr.Name] = { player = plr, box = box, billGui = billGui, textLabel = textLabel }
+for _, plr in ipairs(Players:GetPlayers()) do
+    setupHealthPlayer(plr)
+    if plr.Character then
+        playerSpawnTime[plr.UserId] = os.clock()
+    end
+end
+Players.PlayerAdded:Connect(setupHealthPlayer)
+Players.PlayerRemoving:Connect(function(plr)
+    maxHealthCache[plr.UserId] = nil
+    playerSpawnTime[plr.UserId] = nil
+end)
+
+local function findRealHealthAndMax(plr)
+    local char = plr.Character
+    if not char then return nil, nil end
+
+    local currentHp = nil
+    local detectedMaxHp = nil
+    local maxHpNames = {"MaxHealth", "MaxHP", "Max_Health", "MHP", "Max_HP", "MaximumHealth"}
+
+    local hpVal = char:FindFirstChild("Health") or char:FindFirstChild("HP") or char:FindFirstChild("CurrentHealth")
+    if hpVal and hpVal:IsA("ValueBase") then
+        currentHp = tonumber(hpVal.Value)
+    end
+
+    for _, name in ipairs(maxHpNames) do
+        local mVal = char:FindFirstChild(name)
+        if mVal and mVal:IsA("ValueBase") and tonumber(mVal.Value) and tonumber(mVal.Value) > 100 then
+            detectedMaxHp = tonumber(mVal.Value)
+            break
         end
     end
-    espUpdateLoop = RunService.Heartbeat:Connect(function()
-        if not espEnabled then return end
-        for playerName, espData in pairs(espPlayers) do
-            if espData.player and espData.player.Character and espData.player.Character:FindFirstChild("HumanoidRootPart") then
-                local hrp = espData.player.Character.HumanoidRootPart
-                local hum = espData.player.Character:FindFirstChild("Humanoid")
-                local dist = (root.Position - hrp.Position).Magnitude
-                if espData.textLabel and hum then
-                    espData.textLabel.Text = string.format("%s\nHP: %d\n%.1fm", playerName, math.floor(hum.Health), dist)
+
+    local foldersToCheck = {"Status", "Data", "Stats", "leaderstats"}
+    for _, folderName in ipairs(foldersToCheck) do
+        local folder = plr:FindFirstChild(folderName) or char:FindFirstChild(folderName)
+        if folder then
+            if not currentHp then
+                local pHP = folder:FindFirstChild("Health") or folder:FindFirstChild("HP")
+                if pHP and pHP:IsA("ValueBase") then currentHp = tonumber(pHP.Value) end
+            end
+            if not detectedMaxHp then
+                for _, name in ipairs(maxHpNames) do
+                    local pMax = folder:FindFirstChild(name)
+                    if pMax and pMax:IsA("ValueBase") and tonumber(pMax.Value) and tonumber(pMax.Value) > 100 then
+                        detectedMaxHp = tonumber(pMax.Value)
+                        break
+                    end
                 end
+            end
+        end
+    end
+
+    if not currentHp and char:GetAttribute("Health") then
+        currentHp = tonumber(char:GetAttribute("Health"))
+    end
+    if not detectedMaxHp then
+        for _, name in ipairs(maxHpNames) do
+            if char:GetAttribute(name) and tonumber(char:GetAttribute(name)) > 100 then
+                detectedMaxHp = tonumber(char:GetAttribute(name))
+                break
+            end
+        end
+    end
+
+    -- Fallback: Humanoid padrão (caso o jogo use)
+    if not currentHp then
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then currentHp = hum.Health end
+    end
+
+    if currentHp then
+        local userId = plr.UserId
+        local timeSinceSpawn = os.clock() - (playerSpawnTime[userId] or 0)
+        local isRecoveringFromRespawn = (timeSinceSpawn < 4)
+
+        if not isRecoveringFromRespawn then
+            if not maxHealthCache[userId] or currentHp > maxHealthCache[userId] then
+                maxHealthCache[userId] = currentHp
+            end
+        end
+
+        if detectedMaxHp and detectedMaxHp > 100 then
+            maxHealthCache[userId] = math.max(maxHealthCache[userId] or 100, detectedMaxHp)
+        end
+
+        local baseMax = maxHealthCache[userId] or 100
+        local finalMaxHp = math.clamp(baseMax, currentHp, ABSOLUTE_MAX_HP)
+        return math.floor(currentHp), math.floor(finalMaxHp)
+    end
+
+    return nil, nil
+end
+
+local function clearAllHealthESP()
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr.Character then
+            local head = plr.Character:FindFirstChild("Head")
+            if head then
+                local tag = head:FindFirstChild("MoonDFHealthESP")
+                if tag then tag:Destroy() end
+            end
+            -- limpa highlight antigo no character (versão antiga)
+            local oldHl = plr.Character:FindFirstChild("MoonDFHighlight")
+            if oldHl then oldHl:Destroy() end
+        end
+        if espFolder then
+            local hl = espFolder:FindFirstChild("HL_" .. tostring(plr.UserId))
+            if hl then hl:Destroy() end
+        end
+    end
+end
+
+local function drawHealthESP()
+    if not espEnabled then return end
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= player then
+        local char = plr.Character
+        if not char then
+            if espFolder then
+                local hl = espFolder:FindFirstChild("HL_" .. tostring(plr.UserId))
+                if hl then hl:Destroy() end
+            end
+        else
+
+        local head = char:FindFirstChild("Head")
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+
+        -- Billboard de vida
+        local tag = head and head:FindFirstChild("MoonDFHealthESP")
+        if head and not tag then
+            tag = Instance.new("BillboardGui")
+            tag.Name = "MoonDFHealthESP"
+            tag.Size = UDim2.new(0, 180, 0, 32)
+            tag.StudsOffset = Vector3.new(0, 3.2, 0)
+            tag.AlwaysOnTop = true
+            tag.MaxDistance = 2000
+            tag.Parent = head
+
+            local txt = Instance.new("TextLabel")
+            txt.Name = "TextDisplay"
+            txt.Size = UDim2.new(1, 0, 1, 0)
+            txt.BackgroundTransparency = 1
+            txt.Font = Enum.Font.GothamBold
+            txt.TextSize = 13
+            txt.TextStrokeTransparency = 0.15
+            txt.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+            txt.Parent = tag
+        end
+
+        -- Highlight (glow) — parent no folder externo, Adornee no character
+        local hlName = "HL_" .. tostring(plr.UserId)
+        local highlight = espFolder and espFolder:FindFirstChild(hlName)
+        if not highlight and espFolder then
+            highlight = Instance.new("Highlight")
+            highlight.Name = hlName
+            highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+            highlight.FillTransparency = 0.55
+            highlight.OutlineTransparency = 0
+            highlight.Parent = espFolder
+        end
+        if highlight then
+            -- Adornee no modelo do character (funciona através de paredes)
+            if highlight.Adornee ~= char then
+                highlight.Adornee = char
+            end
+        end
+        -- Remove highlight legado no character se ainda existir
+        local legacy = char:FindFirstChild("MoonDFHighlight")
+        if legacy then legacy:Destroy() end
+
+        local currentHp, maxHp = findRealHealthAndMax(plr)
+        local healthColor
+        if currentHp and maxHp and maxHp > 0 then
+            local percent = math.clamp(currentHp / maxHp, 0, 1)
+            healthColor = Color3.fromHSV(percent * 0.33, 0.95, 1) -- verde → amarelo → vermelho invertido via HSV
+        else
+            healthColor = Color3.fromRGB(180, 180, 200)
+        end
+
+        if tag and tag:FindFirstChild("TextDisplay") then
+            if currentHp and maxHp then
+                tag.TextDisplay.Text = string.format("%s | %d/%d HP", plr.DisplayName, math.floor(currentHp), math.floor(maxHp))
             else
-                if espData.box then espData.box:Destroy() end
-                if espData.billGui then espData.billGui:Destroy() end
-                espPlayers[playerName] = nil
+                tag.TextDisplay.Text = plr.DisplayName .. " | ..."
+            end
+            tag.TextDisplay.TextColor3 = healthColor
+        end
+
+        if highlight then
+            highlight.FillColor = healthColor
+            highlight.OutlineColor = healthColor
+            highlight.Enabled = true
+        end
+        end -- else (char exists)
+        end -- if plr ~= player
+    end
+end
+
+function toggleESP(state) -- mantida (assinatura pública)
+    espEnabled = state
+    globalEnv.espEnabled = state
+    if state then
+        if espUpdateLoop then espUpdateLoop:Disconnect() end
+        -- Garante folder vivo
+        if not espFolder or not espFolder.Parent then
+            espFolder = Instance.new("Folder")
+            espFolder.Name = "MoonDF_ESPFolder"
+            pcall(function() espFolder.Parent = CoreGui end)
+            if not espFolder.Parent then
+                pcall(function() espFolder.Parent = player:FindFirstChild("PlayerGui") or player:WaitForChild("PlayerGui") end)
+            end
+        end
+        drawHealthESP() -- aplica imediato
+        espUpdateLoop = RunService.Heartbeat:Connect(drawHealthESP)
+    else
+        if espUpdateLoop then
+            espUpdateLoop:Disconnect()
+            espUpdateLoop = nil
+        end
+        clearAllHealthESP()
+    end
+end
+
+function toggleInfiniteJump(state)
+    infiniteJump = state
+    globalEnv.infiniteJump = state
+    if infJumpConn then infJumpConn:Disconnect(); infJumpConn = nil end
+    if infJumpRequestConn then infJumpRequestConn:Disconnect(); infJumpRequestConn = nil end
+    if not state then return end
+
+    -- JumpRequest cobre mobile (botão de pular) e teclado; não depende de stamina do jogo
+    infJumpRequestConn = UserInputService.JumpRequest:Connect(function()
+        if not infiniteJump then return end
+        local hum = humanoid
+        local r = root
+        if not hum or not r or not hum.Parent then return end
+        pcall(function()
+            hum:ChangeState(Enum.HumanoidStateType.Jumping)
+            -- Impulso extra caso o jogo ignore o state (bypass stamina)
+            r.AssemblyLinearVelocity = Vector3.new(r.AssemblyLinearVelocity.X, math.max(r.AssemblyLinearVelocity.Y, 50), r.AssemblyLinearVelocity.Z)
+        end)
+    end)
+
+    -- Enquanto Space (ou botão A do controle) estiver segurado, repete o pulo várias vezes/s
+    infJumpConn = RunService.Heartbeat:Connect(function()
+        if not infiniteJump then return end
+        local hum = humanoid
+        local r = root
+        if not hum or not r or not hum.Parent then return end
+
+        local holding = UserInputService:IsKeyDown(Enum.KeyCode.Space)
+            or UserInputService:IsKeyDown(Enum.KeyCode.ButtonA)
+
+        if holding then
+            pcall(function()
+                hum:ChangeState(Enum.HumanoidStateType.Jumping)
+                local v = r.AssemblyLinearVelocity
+                if v.Y < 45 then
+                    r.AssemblyLinearVelocity = Vector3.new(v.X, 50, v.Z)
+                end
+            end)
+        end
+    end)
+end
+
+-- Mantém stamina no máximo + remove tags de combate (baseado em trainers open-source Demon Fall)
+local function processStaminaAndCombat()
+    local char = character
+    if not char then return end
+
+    -- Anti Combat: remove Combat/Aggro (caveira) e debuffs associados
+    if antiCombat then
+        for _, obj in ipairs(char:GetChildren()) do
+            local n = obj.Name
+            if COMBAT_TAGS[n] or string.find(string.lower(n), "combat") or string.find(string.lower(n), "aggro") then
+                pcall(function() obj:Destroy() end)
+            end
+        end
+        -- UI da caveira (PlayerGui)
+        pcall(function()
+            local pg = player:FindFirstChild("PlayerGui")
+            if pg then
+                for _, g in ipairs(pg:GetDescendants()) do
+                    if g:IsA("ImageLabel") or g:IsA("ImageButton") then
+                        local nm = string.lower(g.Name)
+                        if string.find(nm, "skull") or string.find(nm, "combat") or string.find(nm, "caveira") then
+                            g.Visible = false
+                        end
+                    end
+                end
+            end
+        end)
+    end
+
+    -- Infinite Stamina: força valor máximo em NumberValues/IntValues/Attributes
+    if infiniteStamina then
+        for _, obj in ipairs(char:GetDescendants()) do
+            local n = string.lower(obj.Name)
+            if string.find(n, "stamina") and not string.find(n, "max") then
+                if obj:IsA("NumberValue") or obj:IsA("IntValue") then
+                    -- se existir MaxStamina próximo, usa; senão 999
+                    local maxV = 999
+                    local parent = obj.Parent
+                    if parent then
+                        local mx = parent:FindFirstChild("MaxStamina") or parent:FindFirstChild("Max_Stamina") or char:FindFirstChild("MaxStamina")
+                        if mx and (mx:IsA("NumberValue") or mx:IsA("IntValue")) then
+                            maxV = mx.Value
+                        end
+                    end
+                    if obj.Value < maxV then
+                        obj.Value = maxV
+                    end
+                elseif obj:IsA("BoolValue") and obj.Value == false then
+                    -- alguns jogos usam Bool "Stamina" como flag de esgotado
+                end
+            end
+            if string.find(n, "maxstamina") or string.find(n, "max_stamina") then
+                -- nada: só referência
+            end
+        end
+        -- Attributes no character / player
+        pcall(function()
+            local names = {"Stamina", "stamina", "Stam", "CurrentStamina"}
+            for _, nm in ipairs(names) do
+                local v = char:GetAttribute(nm)
+                if typeof(v) == "number" then
+                    local mx = char:GetAttribute("MaxStamina") or char:GetAttribute("Max_Stamina") or player:GetAttribute("MaxStamina") or 100
+                    if v < mx then char:SetAttribute(nm, mx) end
+                end
+            end
+        end)
+        -- Player-level values (alguns hubs guardam stamina no player)
+        pcall(function()
+            local stam = player:FindFirstChild("Stamina") or (player:FindFirstChild("Stats") and player.Stats:FindFirstChild("Stamina"))
+            if stam and (stam:IsA("NumberValue") or stam:IsA("IntValue")) then
+                local mx = player:FindFirstChild("MaxStamina")
+                stam.Value = (mx and mx.Value) or math.max(stam.Value, 100)
+            end
+        end)
+    end
+end
+
+local function ensureStaminaCombatLoop()
+    if staminaCombatConn then return end
+    staminaCombatConn = RunService.Heartbeat:Connect(function()
+        if not (infiniteStamina or antiCombat) then return end
+        pcall(processStaminaAndCombat)
+    end)
+    -- Também remove no ChildAdded (resposta imediata à caveira)
+    if character then
+        character.ChildAdded:Connect(function(child)
+            if not antiCombat then return end
+            local n = child.Name
+            if COMBAT_TAGS[n] or string.find(string.lower(n), "combat") or string.find(string.lower(n), "aggro") then
+                task.defer(function() pcall(function() child:Destroy() end) end)
+            end
+        end)
+    end
+end
+
+function toggleInfiniteStamina(state)
+    infiniteStamina = state
+    globalEnv.infiniteStamina = state
+    if state then ensureStaminaCombatLoop() end
+end
+
+function toggleAntiCombat(state)
+    antiCombat = state
+    globalEnv.antiCombat = state
+    if state then
+        ensureStaminaCombatLoop()
+        -- limpa imediatamente
+        pcall(processStaminaAndCombat)
+    end
+end
+
+-- ============================================================
+-- DEVELOPER TAB — funções engraçadas + coordenadas
+-- (efeitos de física/CFrame costumam ser visíveis pra outros)
+-- ============================================================
+local devSpinConn, devDiscoConn, devMoonConn, devIceConn = nil, nil, nil, nil
+local devHeliConn, devDrunkConn, devBalloonConn, devRollConn, devHopConn = nil, nil, nil, nil, nil
+local devSpin, devDisco, devMoonwalk, devGiant, devTiny = false, false, false, false, false
+local devIceSlide, devHeli, devDrunk, devBalloon, devRoll, devHop = false, false, false, false, false, false
+local devOriginalSizes = {}
+local devIceVel = Vector3.new(40, 0, 0)
+local devLastWallHit = 0
+globalEnv.iceSlideIntensity = globalEnv.iceSlideIntensity or 50
+local iceSlideIntensity = globalEnv.iceSlideIntensity -- 1-100
+
+local function notifyDev(msg)
+    pcall(function()
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "MOONDF Dev",
+            Text = tostring(msg),
+            Duration = 3,
+        })
+    end)
+end
+
+local function copyCoordinates()
+    if not root then
+        notifyDev("Sem personagem / HRP")
+        return
+    end
+    local p = root.Position
+    local line = string.format("CFrame.new(%.1f, %.1f, %.1f)", p.X, p.Y, p.Z)
+    local ok = false
+    pcall(function()
+        if typeof(setclipboard) == "function" then
+            setclipboard(line)
+            ok = true
+        elseif typeof(toclipboard) == "function" then
+            toclipboard(line)
+            ok = true
+        end
+    end)
+    notifyDev(ok and ("Copiado: " .. line) or line)
+    print("[MOONDF] Coords:", line)
+end
+
+local function toggleDevSpin(state)
+    devSpin = state
+    if devSpinConn then devSpinConn:Disconnect(); devSpinConn = nil end
+    if not state then return end
+    devSpinConn = RunService.Heartbeat:Connect(function(dt)
+        if not devSpin or not root then return end
+        root.CFrame = root.CFrame * CFrame.Angles(0, math.rad(720 * dt), 0)
+    end)
+end
+
+local function toggleDevDisco(state)
+    devDisco = state
+    if devDiscoConn then devDiscoConn:Disconnect(); devDiscoConn = nil end
+    if not state then
+        pcall(function()
+            if character then
+                for _, p in ipairs(character:GetDescendants()) do
+                    if p:IsA("BasePart") and p.Name ~= "HumanoidRootPart" then
+                        p.Color = Color3.fromRGB(163, 162, 165)
+                    end
+                end
+            end
+        end)
+        return
+    end
+    local t0 = tick()
+    devDiscoConn = RunService.Heartbeat:Connect(function()
+        if not devDisco or not character then return end
+        local h = (tick() - t0) % 1
+        local c = Color3.fromHSV(h, 1, 1)
+        for _, p in ipairs(character:GetDescendants()) do
+            if p:IsA("BasePart") and p.Name ~= "HumanoidRootPart" then
+                p.Color = c
             end
         end
     end)
 end
 
-function toggleESP(state) -- mantida
-    espEnabled = state
-    globalEnv.espEnabled = state
-    if state then
-        enableESP()
-    else
-        if espUpdateLoop then espUpdateLoop:Disconnect() end
-        for _, v in pairs(espPlayers) do if v.box then v.box:Destroy() end if v.billGui then v.billGui:Destroy() end end
-        espPlayers = {}
+local function toggleDevMoonwalk(state)
+    devMoonwalk = state
+    if devMoonConn then devMoonConn:Disconnect(); devMoonConn = nil end
+    if not state then return end
+    devMoonConn = RunService.Heartbeat:Connect(function()
+        if not devMoonwalk or not humanoid or not root then return end
+        local move = humanoid.MoveDirection
+        if move.Magnitude > 0.05 then
+            root.CFrame = CFrame.lookAt(root.Position, root.Position - move)
+        end
+    end)
+end
+
+local function setCharacterScale(mult)
+    if not character then return end
+    for _, p in ipairs(character:GetDescendants()) do
+        if p:IsA("BasePart") then
+            if not devOriginalSizes[p] then
+                devOriginalSizes[p] = p.Size
+            end
+            p.Size = devOriginalSizes[p] * mult
+        end
     end
 end
 
-function toggleSpectate(state, targetPlayerName) -- mantida
+local function restoreCharacterScale()
+    for part, size in pairs(devOriginalSizes) do
+        if part and part.Parent then
+            pcall(function() part.Size = size end)
+        end
+    end
+    devOriginalSizes = {}
+end
+
+local function toggleDevGiant(state)
+    devGiant = state
+    if state then
+        devTiny = false
+        setCharacterScale(3)
+    else
+        restoreCharacterScale()
+    end
+end
+
+local function toggleDevTiny(state)
+    devTiny = state
+    if state then
+        devGiant = false
+        setCharacterScale(0.4)
+    else
+        restoreCharacterScale()
+    end
+end
+
+local function devFlingSelf()
+    if not root then return end
+    pcall(function()
+        local bv = Instance.new("BodyVelocity")
+        bv.MaxForce = Vector3.new(1e9, 1e9, 1e9)
+        bv.Velocity = Vector3.new(math.random(-120, 120), math.random(80, 160), math.random(-120, 120))
+        bv.Parent = root
+        task.delay(0.35, function()
+            if bv then bv:Destroy() end
+        end)
+    end)
+    notifyDev("Whee!")
+end
+
+local function devRagdollOnce()
+    if not humanoid then return end
+    pcall(function()
+        humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+        task.delay(1.2, function()
+            if humanoid and humanoid.Parent then
+                humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
+            end
+        end)
+    end)
+end
+
+-- Deslize no chão quando Down/Ragdoll + ricochete na parede (visível pros outros)
+-- Intensidade 1-100 controla velocidade base, atrito e força do ricochete
+local function toggleDevIceSlide(state)
+    devIceSlide = state
+    if devIceConn then devIceConn:Disconnect(); devIceConn = nil end
+    if not state then return end
+
+    local function baseSpeed()
+        -- 1 → ~20, 50 → ~55, 100 → ~120
+        return 15 + (iceSlideIntensity / 100) * 105
+    end
+    local function maxSpeed()
+        return 40 + (iceSlideIntensity / 100) * 160
+    end
+    local function bounceMult()
+        -- quanto multiplica no ricochete
+        return 1.05 + (iceSlideIntensity / 100) * 0.9
+    end
+    local function bounceBoost()
+        return 8 + (iceSlideIntensity / 100) * 45
+    end
+    local function friction()
+        -- intensidade alta = menos atrito
+        return 0.25 - (iceSlideIntensity / 100) * 0.22
+    end
+    local function spinRate()
+        return 80 + (iceSlideIntensity / 100) * 280
+    end
+    local function bounceUp()
+        return 10 + (iceSlideIntensity / 100) * 40
+    end
+
+    local ang = math.random() * math.pi * 2
+    local bs = baseSpeed()
+    devIceVel = Vector3.new(math.cos(ang) * bs, 0, math.sin(ang) * bs)
+    devLastWallHit = 0
+
+    devIceConn = RunService.Heartbeat:Connect(function(dt)
+        if not devIceSlide or not root or not character or not humanoid then return end
+
+        local isDown = character:FindFirstChild("Down")
+            or character:FindFirstChild("Ragdoll")
+            or humanoid:GetState() == Enum.HumanoidStateType.Physics
+            or humanoid:GetState() == Enum.HumanoidStateType.Ragdoll
+            or humanoid:GetState() == Enum.HumanoidStateType.FallingDown
+            or humanoid.PlatformStand
+            or humanoid.Sit
+
+        local bs = baseSpeed()
+        if not isDown then
+            local move = humanoid.MoveDirection
+            if move.Magnitude > 0.1 then
+                devIceVel = Vector3.new(move.X, 0, move.Z).Unit * bs
+            end
+            return
+        end
+
+        local horiz = Vector3.new(devIceVel.X, 0, devIceVel.Z)
+        if horiz.Magnitude < 5 then
+            local a = math.random() * math.pi * 2
+            horiz = Vector3.new(math.cos(a), 0, math.sin(a)) * bs
+            devIceVel = horiz
+        end
+
+        local dir = horiz.Unit
+        local origin = root.Position + Vector3.new(0, 1, 0)
+        local params = RaycastParams.new()
+        params.FilterType = Enum.RaycastFilterType.Exclude
+        params.FilterDescendantsInstances = { character }
+
+        local hit = workspace:Raycast(origin, dir * 4.5, params)
+        if hit and (tick() - devLastWallHit) > 0.12 then
+            devLastWallHit = tick()
+            local n = Vector3.new(hit.Normal.X, 0, hit.Normal.Z)
+            if n.Magnitude > 0.05 then
+                n = n.Unit
+                local reflected = horiz - 2 * horiz:Dot(n) * n
+                local speed = math.clamp(horiz.Magnitude * bounceMult() + bounceBoost(), bs * 0.8, maxSpeed())
+                devIceVel = reflected.Unit * speed
+                root.AssemblyLinearVelocity = Vector3.new(devIceVel.X, bounceUp(), devIceVel.Z)
+            end
+        else
+            local speed = horiz.Magnitude
+            local fr = friction()
+            if speed > 8 then
+                devIceVel = dir * (speed * (1 - fr * dt))
+            else
+                devIceVel = dir * bs
+            end
+            local vy = root.AssemblyLinearVelocity.Y
+            root.AssemblyLinearVelocity = Vector3.new(devIceVel.X, vy, devIceVel.Z)
+        end
+
+        root.CFrame = root.CFrame * CFrame.Angles(0, 0, math.rad(spinRate() * dt))
+    end)
+end
+
+-- Helicóptero: gira e sobe (visível)
+local function toggleDevHeli(state)
+    devHeli = state
+    if devHeliConn then devHeliConn:Disconnect(); devHeliConn = nil end
+    if not state then return end
+    devHeliConn = RunService.Heartbeat:Connect(function(dt)
+        if not devHeli or not root then return end
+        root.CFrame = root.CFrame * CFrame.Angles(0, math.rad(900 * dt), 0)
+        local v = root.AssemblyLinearVelocity
+        root.AssemblyLinearVelocity = Vector3.new(v.X * 0.5, 35, v.Z * 0.5)
+    end)
+end
+
+-- Bêbado: velocidade aleatória (outros veem o movimento)
+local function toggleDevDrunk(state)
+    devDrunk = state
+    if devDrunkConn then devDrunkConn:Disconnect(); devDrunkConn = nil end
+    if not state then return end
+    local nextJolt = 0
+    devDrunkConn = RunService.Heartbeat:Connect(function()
+        if not devDrunk or not root then return end
+        if tick() > nextJolt then
+            nextJolt = tick() + 0.25 + math.random() * 0.35
+            local j = Vector3.new(math.random(-40, 40), math.random(-5, 15), math.random(-40, 40))
+            root.AssemblyLinearVelocity = root.AssemblyLinearVelocity + j
+            root.CFrame = root.CFrame * CFrame.Angles(0, math.rad(math.random(-40, 40)), 0)
+        end
+    end)
+end
+
+-- Balão: flutua pra cima devagar girando
+local function toggleDevBalloon(state)
+    devBalloon = state
+    if devBalloonConn then devBalloonConn:Disconnect(); devBalloonConn = nil end
+    if not state then return end
+    devBalloonConn = RunService.Heartbeat:Connect(function(dt)
+        if not devBalloon or not root then return end
+        local v = root.AssemblyLinearVelocity
+        root.AssemblyLinearVelocity = Vector3.new(v.X * 0.85, 18, v.Z * 0.85)
+        root.CFrame = root.CFrame * CFrame.Angles(0, math.rad(90 * dt), 0)
+    end)
+end
+
+-- Mortal / rolamento contínuo
+local function toggleDevRoll(state)
+    devRoll = state
+    if devRollConn then devRollConn:Disconnect(); devRollConn = nil end
+    if not state then return end
+    devRollConn = RunService.Heartbeat:Connect(function(dt)
+        if not devRoll or not root then return end
+        root.CFrame = root.CFrame * CFrame.Angles(math.rad(540 * dt), 0, 0)
+        local look = root.CFrame.LookVector
+        local v = root.AssemblyLinearVelocity
+        root.AssemblyLinearVelocity = Vector3.new(look.X * 28, v.Y, look.Z * 28)
+    end)
+end
+
+-- Pulo-pula enquanto anda
+local function toggleDevHop(state)
+    devHop = state
+    if devHopConn then devHopConn:Disconnect(); devHopConn = nil end
+    if not state then return end
+    local nextHop = 0
+    devHopConn = RunService.Heartbeat:Connect(function()
+        if not devHop or not root or not humanoid then return end
+        if humanoid.MoveDirection.Magnitude > 0.1 and tick() > nextHop then
+            nextHop = tick() + 0.28
+            local v = root.AssemblyLinearVelocity
+            root.AssemblyLinearVelocity = Vector3.new(v.X, 55, v.Z)
+        end
+    end)
+end
+
+local function disconnectSpectateInputs()
+    if spectateInputBegan then spectateInputBegan:Disconnect(); spectateInputBegan = nil end
+    if spectateInputEnded then spectateInputEnded:Disconnect(); spectateInputEnded = nil end
+    if spectateInputChanged then spectateInputChanged:Disconnect(); spectateInputChanged = nil end
+end
+
+local function connectSpectateInputs()
+    disconnectSpectateInputs()
+
+    spectateInputBegan = UserInputService.InputBegan:Connect(function(input, gpe)
+        if gpe or not spectateToggle then return end
+        if input.UserInputType == Enum.UserInputType.MouseButton2 then
+            isMouseDownSpec = true
+            lastMousePosSpec = UserInputService:GetMouseLocation()
+        elseif input.KeyCode == Enum.KeyCode.LeftShift then
+            shiftLockMode = not shiftLockMode
+        end
+    end)
+
+    spectateInputEnded = UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton2 then
+            isMouseDownSpec = false
+        end
+    end)
+
+    spectateInputChanged = UserInputService.InputChanged:Connect(function(input)
+        if not spectateToggle then return end
+        if isMouseDownSpec and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local currentPos = UserInputService:GetMouseLocation()
+            if lastMousePosSpec then
+                local delta = currentPos - lastMousePosSpec
+                cameraAngleX = cameraAngleX - delta.X * 0.4
+                -- Eixo Y invertido (como no ESPECTATE.lua)
+                cameraAngleY = math.clamp(cameraAngleY + delta.Y * 0.4, -75, 75)
+            end
+            lastMousePosSpec = currentPos
+        elseif input.UserInputType == Enum.UserInputType.MouseWheel then
+            spectateDistance = math.clamp(spectateDistance - input.Position.Z * 2, 4, 40)
+            globalEnv.spectateDistance = spectateDistance
+        end
+    end)
+end
+
+local function stopSpectateCamera()
+    if spectateConn then spectateConn:Disconnect(); spectateConn = nil end
+    disconnectSpectateInputs()
+    isMouseDownSpec = false
+    shiftLockMode = false
+    local cam = workspace.CurrentCamera
+    if cam then
+        cam.CameraType = Enum.CameraType.Custom
+        if player.Character and player.Character:FindFirstChild("Humanoid") then
+            cam.CameraSubject = player.Character.Humanoid
+        end
+    end
+end
+
+function toggleSpectate(state, targetPlayerName) -- mantida (assinatura pública)
     spectateToggle = state
     globalEnv.spectateToggle = state
+
     if state then
         local targetPlayer = Players:FindFirstChild(targetPlayerName)
-        if not targetPlayer or not targetPlayer.Character then return end
+        if not targetPlayer or not targetPlayer.Character then
+            spectateToggle = false
+            globalEnv.spectateToggle = false
+            return
+        end
         spectatePlayer = targetPlayer
-        originalCFrame = root.CFrame
+        originalCFrame = root and root.CFrame or nil
+        cameraAngleX = 0
+        cameraAngleY = 15
+        isMouseDownSpec = false
+        shiftLockMode = false
+
+        local cam = workspace.CurrentCamera
+        if cam then cam.CameraType = Enum.CameraType.Scriptable end
+
+        connectSpectateInputs()
+
         if spectateConn then spectateConn:Disconnect() end
         spectateConn = RunService.RenderStepped:Connect(function()
-            if spectateToggle and spectatePlayer and spectatePlayer.Character and spectatePlayer.Character:FindFirstChild("HumanoidRootPart") then
-                local targetRoot = spectatePlayer.Character.HumanoidRootPart
-                local cam = workspace.CurrentCamera
-                cam.CFrame = CFrame.new(targetRoot.Position + Vector3.new(spectateDistance, spectateHeight, spectateDistance), targetRoot.Position + Vector3.new(0, 2, 0))
+            if not spectateToggle or not spectatePlayer or not spectatePlayer.Character then return end
+
+            local char = spectatePlayer.Character
+            local hrp = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Head")
+            if not hrp then return end
+
+            local targetPos = hrp.Position + Vector3.new(0, 2, 0)
+            local cam = workspace.CurrentCamera
+            if not cam then return end
+
+            local dist = spectateDistance or 12
+
+            if shiftLockMode then
+                -- Modo Shift Lock: trava na direção do personagem
+                local lookVector = hrp.CFrame.LookVector
+                local camPos = targetPos - (lookVector * dist) + Vector3.new(0, 2, 0)
+                cam.CFrame = CFrame.new(camPos, targetPos)
+            else
+                -- Órbita 360° com eixo Y invertido
+                local radX = math.rad(cameraAngleX)
+                local radY = math.rad(cameraAngleY)
+
+                local xOffset = dist * math.cos(radY) * math.sin(radX)
+                local yOffset = dist * math.sin(radY)
+                local zOffset = dist * math.cos(radY) * math.cos(radX)
+
+                -- spectateHeight influencia um pouco o offset vertical base
+                local heightBoost = (spectateHeight or 20) * 0.05
+                local camPos = targetPos + Vector3.new(xOffset, yOffset + heightBoost, zOffset)
+                cam.CFrame = CFrame.new(camPos, targetPos)
             end
         end)
     else
-        if spectateConn then spectateConn:Disconnect() end
-        if root and originalCFrame then workspace.CurrentCamera.CFrame = CFrame.new(root.Position + Vector3.new(0, 3, 5), root.Position) end
+        stopSpectateCamera()
+        spectatePlayer = nil
     end
 end
 
@@ -1010,11 +2291,32 @@ player.CharacterAdded:Connect(function(newChar)
     character = newChar
     root = character:WaitForChild("HumanoidRootPart")
     humanoid = character:WaitForChild("Humanoid")
-    if flyToggle then setupFly() end
+    -- Restaura controle mobile: nunca deixar PlatformStand preso após respawn
+    if not flyToggle and humanoid then
+        humanoid.PlatformStand = false
+    end
+    if flyToggle then
+        if oreFarm then
+            setupOreFly()
+        else
+            setupFly()
+        end
+    end
     if speedToggle then
         if speedConn then speedConn:Disconnect() end
         speedConn = RunService.Heartbeat:Connect(function() if humanoid then humanoid.WalkSpeed = walkSpeed end end)
     end
+    -- Anti Combat no novo character
+    if antiCombat then
+        character.ChildAdded:Connect(function(child)
+            if not antiCombat then return end
+            local n = child.Name
+            if COMBAT_TAGS[n] or string.find(string.lower(n), "combat") or string.find(string.lower(n), "aggro") then
+                task.defer(function() pcall(function() child:Destroy() end) end)
+            end
+        end)
+    end
+    if infiniteJump then toggleInfiniteJump(true) end
 end)
 
 local function getPlayerNames()
@@ -1110,17 +2412,18 @@ makeRound(popupClose, 6)
 local function applyPlatformChoice(choice)
     userChoice = choice
     isMobile = (choice == "MOBILE")
-    -- scale adjustments
-    SCALE_FACTOR = isMobile and 0.78 or 1.0
+    -- scale adjustments — mobile bem mais compacto
+    SCALE_FACTOR = isMobile and 0.62 or 1.0
     -- viewport-based defaults for mobile
     if Camera and Camera.ViewportSize then
         local vx, vy = Camera.ViewportSize.X, Camera.ViewportSize.Y
         if isMobile then
-            DEFAULT_WIDTH = math.floor(math.clamp(vx * 0.86, 320, 760))
-            DEFAULT_HEIGHT = math.floor(math.clamp(vy * 0.62, 240, 520))
-            MIN_WIDTH = 300
-            MIN_HEIGHT = 200
-            RIGHT_AREA_SCALE = 0.35
+            -- Ocupa menos tela para não cobrir o analógico
+            DEFAULT_WIDTH = math.floor(math.clamp(vx * 0.72, 260, 420))
+            DEFAULT_HEIGHT = math.floor(math.clamp(vy * 0.48, 200, 340))
+            MIN_WIDTH = 240
+            MIN_HEIGHT = 170
+            RIGHT_AREA_SCALE = 0.38
         else
             DEFAULT_WIDTH = 760
             DEFAULT_HEIGHT = 520
@@ -1169,7 +2472,7 @@ function createHubUI()
     local miniButton = new("TextButton", {
         Name = "MiniButton",
         Parent = screenGui,
-        Size = UDim2.new(0, isMobile and 44 or 50, 0, isMobile and 44 or 50),
+        Size = UDim2.new(0, isMobile and 36 or 50, 0, isMobile and 36 or 50),
         Position = UDim2.new(0.1, 0, 0.1, 0),
         BackgroundColor3 = THEME.Background,
         BackgroundTransparency = CurrentOpacity,
@@ -1200,11 +2503,11 @@ function createHubUI()
     makeRound(uiRoot, 10)
     local uiRootStroke = makeStroke(uiRoot, THEME.Border, 2)
 
-    local titleBar = new("Frame", {Parent = uiRoot, Size = UDim2.new(1, 0, 0, isMobile and 38 or 42), BackgroundTransparency = 1})
+    local titleBar = new("Frame", {Parent = uiRoot, Size = UDim2.new(1, 0, 0, isMobile and 30 or 42), BackgroundTransparency = 1})
     local titleLabel = new("TextLabel", {
         Parent = titleBar, Position = UDim2.new(0, 12, 0, isMobile and 6 or 8), Size = UDim2.new(1, -120, 1, isMobile and -12 or -12),
         BackgroundTransparency = 1, Text = T("TITLE_MAIN"), TextColor3 = THEME.Text,
-        Font = Enum.Font.GothamSemibold, TextSize = (isMobile and 16 or 18), TextXAlignment = Enum.TextXAlignment.Left
+        Font = Enum.Font.GothamSemibold, TextSize = (isMobile and 13 or 18), TextXAlignment = Enum.TextXAlignment.Left
     })
 
     local controlsContainer = new("Frame", {
@@ -1229,22 +2532,22 @@ function createHubUI()
     })
     makeRound(closeBtn, 6)
 
-    local leftPane = new("Frame", {Parent = uiRoot, Position = UDim2.new(0, 10, 0, isMobile and 50 or 56), Size = UDim2.new(0, isMobile and 180 or 220, 1, isMobile and -70 or -76), BackgroundTransparency = 1})
-    local rightPane = new("Frame", {Parent = uiRoot, Position = UDim2.new(0, (isMobile and 200 or 240), 0, isMobile and 50 or 56), Size = UDim2.new(1, -(isMobile and 210 or 250), 1, isMobile and -70 or -76), BackgroundTransparency = 1})
+    local leftPane = new("Frame", {Parent = uiRoot, Position = UDim2.new(0, isMobile and 6 or 10, 0, isMobile and 36 or 56), Size = UDim2.new(0, isMobile and 110 or 220, 1, isMobile and -52 or -76), BackgroundTransparency = 1})
+    local rightPane = new("Frame", {Parent = uiRoot, Position = UDim2.new(0, (isMobile and 120 or 240), 0, isMobile and 36 or 56), Size = UDim2.new(1, -(isMobile and 126 or 250), 1, isMobile and -52 or -76), BackgroundTransparency = 1})
 
     local leftBg = new("Frame", {Parent = leftPane, Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = THEME.Background, BorderSizePixel = 0, BackgroundTransparency = CurrentOpacity})
     makeRound(leftBg, 8);
     local leftStroke = makeStroke(leftBg, THEME.Border, 1)
 
     local topicsList = new("ScrollingFrame", {Parent = leftBg, Position = UDim2.new(0, 8, 0, 8), Size = UDim2.new(1, -16, 1, -16), BackgroundTransparency = 1, ScrollBarThickness = isMobile and 8 or 6, CanvasSize = UDim2.new(0,0,0,0)})
-    local topicsLayout = new("UIListLayout", {Parent = topicsList, Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder})
+    local topicsLayout = new("UIListLayout", {Parent = topicsList, Padding = UDim.new(0, isMobile and 4 or 8), SortOrder = Enum.SortOrder.LayoutOrder})
 
     local rightBg = new("Frame", {Parent = rightPane, Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = THEME.Background, BorderSizePixel = 0, BackgroundTransparency = CurrentOpacity})
     makeRound(rightBg, 8);
     local rightStroke = makeStroke(rightBg, THEME.Border, 1)
 
     local scroll = new("ScrollingFrame", {Parent = rightBg, Position = UDim2.new(0, 8, 0, 8), Size = UDim2.new(1, -16, 1, -16), BackgroundTransparency = 1, ScrollBarThickness = isMobile and 10 or 8, CanvasSize = UDim2.new(0,0,0,0)})
-    local buttonsLayout = new("UIListLayout", {Parent = scroll, Padding = UDim.new(0, 10)})
+    local buttonsLayout = new("UIListLayout", {Parent = scroll, Padding = UDim.new(0, isMobile and 5 or 10)})
     buttonsLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
     local footer = new("TextLabel", {
@@ -1299,7 +2602,7 @@ function createHubUI()
     -- Recursive entry factory (kept most of original behavior, with touch fixes for sliders)
     local function createEntry(params, parentFrame, depth, onChildrenChanged)
         depth = depth or 0
-        local baseH = isMobile and 52 or 60
+        local baseH = isMobile and 40 or 60
         local barColor = params.Color or TYPE_COLORS[params.Type] or THEME.Accent
 
         local wrapper = new("Frame", {Parent = parentFrame, Name = "Entry", Size = UDim2.new(1, -12, 0, baseH), BackgroundTransparency = 1, ClipsDescendants = true})
@@ -1579,6 +2882,7 @@ function createHubUI()
             table.insert(connections, knob.InputBegan:Connect(function(input)
                 if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
                     dragging = true
+                    hubInteracting = true
                     dragConnChanged = UserInputService.InputChanged:Connect(function(inp)
                         if not dragging then return end
                         if inp.UserInputType == Enum.UserInputType.MouseMovement or inp.UserInputType == Enum.UserInputType.Touch then
@@ -1594,6 +2898,7 @@ function createHubUI()
                     dragConnEnded = UserInputService.InputEnded:Connect(function(inp)
                         if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then
                             dragging = false
+                            hubInteracting = false
                             if dragConnChanged then dragConnChanged:Disconnect(); dragConnChanged = nil end
                             if dragConnEnded then dragConnEnded:Disconnect(); dragConnEnded = nil end
                         end
@@ -1700,6 +3005,7 @@ function createHubUI()
             if not hubVisible then return end
             if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
                 dragging = true
+                hubInteracting = true
                 local mp = input.Position or UserInputService:GetMouseLocation()
                 dragOffset = Vector2.new(mp.X - uiRoot.AbsolutePosition.X, mp.Y - uiRoot.AbsolutePosition.Y)
             end
@@ -1714,7 +3020,10 @@ function createHubUI()
             end
         end))
         table.insert(connections, UserInputService.InputEnded:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = false end
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                dragging = false
+                hubInteracting = false
+            end
         end))
 
         -- Mini button drag/click
@@ -1722,6 +3031,7 @@ function createHubUI()
         table.insert(connections, miniButton.InputBegan:Connect(function(input)
             if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
                 miniDragging = true
+                hubInteracting = true
                 miniStartPos = Vector2.new(miniButton.AbsolutePosition.X, miniButton.AbsolutePosition.Y)
                 local mp = input.Position or UserInputService:GetMouseLocation()
                 miniDragStart = Vector2.new(mp.X, mp.Y)
@@ -1736,6 +3046,7 @@ function createHubUI()
         table.insert(connections, miniButton.InputEnded:Connect(function(input)
             if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
                 miniDragging = false
+                hubInteracting = false
                 local dist = (Vector2.new(input.Position.X, input.Position.Y) - miniDragStart).Magnitude
                 if dist < 5 then
                     toggleHub()
@@ -1760,7 +3071,11 @@ function createHubUI()
     local resizing, startSize, startMouse = false, nil, nil
     table.insert(connections, resizer.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            resizing = true; startSize = uiRoot.Size; local m = input.Position or UserInputService:GetMouseLocation(); startMouse = Vector2.new(m.X, m.Y)
+            resizing = true
+            hubInteracting = true
+            startSize = uiRoot.Size
+            local m = input.Position or UserInputService:GetMouseLocation()
+            startMouse = Vector2.new(m.X, m.Y)
         end
     end))
     table.insert(connections, UserInputService.InputChanged:Connect(function(input)
@@ -1770,7 +3085,12 @@ function createHubUI()
             uiRoot.Size = UDim2.new(0, math.max(MIN_WIDTH, startSize.X.Offset + d.X), 0, math.max(MIN_HEIGHT, startSize.Y.Offset + d.Y))
         end
     end))
-    table.insert(connections, UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then resizing = false end end))
+    table.insert(connections, UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            resizing = false
+            hubInteracting = false
+        end
+    end))
 
     -- =========================
     -- INICIALIZAÇÃO DOS TÓPICOS (usa addTopic e createEntry)
@@ -1814,7 +3134,12 @@ function createHubUI()
                 { Type = "Toggle", StateKey = "ClickTP", Name = T("CLICK_TP"), Description = T("CLICK_TP_DESC"), OnEnable = function() toggleClickTP(true) end, OnDisable = function() toggleClickTP(false) end },
                 { Type = "Toggle", StateKey = "NoClip", Name = T("NO_CLIP"), Description = T("NO_CLIP_DESC"), OnEnable = function() toggleNoclip(true) end, OnDisable = function() toggleNoclip(false) end },
                 { Type = "Toggle", StateKey = "NoFog", Name = T("NO_FOG"), Description = T("NO_FOG_DESC"), OnEnable = function() applyNoFog(true) end, OnDisable = function() applyNoFog(false) end },
-                { Type = "Toggle", StateKey = "UltraLite", Name = T("ULTRA_LITE"), Description = T("ULTRA_LITE_DESC"), OnEnable = function() toggleUltraLite(true) end, OnDisable = function() toggleUltraLite(false) end }
+                { Type = "Toggle", StateKey = "UltraLite", Name = T("ULTRA_LITE"), Description = T("ULTRA_LITE_DESC"), OnEnable = function() toggleUltraLite(true) end, OnDisable = function() toggleUltraLite(false) end },
+                { Type = "Toggle", StateKey = "InfiniteJump", Name = T("INFINITE_JUMP"), Description = T("INFINITE_JUMP_DESC"), OnEnable = function() toggleInfiniteJump(true) end, OnDisable = function() toggleInfiniteJump(false) end },
+                { Type = "Toggle", StateKey = "InfiniteStamina", Name = T("INFINITE_STAMINA"), Description = T("INFINITE_STAMINA_DESC"), OnEnable = function() toggleInfiniteStamina(true) end, OnDisable = function() toggleInfiniteStamina(false) end },
+                { Type = "Toggle", StateKey = "AntiCombat", Name = T("ANTI_COMBAT"), Description = T("ANTI_COMBAT_DESC"), OnEnable = function() toggleAntiCombat(true) end, OnDisable = function() toggleAntiCombat(false) end },
+                { Type = "Toggle", StateKey = "IceSlide", Name = T("ICE_SLIDE"), Description = T("ICE_SLIDE_DESC"), OnEnable = function() toggleDevIceSlide(true) end, OnDisable = function() toggleDevIceSlide(false) end },
+                { Type = "Slider", StateKey = "IceSlideIntensity", Name = T("ICE_INTENSITY"), Description = T("ICE_INTENSITY_DESC"), Min = 1, Max = 100, Default = iceSlideIntensity or 50, OnChange = function(v) iceSlideIntensity = v globalEnv.iceSlideIntensity = v end }
             }}
         })
 
@@ -1867,7 +3192,26 @@ function createHubUI()
                     globalEnv.trinketFarm = false
                 end },
                 -- AutoAttack permanece igual
-                { Type = "Toggle", StateKey = "AutoAttack", Name = T("AUTO_ATTACK"), Description = T("AUTO_ATTACK_DESC"), OnEnable = function() autoAttack = true globalEnv.autoAttack = true spawn(autoAttackLoop) end, OnDisable = function() autoAttack = false globalEnv.autoAttack = false end }
+                { Type = "Toggle", StateKey = "AutoAttack", Name = T("AUTO_ATTACK"), Description = T("AUTO_ATTACK_DESC"), OnEnable = function() autoAttack = true globalEnv.autoAttack = true spawn(autoAttackLoop) end, OnDisable = function() autoAttack = false globalEnv.autoAttack = false end },
+                { Type = "Toggle", StateKey = "OreFarm", Name = T("ORE_FARM"), Description = T("ORE_FARM_DESC"), OnEnable = function()
+                    oreFarm = true
+                    globalEnv.oreFarm = true
+                    -- Fly exclusivo do ore (anti-queda + personagem olha pro minério, não pra câmera)
+                    flyToggle = true
+                    globalEnv.flyToggle = true
+                    setupOreFly()
+                    spawn(oreFarmLoop)
+                end, OnDisable = function()
+                    oreFarm = false
+                    globalEnv.oreFarm = false
+                    -- Desativa o fly do ore ao parar o farm (fly original da aba Geral não é afetado ao reativar)
+                    flyToggle = false
+                    globalEnv.flyToggle = false
+                    if bg then bg:Destroy() end
+                    if bv then bv:Destroy() end
+                    if flyConn then flyConn:Disconnect() end
+                    if humanoid then humanoid.PlatformStand = false end
+                end }
             }},
             { Type = "ListAuto", Name = T("TP_MODE"), Description = T("TP_MODE_DESC"), Options = {
                 { Type = "ListPersistent", StateKey = "TeleportMode", Name = T("TP_MODE"), Description = T("TP_MODE_DESC"), Options = tp_mode_options, Callback = function(v)
@@ -1901,11 +3245,7 @@ function createHubUI()
                     end
                 end},
                 { Type = "Toggle", StateKey = "ESPPlayers", Name = T("ESP_PLAYERS"), Description = T("ESP_PLAYERS_DESC"), OnEnable = function() toggleESP(true) end, OnDisable = function() toggleESP(false) end },
-                { Type = "Toggle", StateKey = "FarmPlayer", Name = T("FARM_PLAYER"), Description = T("FARM_PLAYER_DESC"), OnEnable = function() if selectedPlayerName then toggleTeleport(true, selectedPlayerName) end end, OnDisable = function() toggleTeleport(false) end }
-            }},
-            { Type = "ListAuto", Name = T("SPECTATE"), Description = T("SPECTATE_DESC"), Options = {
-                { Type = "Slider", StateKey = "SpectateHeight", Name = T("HEIGHT"), Description = T("HEIGHT_DESC"), Min = 5, Max = 100, Default = 20, OnChange = function(v) spectateHeight = v globalEnv.spectateHeight = v end },
-                { Type = "Slider", StateKey = "SpectateDistance", Name = T("DISTANCE_SPECTATE"), Description = T("DISTANCE_SPECTATE_DESC"), Min = 5, Max = 100, Default = 5, OnChange = function(v) spectateDistance = v globalEnv.spectateDistance = v end },
+                { Type = "Toggle", StateKey = "FarmPlayer", Name = T("FARM_PLAYER"), Description = T("FARM_PLAYER_DESC"), OnEnable = function() if selectedPlayerName then toggleTeleport(true, selectedPlayerName) end end, OnDisable = function() toggleTeleport(false) end },
                 { Type = "Toggle", StateKey = "EnableSpectate", Name = T("ENABLE_SPECTATE"), Description = T("ENABLE_SPECTATE_DESC"), OnEnable = function() if selectedPlayerName then toggleSpectate(true, selectedPlayerName) end end, OnDisable = function() toggleSpectate(false) end }
             }}
         })
@@ -1937,6 +3277,27 @@ function createHubUI()
                 { Type = "Single", Name = T("TP_SERPENT"), Description = T("TP_SERPENT_DESC"), Callback = function() if root then root.CFrame = BREATHS.Serpent end end },
                 { Type = "Single", Name = T("TP_LOVE"), Description = T("TP_LOVE_DESC"), Callback = function() if root then root.CFrame = BREATHS.Love end end }
             }}
+        })
+
+        -- Developer
+        addTopic(T("TOPIC_DEV"), {
+            { Type = "ListAuto", Name = T("DEV_TOOLS"), Description = T("DEV_TOOLS_DESC"), Options = {
+                { Type = "Single", Name = T("DEV_COORDS"), Description = T("DEV_COORDS_DESC"), Callback = copyCoordinates },
+            }},
+            { Type = "ListAuto", Name = T("DEV_FUNNY"), Description = T("DEV_FUNNY_DESC"), Options = {
+                { Type = "Toggle", StateKey = "DevSpin", Name = T("DEV_SPIN"), Description = T("DEV_SPIN_DESC"), OnEnable = function() toggleDevSpin(true) end, OnDisable = function() toggleDevSpin(false) end },
+                { Type = "Toggle", StateKey = "DevHeli", Name = T("DEV_HELI"), Description = T("DEV_HELI_DESC"), OnEnable = function() toggleDevHeli(true) end, OnDisable = function() toggleDevHeli(false) end },
+                { Type = "Toggle", StateKey = "DevDrunk", Name = T("DEV_DRUNK"), Description = T("DEV_DRUNK_DESC"), OnEnable = function() toggleDevDrunk(true) end, OnDisable = function() toggleDevDrunk(false) end },
+                { Type = "Toggle", StateKey = "DevBalloon", Name = T("DEV_BALLOON"), Description = T("DEV_BALLOON_DESC"), OnEnable = function() toggleDevBalloon(true) end, OnDisable = function() toggleDevBalloon(false) end },
+                { Type = "Toggle", StateKey = "DevRoll", Name = T("DEV_ROLL"), Description = T("DEV_ROLL_DESC"), OnEnable = function() toggleDevRoll(true) end, OnDisable = function() toggleDevRoll(false) end },
+                { Type = "Toggle", StateKey = "DevHop", Name = T("DEV_HOP"), Description = T("DEV_HOP_DESC"), OnEnable = function() toggleDevHop(true) end, OnDisable = function() toggleDevHop(false) end },
+                { Type = "Toggle", StateKey = "DevMoonwalk", Name = T("DEV_MOONWALK"), Description = T("DEV_MOONWALK_DESC"), OnEnable = function() toggleDevMoonwalk(true) end, OnDisable = function() toggleDevMoonwalk(false) end },
+                { Type = "Toggle", StateKey = "DevDisco", Name = T("DEV_DISCO"), Description = T("DEV_DISCO_DESC"), OnEnable = function() toggleDevDisco(true) end, OnDisable = function() toggleDevDisco(false) end },
+                { Type = "Toggle", StateKey = "DevGiant", Name = T("DEV_GIANT"), Description = T("DEV_GIANT_DESC"), OnEnable = function() toggleDevGiant(true) end, OnDisable = function() toggleDevGiant(false) end },
+                { Type = "Toggle", StateKey = "DevTiny", Name = T("DEV_TINY"), Description = T("DEV_TINY_DESC"), OnEnable = function() toggleDevTiny(true) end, OnDisable = function() toggleDevTiny(false) end },
+                { Type = "Single", Name = T("DEV_FLING"), Description = T("DEV_FLING_DESC"), Callback = devFlingSelf },
+                { Type = "Single", Name = T("DEV_RAGDOLL"), Description = T("DEV_RAGDOLL_DESC"), Callback = devRagdollOnce },
+            }},
         })
 
         -- Config
