@@ -5,6 +5,7 @@
     - Sliders e redimensionamento compatíveis com Touch e Mouse.
     - Variáveis de GUI usam uiRoot para evitar conflito com 'root' do personagem (HumanoidRootPart).
     - Preservadas as funcionalidades do seu V3; apenas organizei a ordem para que callbacks encontrem as funções.
+    - FIX DRAG: AnchorPoint (0,0) + delta puro (MakeDraggable) — sem salto ao clicar.
 ]]
 
 -- ============================================================================== 
@@ -17,6 +18,7 @@ local TweenService = game:GetService("TweenService")
 local CoreGui = game:GetService("CoreGui")
 local Lighting = game:GetService("Lighting")
 local VIM = game:GetService("VirtualInputManager")
+local GuiService = game:GetService("GuiService")
 local Camera = workspace and workspace.CurrentCamera
 
 -- =========================
@@ -469,100 +471,138 @@ end
 -- =========================
 -- CONFIGURAÇÃO VISUAL & TEMAS
 -- =========================
-globalEnv.CurrentThemeName = globalEnv.CurrentThemeName or "Preto / Black"
+globalEnv.CurrentThemeName = globalEnv.CurrentThemeName or "Carbon"
 local CurrentThemeName = globalEnv.CurrentThemeName
 globalEnv.CurrentOpacity = globalEnv.CurrentOpacity or 0
 local CurrentOpacity = globalEnv.CurrentOpacity
 
+--[[
+  TEMAS REFEITOS DO ZERO (atmosfera Tornify-inspired)
+  Nomes únicos (sem barra). Crimson e Amethyst removidos.
+]]
 local THEME_PRESETS = {
-    -- Azul: navy profundo + ciano elétrico (estilo glass / cyber)
-    ["Azul / Blue"] = {
-        Background = Color3.fromRGB(8, 12, 22),
-        PanelBg    = Color3.fromRGB(16, 24, 40),
-        Text       = Color3.fromRGB(236, 244, 255),
-        SubText    = Color3.fromRGB(120, 150, 190),
-        Off        = Color3.fromRGB(28, 38, 55),
-        On         = Color3.fromRGB(0, 200, 255),
-        Border     = Color3.fromRGB(40, 90, 150),
-        Hover      = Color3.fromRGB(22, 36, 58),
-        Danger     = Color3.fromRGB(255, 70, 90),
-        Accent     = Color3.fromRGB(0, 190, 255),
+    -- Carbon: preto fosco premium
+    ["Carbon"] = {
+        Background = Color3.fromRGB(9, 9, 9),
+        PanelBg    = Color3.fromRGB(21, 21, 21),
+        Text       = Color3.fromRGB(244, 244, 244),
+        SubText    = Color3.fromRGB(154, 154, 154),
+        Off        = Color3.fromRGB(40, 40, 40),
+        On         = Color3.fromRGB(255, 255, 255),
+        Border     = Color3.fromRGB(35, 35, 35),
+        Hover      = Color3.fromRGB(32, 32, 32),
+        Danger     = Color3.fromRGB(220, 60, 70),
+        Accent     = Color3.fromRGB(255, 255, 255),
         KnobColor  = Color3.fromRGB(255, 255, 255)
     },
-    -- Vermelho: vinho escuro + carmesim neon
-    ["Vermelho / Red"] = {
-        Background = Color3.fromRGB(14, 6, 8),
-        PanelBg    = Color3.fromRGB(28, 12, 16),
-        Text       = Color3.fromRGB(255, 236, 238),
-        SubText    = Color3.fromRGB(190, 120, 130),
-        Off        = Color3.fromRGB(48, 22, 28),
-        On         = Color3.fromRGB(255, 45, 75),
-        Border     = Color3.fromRGB(120, 40, 55),
-        Hover      = Color3.fromRGB(40, 16, 22),
-        Danger     = Color3.fromRGB(255, 30, 50),
-        Accent     = Color3.fromRGB(255, 55, 85),
-        KnobColor  = Color3.fromRGB(255, 245, 245)
-    },
-    -- Amarelo: charcoal + âmbar dourado
-    ["Amarelo / Yellow"] = {
-        Background = Color3.fromRGB(14, 12, 6),
-        PanelBg    = Color3.fromRGB(28, 24, 12),
-        Text       = Color3.fromRGB(255, 250, 230),
-        SubText    = Color3.fromRGB(190, 170, 100),
-        Off        = Color3.fromRGB(48, 42, 22),
-        On         = Color3.fromRGB(255, 196, 0),
-        Border     = Color3.fromRGB(120, 100, 40),
-        Hover      = Color3.fromRGB(38, 32, 14),
-        Danger     = Color3.fromRGB(255, 70, 60),
-        Accent     = Color3.fromRGB(255, 200, 30),
-        KnobColor  = Color3.fromRGB(255, 250, 240)
-    },
-    -- Preto: OLED + violeta suave (contraste moderno)
-    ["Preto / Black"] = {
-        Background = Color3.fromRGB(6, 6, 8),
-        PanelBg    = Color3.fromRGB(18, 18, 22),
-        Text       = Color3.fromRGB(245, 245, 250),
-        SubText    = Color3.fromRGB(130, 130, 145),
-        Off        = Color3.fromRGB(36, 36, 42),
-        On         = Color3.fromRGB(160, 120, 255),
-        Border     = Color3.fromRGB(55, 50, 70),
-        Hover      = Color3.fromRGB(28, 28, 34),
-        Danger     = Color3.fromRGB(220, 60, 80),
-        Accent     = Color3.fromRGB(170, 130, 255),
-        KnobColor  = Color3.fromRGB(255, 255, 255)
-    },
-    -- Branco: off-white clean + índigo
-    ["Branco / White"] = {
-        Background = Color3.fromRGB(248, 249, 252),
-        PanelBg    = Color3.fromRGB(236, 238, 245),
-        Text       = Color3.fromRGB(22, 24, 32),
-        SubText    = Color3.fromRGB(100, 105, 125),
-        Off        = Color3.fromRGB(210, 214, 228),
-        On         = Color3.fromRGB(70, 90, 220),
-        Border     = Color3.fromRGB(190, 195, 215),
-        Hover      = Color3.fromRGB(228, 230, 240),
+    -- Arctic: gelo limpo e claro
+    ["Arctic"] = {
+        Background = Color3.fromRGB(237, 245, 255),
+        PanelBg    = Color3.fromRGB(221, 235, 255),
+        Text       = Color3.fromRGB(23, 36, 51),
+        SubText    = Color3.fromRGB(90, 120, 150),
+        Off        = Color3.fromRGB(190, 210, 230),
+        On         = Color3.fromRGB(94, 184, 255),
+        Border     = Color3.fromRGB(180, 210, 240),
+        Hover      = Color3.fromRGB(200, 225, 250),
         Danger     = Color3.fromRGB(230, 55, 70),
-        Accent     = Color3.fromRGB(75, 95, 230),
+        Accent     = Color3.fromRGB(94, 184, 255),
         KnobColor  = Color3.fromRGB(255, 255, 255)
     },
-    -- Cinza: slate + teal
-    ["Cinza / Gray"] = {
-        Background = Color3.fromRGB(18, 20, 22),
-        PanelBg    = Color3.fromRGB(32, 36, 40),
-        Text       = Color3.fromRGB(230, 235, 240),
-        SubText    = Color3.fromRGB(130, 145, 155),
-        Off        = Color3.fromRGB(48, 54, 58),
-        On         = Color3.fromRGB(0, 200, 180),
-        Border     = Color3.fromRGB(70, 80, 88),
-        Hover      = Color3.fromRGB(42, 48, 52),
-        Danger     = Color3.fromRGB(220, 70, 80),
-        Accent     = Color3.fromRGB(0, 210, 190),
-        KnobColor  = Color3.fromRGB(245, 250, 250)
-    }
+    -- Nebula: roxo espacial profundo
+    ["Nebula"] = {
+        Background = Color3.fromRGB(16, 8, 30),
+        PanelBg    = Color3.fromRGB(35, 25, 60),
+        Text       = Color3.fromRGB(240, 230, 255),
+        SubText    = Color3.fromRGB(160, 140, 200),
+        Off        = Color3.fromRGB(50, 40, 80),
+        On         = Color3.fromRGB(184, 146, 255),
+        Border     = Color3.fromRGB(70, 55, 110),
+        Hover      = Color3.fromRGB(45, 35, 75),
+        Danger     = Color3.fromRGB(255, 70, 100),
+        Accent     = Color3.fromRGB(184, 146, 255),
+        KnobColor  = Color3.fromRGB(255, 245, 255)
+    },
+    -- Neon: radioativo / toxic
+    ["Neon"] = {
+        Background = Color3.fromRGB(0, 17, 0),
+        PanelBg    = Color3.fromRGB(0, 42, 26),
+        Text       = Color3.fromRGB(0, 255, 170),
+        SubText    = Color3.fromRGB(0, 180, 120),
+        Off        = Color3.fromRGB(0, 60, 40),
+        On         = Color3.fromRGB(0, 255, 136),
+        Border     = Color3.fromRGB(0, 120, 80),
+        Hover      = Color3.fromRGB(0, 55, 35),
+        Danger     = Color3.fromRGB(255, 50, 50),
+        Accent     = Color3.fromRGB(0, 255, 136),
+        KnobColor  = Color3.fromRGB(0, 255, 170)
+    },
+    -- Carmesim: carmesin profundo
+    ["Carmesim"] = {
+        Background = Color3.fromRGB(10, 0, 0),
+        PanelBg    = Color3.fromRGB(26, 0, 0),
+        Text       = Color3.fromRGB(255, 240, 240),
+        SubText    = Color3.fromRGB(200, 120, 120),
+        Off        = Color3.fromRGB(55, 10, 10),
+        On         = Color3.fromRGB(139, 0, 0),
+        Border     = Color3.fromRGB(100, 20, 20),
+        Hover      = Color3.fromRGB(40, 5, 5),
+        Danger     = Color3.fromRGB(255, 60, 60),
+        Accent     = Color3.fromRGB(255, 59, 59),
+        KnobColor  = Color3.fromRGB(255, 220, 220)
+    },
+    -- Galaxy: midnight azul-espacial
+    ["Galaxy"] = {
+        Background = Color3.fromRGB(10, 15, 44),
+        PanelBg    = Color3.fromRGB(13, 19, 43),
+        Text       = Color3.fromRGB(230, 240, 255),
+        SubText    = Color3.fromRGB(120, 140, 200),
+        Off        = Color3.fromRGB(30, 40, 80),
+        On         = Color3.fromRGB(59, 76, 192),
+        Border     = Color3.fromRGB(40, 55, 120),
+        Hover      = Color3.fromRGB(20, 28, 60),
+        Danger     = Color3.fromRGB(255, 70, 90),
+        Accent     = Color3.fromRGB(107, 142, 245),
+        KnobColor  = Color3.fromRGB(220, 230, 255)
+    },
+    -- Blush: rosa suave amanhecer
+    ["Blush"] = {
+        Background = Color3.fromRGB(255, 225, 238),
+        PanelBg    = Color3.fromRGB(245, 207, 224),
+        Text       = Color3.fromRGB(45, 31, 41),
+        SubText    = Color3.fromRGB(120, 90, 105),
+        Off        = Color3.fromRGB(230, 190, 210),
+        On         = Color3.fromRGB(255, 126, 185),
+        Border     = Color3.fromRGB(220, 170, 190),
+        Hover      = Color3.fromRGB(248, 221, 232),
+        Danger     = Color3.fromRGB(230, 55, 80),
+        Accent     = Color3.fromRGB(255, 126, 185),
+        KnobColor  = Color3.fromRGB(255, 255, 255)
+    },
+    -- Branco: branco sofisticado limpo
+    ["Branco"] = {
+        Background = Color3.fromRGB(252, 252, 250),
+        PanelBg    = Color3.fromRGB(242, 242, 238),
+        Text       = Color3.fromRGB(28, 28, 26),
+        SubText    = Color3.fromRGB(110, 110, 100),
+        Off        = Color3.fromRGB(210, 210, 200),
+        On         = Color3.fromRGB(60, 60, 55),
+        Border     = Color3.fromRGB(200, 200, 190),
+        Hover      = Color3.fromRGB(235, 235, 230),
+        Danger     = Color3.fromRGB(220, 50, 60),
+        Accent     = Color3.fromRGB(50, 50, 45),
+        KnobColor  = Color3.fromRGB(255, 255, 255)
+    },
 }
 
 local THEME = {}
-for k,v in pairs(THEME_PRESETS[CurrentThemeName]) do THEME[k] = v end
+if THEME_PRESETS[CurrentThemeName] then
+    for k,v in pairs(THEME_PRESETS[CurrentThemeName]) do THEME[k] = v end
+else
+    CurrentThemeName = "Carbon"
+    globalEnv.CurrentThemeName = CurrentThemeName
+    for k,v in pairs(THEME_PRESETS[CurrentThemeName]) do THEME[k] = v end
+end
 
 local TYPE_COLORS = {
     Label          = Color3.fromRGB(255, 255, 255),
@@ -606,6 +646,51 @@ local function makeRound(inst, rad) return new("UICorner", {Parent = inst, Corne
 local function makeStroke(inst, col, th) return new("UIStroke", {Parent = inst, Color = col or THEME.Border, Thickness = th or 1}) end
 local function clamp(v, a, b) if v < a then return a end if v > b then return b end return v end
 
+-- ======================================================================
+-- MakeDraggable — DELTA PURO (funciona com qualquer AnchorPoint)
+-- Não mistura mouse com AbsolutePosition no mesmo cálculo → sem salto.
+-- ======================================================================
+local function MakeDraggable(handle, target)
+    local dragging = false
+    local dragStart = nil
+    local startPos = nil
+
+    handle.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+            or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = target.Position
+
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+
+    handle.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement
+            or input.UserInputType == Enum.UserInputType.Touch then
+            -- apenas guarda referência se necessário
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if not dragging then return end
+        if input.UserInputType ~= Enum.UserInputType.MouseMovement
+            and input.UserInputType ~= Enum.UserInputType.Touch then
+            return
+        end
+        local delta = input.Position - dragStart
+        target.Position = UDim2.new(
+            startPos.X.Scale, startPos.X.Offset + delta.X,
+            startPos.Y.Scale, startPos.Y.Offset + delta.Y
+        )
+    end)
+end
+
 -- Remove instâncias antigas do Hub
 for _, v in pairs(CoreGui:GetChildren()) do
     if v.Name == "MoonDF_VirginHub" then
@@ -621,7 +706,6 @@ local screenGui = new("ScreenGui", {
     DisplayOrder = 50,
     IgnoreGuiInset = true,
 })
--- Garante que a HUD não capture toques fora dela (analógico mobile)
 pcall(function() screenGui.Enabled = true end)
 
 -- ======================================================================
@@ -630,7 +714,7 @@ pcall(function() screenGui.Enabled = true end)
 
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
-local root = character:WaitForChild("HumanoidRootPart") -- 'root' usado pelo game logic (mantido)
+local root = character:WaitForChild("HumanoidRootPart")
 local humanoid = character:WaitForChild("Humanoid")
 
 globalEnv.flyToggle = globalEnv.flyToggle or false
@@ -689,7 +773,6 @@ globalEnv.spectateHeight = globalEnv.spectateHeight or 20
 local spectateHeight = globalEnv.spectateHeight
 globalEnv.spectateDistance = globalEnv.spectateDistance or 12
 local spectateDistance = globalEnv.spectateDistance
--- Spectate orbit (from ESPECTATE.lua logic)
 local cameraAngleX = 0
 local cameraAngleY = 15
 local isMouseDownSpec = false
@@ -700,11 +783,9 @@ local spectateInputBegan, spectateInputEnded, spectateInputChanged = nil, nil, n
 globalEnv.espEnabled = globalEnv.espEnabled or false
 local espEnabled = globalEnv.espEnabled
 local espUpdateLoop = nil
--- Health ESP + Glow (from vida respawn.lua logic)
 local ABSOLUTE_MAX_HP = 280
 local maxHealthCache = {}
 local playerSpawnTime = {}
--- Folder fora do Character (jogos removem Highlight do char) — Adornee aponta pro personagem
 local espFolder = Instance.new("Folder")
 espFolder.Name = "MoonDF_ESPFolder"
 pcall(function() espFolder.Parent = CoreGui end)
@@ -712,20 +793,17 @@ if not espFolder.Parent then
     pcall(function() espFolder.Parent = player:WaitForChild("PlayerGui") end)
 end
 
--- Infinite Jump
 globalEnv.infiniteJump = globalEnv.infiniteJump or false
 local infiniteJump = globalEnv.infiniteJump
 local infJumpConn, infJumpRequestConn = nil, nil
 
--- Infinite Stamina + Anti Combat (Demon Fall: Character children Combat/Aggro/Stamina debuffs)
 globalEnv.infiniteStamina = globalEnv.infiniteStamina or false
 local infiniteStamina = globalEnv.infiniteStamina
 globalEnv.antiCombat = globalEnv.antiCombat or false
 local antiCombat = globalEnv.antiCombat
 local staminaCombatConn = nil
--- Tags que scripts open-source do Demon Fall removem continuamente
 local COMBAT_TAGS = { Combat = true, Aggro = true, Busy = true, Stun = true, Down = true, Ragdoll = true }
-local STAMINA_TAGS = { Stamina = true } -- debuff instances named Stamina
+local STAMINA_TAGS = { Stamina = true }
 
 local blockedStates = {
     Enum.HumanoidStateType.FallingDown, Enum.HumanoidStateType.Freefall, Enum.HumanoidStateType.GettingUp,
@@ -774,7 +852,6 @@ local LOAD_COORDINATES = {
     Vector3.new(893.3, 772.6, -2260.9),
 }
 
--- Coordenadas das áreas de minérios (Esquadrão) — carrega apenas na PRIMEIRA ativação do Ore Farm
 local ORE_LOAD_COORDS = {
     Vector3.new(-3627.3, 1310.7, -2810.3),
     Vector3.new(-2065.2, 846.2, -3978.5),
@@ -796,7 +873,7 @@ local function calculateFlySpeed(sliderVal)
     else local excess = sliderVal - 5000 return 400 + (excess * 2) end
 end
 
-function setupFly() -- mantida com mesmo nome
+function setupFly()
     if not root then return end
     if bg then bg:Destroy() end
     if bv then bv:Destroy() end
@@ -811,22 +888,17 @@ function setupFly() -- mantida com mesmo nome
 
     if flyConn then flyConn:Disconnect() end
 
-    -- Helper: retorna inputs de movimento (suporte teclado + fallback para humanoid.MoveDirection)
     local function getMoveInputs(cam)
-        -- Inputs diretos (teclado)
         local forward = 0
         local right = 0
-        -- WASD
         if UserInputService:IsKeyDown(Enum.KeyCode.W) then forward = forward + 1 end
         if UserInputService:IsKeyDown(Enum.KeyCode.S) then forward = forward - 1 end
         if UserInputService:IsKeyDown(Enum.KeyCode.D) then right = right + 1 end
         if UserInputService:IsKeyDown(Enum.KeyCode.A) then right = right - 1 end
 
-        -- Se não houver input de teclado (ex: mobile / touch), caímos em humanoid.MoveDirection projetado nos eixos da câmera
         if math.abs(forward) < 1e-6 and math.abs(right) < 1e-6 then
             local md = (humanoid and humanoid.MoveDirection) or Vector3.new(0,0,0)
             if md and md.Magnitude > 0.01 and cam then
-                -- projeta MoveDirection nos eixos da câmera (Look e Right) para obter componentes forward/right relativos à câmera
                 forward = md:Dot(cam.CFrame.LookVector)
                 right = md:Dot(cam.CFrame.RightVector)
             end
@@ -842,19 +914,15 @@ function setupFly() -- mantida com mesmo nome
 
         local currentSpeed = calculateFlySpeed(flySpeedValue)
 
-        -- Vertical manual (Space/C) continua sendo subida/descida global
         local vertical = 0
         if UserInputService:IsKeyDown(Enum.KeyCode.Space) then vertical = vertical + currentSpeed end
         if UserInputService:IsKeyDown(Enum.KeyCode.C) then vertical = vertical - currentSpeed end
 
-        -- Obtem componentes de movimento forward/right (possuem valores -1..1 ou projeção contínua para touch)
         local fComp, rComp = getMoveInputs(cam)
 
-        -- Constrói vetor de movimento usando LookVector (contendo componente vertical) e RightVector da câmera.
         local moveVec = Vector3.new(0,0,0)
         if math.abs(fComp) > 1e-6 or math.abs(rComp) > 1e-6 then
             moveVec = (cam.CFrame.LookVector * fComp) + (cam.CFrame.RightVector * rComp)
-            -- Se moveVec for quase zero, evita unidade incorreta
             if moveVec.Magnitude > 0.001 then
                 moveVec = moveVec.Unit * currentSpeed
             else
@@ -864,19 +932,14 @@ function setupFly() -- mantida com mesmo nome
             moveVec = Vector3.new(0,0,0)
         end
 
-        -- Aplica velocidade final (componente vertical global adicionada)
         bv.Velocity = moveVec + Vector3.new(0, vertical, 0)
 
-        -- Orienta o corpo para olhar na direção da câmera sem alterar posição (mantém alinhamento com moveVec)
-        -- Usa root.Position como origem para evitar deslocamento do BodyGyro causado pela posição da câmera
         if cam.CFrame.LookVector then
             bg.CFrame = CFrame.new(root.Position, root.Position + cam.CFrame.LookVector)
         end
     end)
 end
 
--- Fly exclusivo do Ore Farm: anti-queda + mantém a orientação atual do personagem
--- (não força olhar para a câmera — o loop de mineração controla o olhar para o minério)
 function setupOreFly()
     if not root then return end
     if bg then bg:Destroy() end
@@ -894,14 +957,12 @@ function setupOreFly()
 
     flyConn = RunService.Heartbeat:Connect(function()
         if not oreFarm or not root then return end
-        -- Mantém a rotação que o loop de mineração definiu (olhando pro minério)
         bg.CFrame = root.CFrame
-        -- Zera velocidade para não cair / não deslizar (o TP do loop posiciona o personagem)
         bv.Velocity = Vector3.new(0, 0, 0)
     end)
 end
 
-function toggleNoclip(state) -- mantida
+function toggleNoclip(state)
     noclipToggle = state
     globalEnv.noclipToggle = state
     if state then
@@ -918,21 +979,17 @@ function toggleNoclip(state) -- mantida
     end
 end
 
-function toggleClickTP(state) -- mantida
+function toggleClickTP(state)
     clickTPToggle = state
     globalEnv.clickTPToggle = state
     if state then
         if clickTPConn then clickTPConn:Disconnect() end
-        -- PC: Ctrl + Click | Mobile: NÃO usa toque solto (quebrava o analógico)
-        -- No mobile exige toque longo com 2 dedos ou fica desativado no touch puro
         clickTPConn = UserInputService.InputBegan:Connect(function(input, gp)
             if not clickTPToggle or gp then return end
             if input.UserInputType ~= Enum.UserInputType.MouseButton1 and input.UserInputType ~= Enum.UserInputType.Touch then return end
-            -- Mobile/touch: ignora (evita sumir analógico / TP acidental ao andar)
             if input.UserInputType == Enum.UserInputType.Touch or UserInputService.TouchEnabled then
                 return
             end
-            -- PC: só com Ctrl
             if not UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) and not UserInputService:IsKeyDown(Enum.KeyCode.RightControl) then
                 return
             end
@@ -947,7 +1004,7 @@ function toggleClickTP(state) -- mantida
     end
 end
 
-function applyNoFog(state) -- mantida
+function applyNoFog(state)
     noFogEnabled = state
     globalEnv.noFogEnabled = state
     if state then
@@ -962,7 +1019,7 @@ function applyNoFog(state) -- mantida
     end
 end
 
-function toggleUltraLite(state) -- mantida
+function toggleUltraLite(state)
     ultraLiteEnabled = state
     globalEnv.ultraLiteEnabled = state
     if state then
@@ -1036,12 +1093,6 @@ local function teleportAndLookWithKeys()
     end
 end
 
--- ============================================================
--- ATAQUE INTELIGENTE + GUARD BREAK (Demon Fall)
--- Detecta defesa (filho "Block" / atributos / animação) e usa M2
--- até a guarda cair; caso contrário spamma M1.
--- ============================================================
-
 local farmAttackLooping = false
 
 local function getCombatRemote()
@@ -1054,14 +1105,9 @@ local function getCombatRemote()
     return nil
 end
 
--- Detecta se o alvo está defendendo (Demon Fall prioritário: child "Block")
 local function isTargetBlocking(char)
     if not char or not char.Parent then return false end
-
-    -- Método principal no Demon Fall: Instance "Block" no character
     if char:FindFirstChild("Block") then return true end
-
-    -- BoolValue / ObjectValue com nome de bloqueio
     for _, child in ipairs(char:GetChildren()) do
         local n = child.Name:lower()
         if (n == "block" or n == "blocking" or n == "isblocking" or n == "guard") then
@@ -1072,15 +1118,11 @@ local function isTargetBlocking(char)
             end
         end
     end
-
-    -- Atributos no Character
     local attrs = {"IsBlocking", "Blocking", "Block", "Guarding", "IsGuard", "HoldingBlock"}
     for _, name in ipairs(attrs) do
         local ok, val = pcall(function() return char:GetAttribute(name) end)
         if ok and (val == true or val == 1 or val == "true") then return true end
     end
-
-    -- Pastas Status / States
     local status = char:FindFirstChild("Status") or char:FindFirstChild("States") or char:FindFirstChild("State")
     if status then
         if status:FindFirstChild("Block") or status:FindFirstChild("Blocking") or status:FindFirstChild("IsBlocking") then
@@ -1094,15 +1136,12 @@ local function isTargetBlocking(char)
             end
         end
     end
-
-    -- Humanoid attributes
     local hum = char:FindFirstChildOfClass("Humanoid")
     if hum then
         for _, name in ipairs(attrs) do
             local ok, val = pcall(function() return hum:GetAttribute(name) end)
             if ok and (val == true or val == 1) then return true end
         end
-        -- Animação de bloqueio tocando
         local animator = hum:FindFirstChildOfClass("Animator")
         if animator then
             for _, track in ipairs(animator:GetPlayingAnimationTracks()) do
@@ -1117,14 +1156,11 @@ local function isTargetBlocking(char)
             end
         end
     end
-
-    -- CollectionService tag
     local okTag, hasTag = pcall(function()
         return game:GetService("CollectionService"):HasTag(char, "Blocking")
             or game:GetService("CollectionService"):HasTag(char, "Block")
     end)
     if okTag and hasTag then return true end
-
     return false
 end
 
@@ -1133,16 +1169,12 @@ local function getCurrentFarmCharacter()
     return findEnemy(currentMob)
 end
 
--- Evita que o spam de M1/M2 do VirtualInputManager dispute com o toque/clique na HUD
--- hubInteracting fica true enquanto o usuário segura (arrastar janela, slider, resize, etc.)
 local hubInteracting = false
 
 local function isPointerOverHub()
     local ok, over = pcall(function()
         if not screenGui or not screenGui.Parent then return false end
         local pos = UserInputService:GetMouseLocation()
-        -- Checa qualquer GuiObject visível do hub (sem exigir Active —
-        -- titleBar/resizer/track são Frames e Active=false por padrão)
         for _, gui in ipairs(screenGui:GetDescendants()) do
             if gui:IsA("GuiObject") and gui.Visible then
                 local ap, as = gui.AbsolutePosition, gui.AbsoluteSize
@@ -1158,14 +1190,12 @@ local function isPointerOverHub()
     return ok and over
 end
 
--- Pausa o clique visual enquanto o ponteiro está na HUD ou durante interação longa (drag/slider/resize)
 local function shouldSkipVisualClick()
     if hubInteracting then return true end
     if isPointerOverHub() then return true end
     return false
 end
 
--- Rastreia pressionar/soltar na HUD para não interromper arraste/slider/resize
 UserInputService.InputBegan:Connect(function(input, _gp)
     if input.UserInputType == Enum.UserInputType.MouseButton1
         or input.UserInputType == Enum.UserInputType.Touch then
@@ -1182,14 +1212,12 @@ UserInputService.InputEnded:Connect(function(input, _gp)
 end)
 
 local function sendM1()
-    -- Remote nativo do Demon Fall (light = "Server") — não interfere na HUD
     pcall(function()
         local remote = getCombatRemote()
         if remote then
             remote:FireServer("Combat", "Server")
         end
     end)
-    -- Input visual (M1) só quando NÃO está interagindo com a HUD
     if not shouldSkipVisualClick() then
         pcall(function()
             VIM:SendMouseButtonEvent(0, 0, 0, true, game, 1)
@@ -1200,14 +1228,12 @@ local function sendM1()
 end
 
 local function sendM2()
-    -- Remote nativo do Demon Fall (heavy = "Heavy")
     pcall(function()
         local remote = getCombatRemote()
         if remote then
             remote:FireServer("Combat", "Heavy")
         end
     end)
-    -- Input visual (M2) só quando NÃO está interagindo com a HUD
     if not shouldSkipVisualClick() then
         pcall(function()
             VIM:SendMouseButtonEvent(0, 0, 1, true, game, 1)
@@ -1217,7 +1243,6 @@ local function sendM2()
     end
 end
 
--- Uma rodada de ataque: se estiver bloqueando, spamma M2 até soltar a guarda; senão M1
 local function smartAttackOnce()
     local enemy = getCurrentFarmCharacter()
     if enemy and isTargetBlocking(enemy) then
@@ -1236,7 +1261,6 @@ end
 
 local function autoAttackLoop()
     while autoAttack do
-        -- Se farm ativo, usa o alvo do farm; senão só spamma M1 genérico
         if isEnabled and currentMob then
             smartAttackOnce()
         else
@@ -1248,7 +1272,6 @@ end
 
 local function farmAttackLoop()
     while farmAttackLooping and isEnabled do
-        -- Evita double-spam se Auto Attack separado já estiver rodando
         if not autoAttack then
             smartAttackOnce()
         end
@@ -1256,7 +1279,7 @@ local function farmAttackLoop()
     end
 end
 
-function toggleTeleport(enable, mobName) -- mantida
+function toggleTeleport(enable, mobName)
     if enable then
         if connection then connection:Disconnect() end
         teleportAndLookLooping = true
@@ -1264,7 +1287,6 @@ function toggleTeleport(enable, mobName) -- mantida
         spawn(teleportAndLookWithKeys)
         currentMob = mobName
         isEnabled = true
-        -- Inicia ataque + guard-break automático junto com o farm
         farmAttackLooping = true
         spawn(farmAttackLoop)
     else
@@ -1276,18 +1298,11 @@ function toggleTeleport(enable, mobName) -- mantida
     end
 end
 
--- ============================================================
--- ORE FARM (Demon Fall)
--- workspace.Map.Minerals > Mineral (MeshPart) com MineralName + Spawn
--- Minera via remote Pickaxe + tecla Z (slot da picareta)
--- ============================================================
-
 local function getAllAvailableOres()
     local list = {}
     local map = workspace:FindFirstChild("Map")
     local minerals = map and map:FindFirstChild("Minerals")
     if not minerals then
-        -- fallback: procura em todo workspace
         for _, v in ipairs(workspace:GetDescendants()) do
             if v.Name == "Mineral" and (v:IsA("MeshPart") or v:IsA("BasePart")) then
                 local nameVal = v:FindFirstChild("MineralName")
@@ -1320,7 +1335,6 @@ local function isOreStillAvailable(ore)
 end
 
 local function mineHit()
-    -- Remote nativo do Demon Fall
     pcall(function()
         local rs = game:GetService("ReplicatedStorage")
         local remotes = rs:FindFirstChild("Remotes")
@@ -1335,7 +1349,6 @@ local function mineHit()
             end
         end
     end)
-    -- Tecla Z (slot de item / picareta no hotbar)
     pcall(function()
         VIM:SendKeyEvent(true, Enum.KeyCode.Z, false, game)
         task.wait(0.03)
@@ -1344,7 +1357,6 @@ local function mineHit()
 end
 
 local function oreFarmLoop()
-    -- Carrega as áreas de minérios SOMENTE na primeira ativação (coords das fotos)
     if not oreAreasLoaded and root then
         for _, coord in ipairs(ORE_LOAD_COORDS) do
             if not oreFarm then return end
@@ -1361,7 +1373,6 @@ local function oreFarmLoop()
                 task.wait(0.3)
                 return
             end
-            -- Garante o fly exclusivo do ore (anti-queda, sem forçar olhar da câmera)
             if not flyToggle then
                 flyToggle = true
                 globalEnv.flyToggle = true
@@ -1375,16 +1386,13 @@ local function oreFarmLoop()
             for _, ore in ipairs(ores) do
                 if not oreFarm then break end
                 if isOreStillAvailable(ore) then
-                    -- TP instantâneo até o minério (personagem olhando para o minério)
                     local pos = ore.Position
                     root.CFrame = CFrame.new(pos + Vector3.new(0, -1.5, -2), pos)
                     pcall(function() root.AssemblyLinearVelocity = Vector3.new(0, 0, 0) end)
                     pcall(function() root.Velocity = Vector3.new(0, 0, 0) end)
 
-                    -- Minera até o Spawn acabar (ou limite de segurança)
                     local hits = 0
                     while oreFarm and isOreStillAvailable(ore) and hits < 12 do
-                        -- Sempre olhando para o minério
                         root.CFrame = CFrame.new(ore.Position + Vector3.new(0, -1.5, -2), ore.Position)
                         mineHit()
                         hits = hits + 1
@@ -1444,11 +1452,6 @@ local function loadAllMap()
     root.CFrame = initialPosition
     loadingAllMobs = false
 end
-
--- ============================================================
--- HEALTH ESP + GLOW (lógica de vida respawn.lua) + SPECTATE
--- (lógica de ESPECTATE.lua) — substitui o ESP/Spectate antigos
--- ============================================================
 
 local function setupHealthPlayer(plr)
     plr.CharacterAdded:Connect(function()
@@ -1522,7 +1525,6 @@ local function findRealHealthAndMax(plr)
         end
     end
 
-    -- Fallback: Humanoid padrão (caso o jogo use)
     if not currentHp then
         local hum = char:FindFirstChildOfClass("Humanoid")
         if hum then currentHp = hum.Health end
@@ -1559,7 +1561,6 @@ local function clearAllHealthESP()
                 local tag = head:FindFirstChild("MoonDFHealthESP")
                 if tag then tag:Destroy() end
             end
-            -- limpa highlight antigo no character (versão antiga)
             local oldHl = plr.Character:FindFirstChild("MoonDFHighlight")
             if oldHl then oldHl:Destroy() end
         end
@@ -1585,7 +1586,6 @@ local function drawHealthESP()
         local head = char:FindFirstChild("Head")
         local hrp = char:FindFirstChild("HumanoidRootPart")
 
-        -- Billboard de vida
         local tag = head and head:FindFirstChild("MoonDFHealthESP")
         if head and not tag then
             tag = Instance.new("BillboardGui")
@@ -1607,7 +1607,6 @@ local function drawHealthESP()
             txt.Parent = tag
         end
 
-        -- Highlight (glow) — parent no folder externo, Adornee no character
         local hlName = "HL_" .. tostring(plr.UserId)
         local highlight = espFolder and espFolder:FindFirstChild(hlName)
         if not highlight and espFolder then
@@ -1619,12 +1618,10 @@ local function drawHealthESP()
             highlight.Parent = espFolder
         end
         if highlight then
-            -- Adornee no modelo do character (funciona através de paredes)
             if highlight.Adornee ~= char then
                 highlight.Adornee = char
             end
         end
-        -- Remove highlight legado no character se ainda existir
         local legacy = char:FindFirstChild("MoonDFHighlight")
         if legacy then legacy:Destroy() end
 
@@ -1632,7 +1629,7 @@ local function drawHealthESP()
         local healthColor
         if currentHp and maxHp and maxHp > 0 then
             local percent = math.clamp(currentHp / maxHp, 0, 1)
-            healthColor = Color3.fromHSV(percent * 0.33, 0.95, 1) -- verde → amarelo → vermelho invertido via HSV
+            healthColor = Color3.fromHSV(percent * 0.33, 0.95, 1)
         else
             healthColor = Color3.fromRGB(180, 180, 200)
         end
@@ -1651,17 +1648,16 @@ local function drawHealthESP()
             highlight.OutlineColor = healthColor
             highlight.Enabled = true
         end
-        end -- else (char exists)
-        end -- if plr ~= player
+        end
+        end
     end
 end
 
-function toggleESP(state) -- mantida (assinatura pública)
+function toggleESP(state)
     espEnabled = state
     globalEnv.espEnabled = state
     if state then
         if espUpdateLoop then espUpdateLoop:Disconnect() end
-        -- Garante folder vivo
         if not espFolder or not espFolder.Parent then
             espFolder = Instance.new("Folder")
             espFolder.Name = "MoonDF_ESPFolder"
@@ -1670,7 +1666,7 @@ function toggleESP(state) -- mantida (assinatura pública)
                 pcall(function() espFolder.Parent = player:FindFirstChild("PlayerGui") or player:WaitForChild("PlayerGui") end)
             end
         end
-        drawHealthESP() -- aplica imediato
+        drawHealthESP()
         espUpdateLoop = RunService.Heartbeat:Connect(drawHealthESP)
     else
         if espUpdateLoop then
@@ -1688,7 +1684,6 @@ function toggleInfiniteJump(state)
     if infJumpRequestConn then infJumpRequestConn:Disconnect(); infJumpRequestConn = nil end
     if not state then return end
 
-    -- JumpRequest cobre mobile (botão de pular) e teclado; não depende de stamina do jogo
     infJumpRequestConn = UserInputService.JumpRequest:Connect(function()
         if not infiniteJump then return end
         local hum = humanoid
@@ -1696,12 +1691,10 @@ function toggleInfiniteJump(state)
         if not hum or not r or not hum.Parent then return end
         pcall(function()
             hum:ChangeState(Enum.HumanoidStateType.Jumping)
-            -- Impulso extra caso o jogo ignore o state (bypass stamina)
             r.AssemblyLinearVelocity = Vector3.new(r.AssemblyLinearVelocity.X, math.max(r.AssemblyLinearVelocity.Y, 50), r.AssemblyLinearVelocity.Z)
         end)
     end)
 
-    -- Enquanto Space (ou botão A do controle) estiver segurado, repete o pulo várias vezes/s
     infJumpConn = RunService.Heartbeat:Connect(function()
         if not infiniteJump then return end
         local hum = humanoid
@@ -1723,12 +1716,10 @@ function toggleInfiniteJump(state)
     end)
 end
 
--- Mantém stamina no máximo + remove tags de combate (baseado em trainers open-source Demon Fall)
 local function processStaminaAndCombat()
     local char = character
     if not char then return end
 
-    -- Anti Combat: remove Combat/Aggro (caveira) e debuffs associados
     if antiCombat then
         for _, obj in ipairs(char:GetChildren()) do
             local n = obj.Name
@@ -1736,7 +1727,6 @@ local function processStaminaAndCombat()
                 pcall(function() obj:Destroy() end)
             end
         end
-        -- UI da caveira (PlayerGui)
         pcall(function()
             local pg = player:FindFirstChild("PlayerGui")
             if pg then
@@ -1752,13 +1742,11 @@ local function processStaminaAndCombat()
         end)
     end
 
-    -- Infinite Stamina: força valor máximo em NumberValues/IntValues/Attributes
     if infiniteStamina then
         for _, obj in ipairs(char:GetDescendants()) do
             local n = string.lower(obj.Name)
             if string.find(n, "stamina") and not string.find(n, "max") then
                 if obj:IsA("NumberValue") or obj:IsA("IntValue") then
-                    -- se existir MaxStamina próximo, usa; senão 999
                     local maxV = 999
                     local parent = obj.Parent
                     if parent then
@@ -1770,15 +1758,9 @@ local function processStaminaAndCombat()
                     if obj.Value < maxV then
                         obj.Value = maxV
                     end
-                elseif obj:IsA("BoolValue") and obj.Value == false then
-                    -- alguns jogos usam Bool "Stamina" como flag de esgotado
                 end
             end
-            if string.find(n, "maxstamina") or string.find(n, "max_stamina") then
-                -- nada: só referência
-            end
         end
-        -- Attributes no character / player
         pcall(function()
             local names = {"Stamina", "stamina", "Stam", "CurrentStamina"}
             for _, nm in ipairs(names) do
@@ -1789,7 +1771,6 @@ local function processStaminaAndCombat()
                 end
             end
         end)
-        -- Player-level values (alguns hubs guardam stamina no player)
         pcall(function()
             local stam = player:FindFirstChild("Stamina") or (player:FindFirstChild("Stats") and player.Stats:FindFirstChild("Stamina"))
             if stam and (stam:IsA("NumberValue") or stam:IsA("IntValue")) then
@@ -1806,7 +1787,6 @@ local function ensureStaminaCombatLoop()
         if not (infiniteStamina or antiCombat) then return end
         pcall(processStaminaAndCombat)
     end)
-    -- Também remove no ChildAdded (resposta imediata à caveira)
     if character then
         character.ChildAdded:Connect(function(child)
             if not antiCombat then return end
@@ -1829,15 +1809,10 @@ function toggleAntiCombat(state)
     globalEnv.antiCombat = state
     if state then
         ensureStaminaCombatLoop()
-        -- limpa imediatamente
         pcall(processStaminaAndCombat)
     end
 end
 
--- ============================================================
--- DEVELOPER TAB — funções engraçadas + coordenadas
--- (efeitos de física/CFrame costumam ser visíveis pra outros)
--- ============================================================
 local devSpinConn, devDiscoConn, devMoonConn, devIceConn = nil, nil, nil, nil
 local devHeliConn, devDrunkConn, devBalloonConn, devRollConn, devHopConn = nil, nil, nil, nil, nil
 local devSpin, devDisco, devMoonwalk, devGiant, devTiny = false, false, false, false, false
@@ -1846,7 +1821,7 @@ local devOriginalSizes = {}
 local devIceVel = Vector3.new(40, 0, 0)
 local devLastWallHit = 0
 globalEnv.iceSlideIntensity = globalEnv.iceSlideIntensity or 50
-local iceSlideIntensity = globalEnv.iceSlideIntensity -- 1-100
+local iceSlideIntensity = globalEnv.iceSlideIntensity
 
 local function notifyDev(msg)
     pcall(function()
@@ -1997,29 +1972,24 @@ local function devRagdollOnce()
     end)
 end
 
--- Deslize no chão quando Down/Ragdoll + ricochete na parede (visível pros outros)
--- Intensidade 1-100 controla velocidade base, atrito e força do ricochete
 local function toggleDevIceSlide(state)
     devIceSlide = state
     if devIceConn then devIceConn:Disconnect(); devIceConn = nil end
     if not state then return end
 
     local function baseSpeed()
-        -- 1 → ~20, 50 → ~55, 100 → ~120
         return 15 + (iceSlideIntensity / 100) * 105
     end
     local function maxSpeed()
         return 40 + (iceSlideIntensity / 100) * 160
     end
     local function bounceMult()
-        -- quanto multiplica no ricochete
         return 1.05 + (iceSlideIntensity / 100) * 0.9
     end
     local function bounceBoost()
         return 8 + (iceSlideIntensity / 100) * 45
     end
     local function friction()
-        -- intensidade alta = menos atrito
         return 0.25 - (iceSlideIntensity / 100) * 0.22
     end
     local function spinRate()
@@ -2094,7 +2064,6 @@ local function toggleDevIceSlide(state)
     end)
 end
 
--- Helicóptero: gira e sobe (visível)
 local function toggleDevHeli(state)
     devHeli = state
     if devHeliConn then devHeliConn:Disconnect(); devHeliConn = nil end
@@ -2107,7 +2076,6 @@ local function toggleDevHeli(state)
     end)
 end
 
--- Bêbado: velocidade aleatória (outros veem o movimento)
 local function toggleDevDrunk(state)
     devDrunk = state
     if devDrunkConn then devDrunkConn:Disconnect(); devDrunkConn = nil end
@@ -2124,7 +2092,6 @@ local function toggleDevDrunk(state)
     end)
 end
 
--- Balão: flutua pra cima devagar girando
 local function toggleDevBalloon(state)
     devBalloon = state
     if devBalloonConn then devBalloonConn:Disconnect(); devBalloonConn = nil end
@@ -2137,7 +2104,6 @@ local function toggleDevBalloon(state)
     end)
 end
 
--- Mortal / rolamento contínuo
 local function toggleDevRoll(state)
     devRoll = state
     if devRollConn then devRollConn:Disconnect(); devRollConn = nil end
@@ -2151,7 +2117,6 @@ local function toggleDevRoll(state)
     end)
 end
 
--- Pulo-pula enquanto anda
 local function toggleDevHop(state)
     devHop = state
     if devHopConn then devHopConn:Disconnect(); devHopConn = nil end
@@ -2199,7 +2164,6 @@ local function connectSpectateInputs()
             if lastMousePosSpec then
                 local delta = currentPos - lastMousePosSpec
                 cameraAngleX = cameraAngleX - delta.X * 0.4
-                -- Eixo Y invertido (como no ESPECTATE.lua)
                 cameraAngleY = math.clamp(cameraAngleY + delta.Y * 0.4, -75, 75)
             end
             lastMousePosSpec = currentPos
@@ -2224,7 +2188,7 @@ local function stopSpectateCamera()
     end
 end
 
-function toggleSpectate(state, targetPlayerName) -- mantida (assinatura pública)
+function toggleSpectate(state, targetPlayerName)
     spectateToggle = state
     globalEnv.spectateToggle = state
 
@@ -2262,12 +2226,10 @@ function toggleSpectate(state, targetPlayerName) -- mantida (assinatura pública
             local dist = spectateDistance or 12
 
             if shiftLockMode then
-                -- Modo Shift Lock: trava na direção do personagem
                 local lookVector = hrp.CFrame.LookVector
                 local camPos = targetPos - (lookVector * dist) + Vector3.new(0, 2, 0)
                 cam.CFrame = CFrame.new(camPos, targetPos)
             else
-                -- Órbita 360° com eixo Y invertido
                 local radX = math.rad(cameraAngleX)
                 local radY = math.rad(cameraAngleY)
 
@@ -2275,7 +2237,6 @@ function toggleSpectate(state, targetPlayerName) -- mantida (assinatura pública
                 local yOffset = dist * math.sin(radY)
                 local zOffset = dist * math.cos(radY) * math.cos(radX)
 
-                -- spectateHeight influencia um pouco o offset vertical base
                 local heightBoost = (spectateHeight or 20) * 0.05
                 local camPos = targetPos + Vector3.new(xOffset, yOffset + heightBoost, zOffset)
                 cam.CFrame = CFrame.new(camPos, targetPos)
@@ -2291,7 +2252,6 @@ player.CharacterAdded:Connect(function(newChar)
     character = newChar
     root = character:WaitForChild("HumanoidRootPart")
     humanoid = character:WaitForChild("Humanoid")
-    -- Restaura controle mobile: nunca deixar PlatformStand preso após respawn
     if not flyToggle and humanoid then
         humanoid.PlatformStand = false
     end
@@ -2306,7 +2266,6 @@ player.CharacterAdded:Connect(function(newChar)
         if speedConn then speedConn:Disconnect() end
         speedConn = RunService.Heartbeat:Connect(function() if humanoid then humanoid.WalkSpeed = walkSpeed end end)
     end
-    -- Anti Combat no novo character
     if antiCombat then
         character.ChildAdded:Connect(function(child)
             if not antiCombat then return end
@@ -2326,10 +2285,9 @@ local function getPlayerNames()
 end
 
 -- ======================================================================
--- UI (POPUP + HUD) - Mobile compatibility & slider touch fixes
+-- UI (POPUP + HUD)
 -- ======================================================================
 
--- UI state
 local isMobile = false
 local SCALE_FACTOR = 1
 local DEFAULT_WIDTH = 760
@@ -2338,14 +2296,14 @@ local MIN_WIDTH = 420
 local MIN_HEIGHT = 260
 local RIGHT_AREA_SCALE = 0.33
 
--- Popup UI so user chooses platform
-local userChoice = nil -- "PC" or "MOBILE"
+local userChoice = nil
+local POPUP_W, POPUP_H = 520, 220
 local popup = new("Frame", {
     Name = "ModePopup",
     Parent = screenGui,
-    AnchorPoint = Vector2.new(0.5, 0.5),
-    Position = UDim2.new(0.5, 0, 0.5, 0),
-    Size = UDim2.new(0, 520, 0, 220),
+    AnchorPoint = Vector2.new(0, 0), -- FIX: 0,0 (sem salto)
+    Position = UDim2.new(0.5, -POPUP_W/2, 0.5, -POPUP_H/2),
+    Size = UDim2.new(0, POPUP_W, 0, POPUP_H),
     BackgroundColor3 = THEME.PanelBg,
     BorderSizePixel = 0,
     ZIndex = 50
@@ -2412,13 +2370,10 @@ makeRound(popupClose, 6)
 local function applyPlatformChoice(choice)
     userChoice = choice
     isMobile = (choice == "MOBILE")
-    -- scale adjustments — mobile bem mais compacto
     SCALE_FACTOR = isMobile and 0.62 or 1.0
-    -- viewport-based defaults for mobile
     if Camera and Camera.ViewportSize then
         local vx, vy = Camera.ViewportSize.X, Camera.ViewportSize.Y
         if isMobile then
-            -- Ocupa menos tela para não cobrir o analógico
             DEFAULT_WIDTH = math.floor(math.clamp(vx * 0.72, 260, 420))
             DEFAULT_HEIGHT = math.floor(math.clamp(vy * 0.48, 200, 340))
             MIN_WIDTH = 240
@@ -2433,7 +2388,6 @@ local function applyPlatformChoice(choice)
         end
     end
     if popup and popup.Parent then popup:Destroy() end
-    -- Create HUD after popup selection
     createHubUI()
 end
 
@@ -2443,32 +2397,24 @@ popupClose.MouseButton1Click:Connect(function()
     for _, v in pairs(screenGui:GetDescendants()) do pcall(function() if v and v.Parent then v:Destroy() end end) end
 end)
 
--- If user never chooses, auto-detect after short delay (optional)
 spawn(function()
     task.wait(6)
     if not userChoice then
-        -- detect touch support
         local usingTouch = UserInputService.TouchEnabled
         applyPlatformChoice(usingTouch and "MOBILE" or "PC")
     end
 end)
 
--- =========================
--- Main UI creation function
--- =========================
--- Will be called after user selects PC/MOBILE
 function createHubUI()
-    -- Cleanup any old instances
     for _, v in pairs(screenGui:GetChildren()) do
         if v.Name == "MoonDF_VirginHub_Root" then
             pcall(function() v:Destroy() end)
         end
     end
 
-    local connections = {} -- local GUI-only connections
+    local connections = {}
     local hubVisible = true
 
-    -- MINI BUTTON
     local miniButton = new("TextButton", {
         Name = "MiniButton",
         Parent = screenGui,
@@ -2487,12 +2433,18 @@ function createHubUI()
     makeRound(miniButton, isMobile and 10 or 12)
     local miniStroke = makeStroke(miniButton, THEME.Accent, 2)
 
-    -- UI ROOT (renomeado para uiRoot para evitar conflito com game 'root')
+    local cam = workspace.CurrentCamera
+    local vx = (cam and cam.ViewportSize.X) or 1280
+    local vy = (cam and cam.ViewportSize.Y) or 720
+    local startX = math.floor((vx - DEFAULT_WIDTH) / 2)
+    local startY = math.floor((vy - DEFAULT_HEIGHT) / 2)
+
+    -- FIX: AnchorPoint (0,0) + posição em offset absoluto
     local uiRoot = new("Frame", {
         Name = "MoonDF_VirginHub_Root",
         Parent = screenGui,
-        AnchorPoint = Vector2.new(0.5, 0.5),
-        Position = UDim2.new(0.5, 0, 0.5, 0),
+        AnchorPoint = Vector2.new(0, 0),
+        Position = UDim2.new(0, startX, 0, startY),
         Size = UDim2.new(0, DEFAULT_WIDTH, 0, DEFAULT_HEIGHT),
         BackgroundColor3 = THEME.Background,
         BackgroundTransparency = CurrentOpacity,
@@ -2503,7 +2455,13 @@ function createHubUI()
     makeRound(uiRoot, 10)
     local uiRootStroke = makeStroke(uiRoot, THEME.Border, 2)
 
-    local titleBar = new("Frame", {Parent = uiRoot, Size = UDim2.new(1, 0, 0, isMobile and 30 or 42), BackgroundTransparency = 1})
+    local titleBar = new("Frame", {
+        Parent = uiRoot,
+        Size = UDim2.new(1, 0, 0, isMobile and 30 or 42),
+        BackgroundTransparency = 1,
+        Active = true,
+        ZIndex = 25
+    })
     local titleLabel = new("TextLabel", {
         Parent = titleBar, Position = UDim2.new(0, 12, 0, isMobile and 6 or 8), Size = UDim2.new(1, -120, 1, isMobile and -12 or -12),
         BackgroundTransparency = 1, Text = T("TITLE_MAIN"), TextColor3 = THEME.Text,
@@ -2517,8 +2475,8 @@ function createHubUI()
 
     local minBtn = new("TextButton", {
         Parent = controlsContainer, Position = UDim2.new(0, 0, 0, 0),
-        Size = UDim2.new(0, isMobile and 26 or 30, 0, isMobile and 26 or 30), BackgroundColor3 = Color3.fromRGB(50, 50, 55),
-        Text = "-", TextColor3 = Color3.new(1, 1, 1),
+        Size = UDim2.new(0, isMobile and 26 or 30, 0, isMobile and 26 or 30), BackgroundColor3 = THEME.Off,
+        Text = "-", TextColor3 = THEME.Text,
         Font = Enum.Font.GothamBold, TextSize = (isMobile and 16 or 18), BorderSizePixel = 0
     })
     makeRound(minBtn, 6)
@@ -2561,7 +2519,57 @@ function createHubUI()
     local resDot = new("Frame", {Parent = resizer, Size = UDim2.new(1, 1, 1, 1), BackgroundColor3 = THEME.Hover, BorderSizePixel = 0});
     makeRound(resDot, isMobile and 6 or 6)
 
-    -- Helper factories (hamburger, hover)
+    -- Drag da janela principal (MakeDraggable = delta puro)
+    MakeDraggable(titleBar, uiRoot)
+
+    -- Drag do mini-button + click para restaurar
+    do
+        local miniDragging = false
+        local miniStart = nil
+        local miniStartPos = nil
+        local clickThreshold = 6
+
+        miniButton.InputBegan:Connect(function(input)
+            if input.UserInputType ~= Enum.UserInputType.MouseButton1
+                and input.UserInputType ~= Enum.UserInputType.Touch then
+                return
+            end
+            miniDragging = true
+            hubInteracting = true
+            miniStart = input.Position
+            miniStartPos = miniButton.Position
+        end)
+
+        UserInputService.InputChanged:Connect(function(input)
+            if not miniDragging then return end
+            if input.UserInputType ~= Enum.UserInputType.MouseMovement
+                and input.UserInputType ~= Enum.UserInputType.Touch then
+                return
+            end
+            local delta = input.Position - miniStart
+            miniButton.Position = UDim2.new(
+                miniStartPos.X.Scale, miniStartPos.X.Offset + delta.X,
+                miniStartPos.Y.Scale, miniStartPos.Y.Offset + delta.Y
+            )
+        end)
+
+        UserInputService.InputEnded:Connect(function(input)
+            if input.UserInputType ~= Enum.UserInputType.MouseButton1
+                and input.UserInputType ~= Enum.UserInputType.Touch then
+                return
+            end
+            if not miniDragging then return end
+            miniDragging = false
+            hubInteracting = false
+            local delta = input.Position - miniStart
+            if delta.Magnitude < clickThreshold then
+                hubVisible = true
+                uiRoot.Visible = true
+                miniButton.Visible = false
+            end
+        end)
+    end
+
     local function createHamburger(parent)
         local icon = new("Frame", {Parent = parent, Size = UDim2.new(0, isMobile and 24 or 28, 0, isMobile and 16 or 20), BackgroundTransparency = 1})
         local barTop = new("Frame", {Parent = icon, Size = UDim2.new(1, 0, 0, 3), Position = UDim2.new(0, 0, 0, 2), BackgroundColor3 = THEME.SubText, BorderSizePixel = 0});
@@ -2599,7 +2607,6 @@ function createHubUI()
         end
     end
 
-    -- Recursive entry factory (kept most of original behavior, with touch fixes for sliders)
     local function createEntry(params, parentFrame, depth, onChildrenChanged)
         depth = depth or 0
         local baseH = isMobile and 40 or 60
@@ -2686,7 +2693,6 @@ function createHubUI()
             expanded = true
         end
 
-        -- Types handling (Toggle, Single, InputImmediate, InputSelect, ListAuto, ListPersistent, Slider)
         if params.Type == "Label" then
             -- nothing
 
@@ -2701,9 +2707,7 @@ function createHubUI()
                 if s then
                     tween(knob, {BackgroundColor3 = THEME.On}, 0.15)
                     tween(subKnob, {Position = UDim2.new(1, isMobile and -18 or -22, 0, isMobile and 3 or 4)}, 0.15)
-                    if CurrentThemeName == "Preto / Black" then
-                        tween(bg, {BackgroundColor3 = Color3.fromRGB(60, 60, 60)}, 0.15)
-                    end
+                    tween(bg, {BackgroundColor3 = THEME.Hover}, 0.15)
                 else
                     tween(knob, {BackgroundColor3 = THEME.Off}, 0.15)
                     tween(subKnob, {Position = UDim2.new(0, isMobile and 3 or 4, 0, isMobile and 3 or 4)}, 0.15)
@@ -2940,35 +2944,71 @@ function createHubUI()
         return entryObj
     end
 
-    -- Topics manager
     local togglesCreated = {}
+    local topicButtons = {}
+    local topicItemsMap = {}
+    local selectedTopicKey = nil
 
-    local function addTopic(name, items)
+    local function setTopicSelected(key)
+        selectedTopicKey = key
+        local a = THEME.Accent
+        local lum = (a.R * 0.299 + a.G * 0.587 + a.B * 0.114)
+        local onAccentText = (lum > 0.55) and Color3.fromRGB(20, 20, 20) or Color3.new(1, 1, 1)
+        for k, b in pairs(topicButtons) do
+            if k == key then
+                tween(b, {BackgroundColor3 = THEME.Accent}, 0.12)
+                b.TextColor3 = onAccentText
+            else
+                tween(b, {BackgroundColor3 = THEME.PanelBg}, 0.12)
+                b.TextColor3 = THEME.Text
+            end
+        end
+    end
+
+    local function selectTopic(key)
+        if not key or not topicItemsMap[key] then return end
+        if not uiRoot or not uiRoot.Parent or not uiRoot.Visible then return end
+        for _, c in pairs(scroll:GetChildren()) do
+            if c:IsA("Frame") and c.Name == "Entry" then c:Destroy() end
+        end
+        local items = topicItemsMap[key]
+        togglesCreated[key] = togglesCreated[key] or {}
+        for _, it in ipairs(items) do
+            createEntry(it, scroll, 0)
+        end
+        setTopicSelected(key)
+        refreshMainScroll()
+    end
+
+    local function addTopic(key, label, items)
         local btn = new("TextButton", {
             Parent = topicsList,
             Size = UDim2.new(1, 0, 0, isMobile and 36 or 42),
             BackgroundColor3 = THEME.PanelBg,
             BorderSizePixel = 0,
-            Text = name,
+            Text = label,
             TextColor3 = THEME.Text,
             Font = Enum.Font.Gotham,
             TextSize = (isMobile and 12 or 14),
             BackgroundTransparency = CurrentOpacity
         })
         makeRound(btn, 8)
+        topicButtons[key] = btn
+        topicItemsMap[key] = items
 
-        table.insert(connections, btn.MouseEnter:Connect(function() tween(btn, {BackgroundColor3 = THEME.Hover}, 0.12) end))
-        table.insert(connections, btn.MouseLeave:Connect(function() tween(btn, {BackgroundColor3 = THEME.PanelBg}, 0.12) end))
+        table.insert(connections, btn.MouseEnter:Connect(function()
+            if selectedTopicKey ~= key then
+                tween(btn, {BackgroundColor3 = THEME.Hover}, 0.12)
+            end
+        end))
+        table.insert(connections, btn.MouseLeave:Connect(function()
+            if selectedTopicKey ~= key then
+                tween(btn, {BackgroundColor3 = THEME.PanelBg}, 0.12)
+            end
+        end))
 
         table.insert(connections, btn.MouseButton1Click:Connect(function()
-            if not uiRoot or not uiRoot.Parent or not uiRoot.Visible then return end
-            for _, c in pairs(scroll:GetChildren()) do if c:IsA("Frame") and c.Name == "Entry" then c:Destroy() end end
-
-            togglesCreated[name] = togglesCreated[name] or {}
-            for _, it in ipairs(items) do
-                createEntry(it, scroll, 0)
-            end
-            refreshMainScroll()
+            selectTopic(key)
         end))
     end
 
@@ -2991,68 +3031,10 @@ function createHubUI()
 
     task.defer(updateLayout)
 
-    -- Visibility controls & interactions
     local function toggleHub()
         hubVisible = not hubVisible
         uiRoot.Visible = hubVisible
         miniButton.Visible = not hubVisible
-    end
-
-    -- Dragging UI
-    do
-        local dragging, dragOffset = false, Vector2.new(0,0)
-        table.insert(connections, titleBar.InputBegan:Connect(function(input)
-            if not hubVisible then return end
-            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                dragging = true
-                hubInteracting = true
-                local mp = input.Position or UserInputService:GetMouseLocation()
-                dragOffset = Vector2.new(mp.X - uiRoot.AbsolutePosition.X, mp.Y - uiRoot.AbsolutePosition.Y)
-            end
-        end))
-        table.insert(connections, UserInputService.InputChanged:Connect(function(input)
-            if not dragging or not hubVisible then return end
-            if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-                local mp = input.Position or UserInputService:GetMouseLocation()
-                local newX = mp.X - dragOffset.X + (uiRoot.AbsoluteSize.X * 0.5)
-                local newY = mp.Y - dragOffset.Y + (uiRoot.AbsoluteSize.Y * 0.5)
-                uiRoot.Position = UDim2.new(0, newX, 0, newY)
-            end
-        end))
-        table.insert(connections, UserInputService.InputEnded:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                dragging = false
-                hubInteracting = false
-            end
-        end))
-
-        -- Mini button drag/click
-        local miniDragging, miniStartPos, miniDragStart = false, Vector2.new(0,0), Vector2.new(0,0)
-        table.insert(connections, miniButton.InputBegan:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                miniDragging = true
-                hubInteracting = true
-                miniStartPos = Vector2.new(miniButton.AbsolutePosition.X, miniButton.AbsolutePosition.Y)
-                local mp = input.Position or UserInputService:GetMouseLocation()
-                miniDragStart = Vector2.new(mp.X, mp.Y)
-            end
-        end))
-        table.insert(connections, UserInputService.InputChanged:Connect(function(input)
-            if miniDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-                local delta = input.Position - Vector3.new(miniDragStart.X, miniDragStart.Y, 0)
-                miniButton.Position = UDim2.new(0, miniStartPos.X + delta.X, 0, miniStartPos.Y + delta.Y)
-            end
-        end))
-        table.insert(connections, miniButton.InputEnded:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                miniDragging = false
-                hubInteracting = false
-                local dist = (Vector2.new(input.Position.X, input.Position.Y) - miniDragStart).Magnitude
-                if dist < 5 then
-                    toggleHub()
-                end
-            end
-        end))
     end
 
     table.insert(connections, minBtn.MouseButton1Click:Connect(toggleHub))
@@ -3067,7 +3049,7 @@ function createHubUI()
         end
     end))
 
-    -- Resizer: support touch & mouse
+    -- Resizer
     local resizing, startSize, startMouse = false, nil, nil
     table.insert(connections, resizer.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -3092,20 +3074,18 @@ function createHubUI()
         end
     end))
 
-    -- =========================
-    -- INICIALIZAÇÃO DOS TÓPICOS (usa addTopic e createEntry)
-    -- =========================
-
     function initTopics()
-        -- limpeza
+        local previousKey = selectedTopicKey
+
         for _, v in pairs(topicsList:GetChildren()) do
             if v:IsA("TextButton") then v:Destroy() end
         end
         for _, c in pairs(scroll:GetChildren()) do
             if c:IsA("Frame") and c.Name == "Entry" then c:Destroy() end
         end
+        topicButtons = {}
+        topicItemsMap = {}
 
-        -- Atualiza UI estática
         uiRoot.BackgroundColor3 = THEME.Background
         leftBg.BackgroundColor3 = THEME.Background
         rightBg.BackgroundColor3 = THEME.Background
@@ -3122,8 +3102,7 @@ function createHubUI()
         titleLabel.Text = T("TITLE_MAIN")
         footer.Text = T("FOOTER_TEXT")
 
-        -- Tópicos: geral
-        addTopic(T("TOPIC_GENERAL"), {
+        addTopic("GENERAL", T("TOPIC_GENERAL"), {
             { Type = "ListAuto", Name = T("FLY_SPEED"), Description = T("FLY_SPEED_DESC"), Options = {
                 { Type = "Toggle", StateKey = "EnableFly", Name = T("ENABLE_FLY"), Description = T("ENABLE_FLY_DESC"), OnEnable = function() flyToggle = true globalEnv.flyToggle = true setupFly() end, OnDisable = function() flyToggle = false globalEnv.flyToggle = false if bg then bg:Destroy() end if bv then bv:Destroy() end if flyConn then flyConn:Disconnect() end humanoid.PlatformStand = false end },
                 { Type = "Slider", StateKey = "FlySpeedValue", Name = T("FLY_SPEED_SLIDER"), Description = T("FLY_SPEED_SLIDER_DESC"), Min = 0, Max = 10000, Default = 150, OnChange = function(v) flySpeedValue = v globalEnv.flySpeedValue = v end },
@@ -3143,7 +3122,6 @@ function createHubUI()
             }}
         })
 
-        -- Farm Topic
         local mobFarmOptions = {}
         for _, mob in ipairs(FARM) do
             table.insert(mobFarmOptions, { Type = "Toggle", StateKey = "Farm" .. mob, Name = T("FARM") .. " " .. mob, Description = T("FARM_DESC"), OnEnable = function() toggleTeleport(true, mob) end, OnDisable = function() toggleTeleport(false) end })
@@ -3155,10 +3133,9 @@ function createHubUI()
             ["Atrás"] = "Behind", ["Acima"] = "Above", ["Abaixo"] = "Below"
         }
 
-        addTopic(T("TOPIC_FARM"), {
+        addTopic("FARM", T("TOPIC_FARM"), {
             { Type = "Label", Name = T("INFO_LABEL") },
             { Type = "ListAuto", Name = T("EXTRAS_MOBS"), Description = T("EXTRAS_MOBS_DESC"), Options = {
-                -- CORREÇÃO: lógica de trinket substituída pela versão sequencial/aguardante (do MOODFHUBV1)
                 { Type = "Toggle", StateKey = "TrinketFarm", Name = T("TRINKET_FARM"), Description = T("TRINKET_FARM_DESC"), OnEnable = function()
                     trinketFarm = true
                     globalEnv.trinketFarm = true
@@ -3173,7 +3150,6 @@ function createHubUI()
                                             if root then root.CFrame = trinket.CFrame * CFrame.new(0, 3, 0) end
                                             task.wait(0.15)
                                             local attempts = 0
-                                            -- Aguarda até que o trinket seja coletado (Spawned removido) ou até atingir limite de tentativas
                                             while trinketFarm and trinket.Parent and trinket:FindFirstChild("Spawned") and attempts < 10 do
                                                 VIM:SendKeyEvent(true, Enum.KeyCode.E, false, game)
                                                 task.wait(0.05)
@@ -3191,12 +3167,10 @@ function createHubUI()
                     trinketFarm = false
                     globalEnv.trinketFarm = false
                 end },
-                -- AutoAttack permanece igual
                 { Type = "Toggle", StateKey = "AutoAttack", Name = T("AUTO_ATTACK"), Description = T("AUTO_ATTACK_DESC"), OnEnable = function() autoAttack = true globalEnv.autoAttack = true spawn(autoAttackLoop) end, OnDisable = function() autoAttack = false globalEnv.autoAttack = false end },
                 { Type = "Toggle", StateKey = "OreFarm", Name = T("ORE_FARM"), Description = T("ORE_FARM_DESC"), OnEnable = function()
                     oreFarm = true
                     globalEnv.oreFarm = true
-                    -- Fly exclusivo do ore (anti-queda + personagem olha pro minério, não pra câmera)
                     flyToggle = true
                     globalEnv.flyToggle = true
                     setupOreFly()
@@ -3204,7 +3178,6 @@ function createHubUI()
                 end, OnDisable = function()
                     oreFarm = false
                     globalEnv.oreFarm = false
-                    -- Desativa o fly do ore ao parar o farm (fly original da aba Geral não é afetado ao reativar)
                     flyToggle = false
                     globalEnv.flyToggle = false
                     if bg then bg:Destroy() end
@@ -3233,8 +3206,7 @@ function createHubUI()
             }}
         })
 
-        -- Players
-        addTopic(T("TOPIC_PLAYERS"), {
+        addTopic("PLAYERS", T("TOPIC_PLAYERS"), {
             { Type = "ListPersistent", StateKey = "SelectedPlayer", Name = T("SELECT_PLAYER"), Description = T("SELECT_PLAYER_DESC"), Options = getPlayerNames(), Callback = function(v) selectedPlayerName = v globalEnv.selectedPlayerName = v end },
             { Type = "Single", Name = T("UPDATE_LIST"), Description = T("UPDATE_LIST_DESC"), Callback = function() initTopics() end },
             { Type = "ListAuto", Name = T("PLAYER_ACTIONS"), Description = T("PLAYER_ACTIONS_DESC"), Options = {
@@ -3250,8 +3222,7 @@ function createHubUI()
             }}
         })
 
-        -- Teleports & Map
-        addTopic(T("TOPIC_TELEPORTS"), {
+        addTopic("TELEPORTS", T("TOPIC_TELEPORTS"), {
             { Type = "Single", Name = T("LOAD_MOBS"), Description = T("LOAD_MOBS_DESC"), Callback = loadAllMobs },
             { Type = "Single", Name = T("LOAD_MAP"), Description = T("LOAD_MAP_DESC"), Callback = loadAllMap },
             { Type = "ListAuto", Name = T("VILLAGES"), Description = T("VILLAGES_DESC"), Options = {
@@ -3279,8 +3250,7 @@ function createHubUI()
             }}
         })
 
-        -- Developer
-        addTopic(T("TOPIC_DEV"), {
+        addTopic("DEV", T("TOPIC_DEV"), {
             { Type = "ListAuto", Name = T("DEV_TOOLS"), Description = T("DEV_TOOLS_DESC"), Options = {
                 { Type = "Single", Name = T("DEV_COORDS"), Description = T("DEV_COORDS_DESC"), Callback = copyCoordinates },
             }},
@@ -3300,10 +3270,9 @@ function createHubUI()
             }},
         })
 
-        -- Config
-        addTopic(T("TOPIC_CONFIG"), {
+        addTopic("CONFIG", T("TOPIC_CONFIG"), {
             { Type = "ListPersistent", Name = T("LANGUAGE"), Description = T("LANGUAGE_DESC"), Options = {"Português", "English"}, Callback = function(val) CurrentLang = (val == "English") and "EN" or "PT" globalEnv.CurrentLang = CurrentLang initTopics() end },
-            { Type = "ListPersistent", Name = T("THEME"), Description = T("THEME_DESC"), Options = {"Azul / Blue", "Vermelho / Red", "Amarelo / Yellow", "Preto / Black", "Branco / White", "Cinza / Gray"}, Callback = function(val) if THEME_PRESETS[val] then CurrentThemeName = val globalEnv.CurrentThemeName = val for k,v in pairs(THEME_PRESETS[val]) do THEME[k] = v end initTopics() end end },
+            { Type = "ListPersistent", Name = T("THEME"), Description = T("THEME_DESC"), Options = {"Carbon", "Arctic", "Nebula", "Neon", "Carmesim", "Galaxy", "Blush", "Branco"}, Callback = function(val) if THEME_PRESETS[val] then CurrentThemeName = val globalEnv.CurrentThemeName = val for k,v in pairs(THEME_PRESETS[val]) do THEME[k] = v end initTopics() end end },
             { Type = "Slider", Name = T("OPACITY"), Description = T("OPACITY_DESC"), Min = 0, Max = 100, Default = (1 - CurrentOpacity) * 100, OnChange = function(val)
                 local transp = 1 - (val / 100)
                 CurrentOpacity = transp
@@ -3316,12 +3285,11 @@ function createHubUI()
                 for _, desc in pairs(topicsList:GetDescendants()) do if desc:IsA("TextButton") then desc.BackgroundTransparency = transp end end
             end }
         })
+
+        if previousKey and topicItemsMap[previousKey] then
+            selectTopic(previousKey)
+        end
     end
 
-    -- finalmente inicializa tópicos após definir tudo
     initTopics()
 end
-
--- A interface é criada apenas depois do popup chamar createHubUI (handled in applyPlatformChoice)
--- caso o popup tenha sido destruído automaticamente, createHubUI já foi chamada.
-
