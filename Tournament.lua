@@ -1,5 +1,6 @@
 -- ================================================
 -- DEMON FALL - HUD CS2 + ESPECTADOR (EIXO Y INVERTIDO) + OCULTAR HUD ORIGINAL
+-- COM SISTEMA ANTI-PICO DE HP NO RESPAWN
 -- ================================================
 
 local Players = game:GetService("Players")
@@ -38,6 +39,54 @@ local maxHpCache = {}
 local lastHpCache = {}
 local knockedState = {} 
 local avatarCache = {}
+local playerSpawnTime = {}
+
+local function setupPlayer(player)
+    player.CharacterAdded:Connect(function(char)
+        maxHpCache[player.UserId] = nil
+        playerSpawnTime[player.UserId] = os.clock()
+    end)
+end
+
+for _, player in ipairs(Players:GetPlayers()) do
+    setupPlayer(player)
+    if player.Character then
+        playerSpawnTime[player.UserId] = os.clock()
+    end
+end
+Players.PlayerAdded:Connect(setupPlayer)
+
+-- ================================================
+-- FUNÇÃO PARA DESENHAR O X (em vez de usar letra)
+-- ================================================
+local function createDrawnX(button)
+    button.Text = ""
+    button.AutoButtonColor = true
+
+    local line1 = Instance.new("Frame")
+    line1.Name = "XLine1"
+    line1.Size = UDim2.new(0, 12, 0, 2)
+    line1.Position = UDim2.new(0.5, 0, 0.5, 0)
+    line1.AnchorPoint = Vector2.new(0.5, 0.5)
+    line1.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    line1.BorderSizePixel = 0
+    line1.Rotation = 45
+    line1.ZIndex = 5
+    line1.Parent = button
+    Instance.new("UICorner", line1).CornerRadius = UDim.new(1, 0)
+
+    local line2 = Instance.new("Frame")
+    line2.Name = "XLine2"
+    line2.Size = UDim2.new(0, 12, 0, 2)
+    line2.Position = UDim2.new(0.5, 0, 0.5, 0)
+    line2.AnchorPoint = Vector2.new(0.5, 0.5)
+    line2.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    line2.BorderSizePixel = 0
+    line2.Rotation = -45
+    line2.ZIndex = 5
+    line2.Parent = button
+    Instance.new("UICorner", line2).CornerRadius = UDim.new(1, 0)
+end
 
 -- ================================================
 -- SCREEN GUI PRINCIPAL
@@ -50,7 +99,6 @@ ScreenGui.Parent = (gethui and gethui()) or CoreGui
 -- ================================================
 -- BOTÕES SUPERIORES FLUTUANTES (MENUS)
 -- ================================================
--- Botão de HUD (Times)
 local OpenMenuBtn = Instance.new("TextButton")
 OpenMenuBtn.Size = UDim2.new(0, 110, 0, 30)
 OpenMenuBtn.Position = UDim2.new(0, 15, 0, 15)
@@ -62,7 +110,6 @@ OpenMenuBtn.TextSize = 11
 OpenMenuBtn.Parent = ScreenGui
 Instance.new("UICorner", OpenMenuBtn).CornerRadius = UDim.new(0, 6)
 
--- Botão de Espectador
 local OpenSpecBtn = Instance.new("TextButton")
 OpenSpecBtn.Size = UDim2.new(0, 110, 0, 30)
 OpenSpecBtn.Position = UDim2.new(0, 135, 0, 15)
@@ -74,7 +121,6 @@ OpenSpecBtn.TextSize = 11
 OpenSpecBtn.Parent = ScreenGui
 Instance.new("UICorner", OpenSpecBtn).CornerRadius = UDim.new(0, 6)
 
--- NOVO: Botão para Ocultar/Mostrar HUD original do Jogo (Demon Fall)
 local isGameHudVisible = true
 local ToggleHudBtn = Instance.new("TextButton")
 ToggleHudBtn.Size = UDim2.new(0, 160, 0, 30)
@@ -101,7 +147,6 @@ ToggleHudBtn.MouseButton1Click:Connect(function()
     local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
     if playerGui then
         for _, gui in ipairs(playerGui:GetChildren()) do
-            -- Ignora a nossa própria interface, mas oculta todo o resto
             if gui:IsA("ScreenGui") and gui.Name ~= "CS2TournamentSystem" then
                 gui.Enabled = isGameHudVisible
             end
@@ -148,11 +193,10 @@ local ControlCloseBtn = Instance.new("TextButton")
 ControlCloseBtn.Size = UDim2.new(0, 24, 0, 24)
 ControlCloseBtn.Position = UDim2.new(1, -28, 0.5, -12)
 ControlCloseBtn.BackgroundColor3 = Color3.fromRGB(220, 50, 65)
-ControlCloseBtn.Text = "✕"
-ControlCloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-ControlCloseBtn.Font = Enum.Font.GothamBold
+ControlCloseBtn.Text = ""
 ControlCloseBtn.Parent = ControlTitleBar
-Instance.new("UICorner", ControlCloseBtn).CornerRadius = UDim.new(0, 6)
+Instance.new("UICorner", ControlCloseBtn).CornerRadius = UDim.new(1, 0)
+createDrawnX(ControlCloseBtn)
 
 OpenMenuBtn.MouseButton1Click:Connect(function() ControlFrame.Visible = not ControlFrame.Visible end)
 ControlCloseBtn.MouseButton1Click:Connect(function() ControlFrame.Visible = false end)
@@ -253,6 +297,7 @@ local function refreshPlayerList()
 end
 
 Players.PlayerAdded:Connect(refreshPlayerList)
+
 Players.PlayerRemoving:Connect(function(p)
     selectedTeam1[p.UserId] = nil
     selectedTeam2[p.UserId] = nil
@@ -260,6 +305,7 @@ Players.PlayerRemoving:Connect(function(p)
     lastHpCache[p.UserId] = nil
     knockedState[p.UserId] = nil
     avatarCache[p.UserId] = nil
+    playerSpawnTime[p.UserId] = nil
     refreshPlayerList()
 end)
 refreshPlayerList()
@@ -317,8 +363,17 @@ local function getHealth(player)
     if not hp and char:GetAttribute("Health") then hp = tonumber(char:GetAttribute("Health")) end
     hp = hp or 0
     
-    if not maxHpCache[player.UserId] or hp > maxHpCache[player.UserId] then maxHpCache[player.UserId] = hp end
-    local maxHp = math.clamp(maxHpCache[player.UserId] or 100, hp, ABSOLUTE_MAX_HP)
+    local userId = player.UserId
+    local timeSinceSpawn = os.clock() - (playerSpawnTime[userId] or 0)
+    local isRecoveringFromRespawn = (timeSinceSpawn < 4)
+
+    if not isRecoveringFromRespawn then
+        if not maxHpCache[userId] or hp > maxHpCache[userId] then 
+            maxHpCache[userId] = hp 
+        end
+    end
+
+    local maxHp = math.clamp(maxHpCache[userId] or 100, hp, ABSOLUTE_MAX_HP)
     return math.floor(hp), math.floor(maxHp)
 end
 
@@ -449,7 +504,7 @@ _G.CS2OverlayConnection = RunService.RenderStepped:Connect(function()
 end)
 
 -- ================================================
--- PARTE 2: PAINEL DE ESPECTADOR (EIXO Y INVERTIDO)
+-- PARTE 2: PAINEL DE ESPECTADOR + MINIMIZAR CORRIGIDO
 -- ================================================
 local spectatingTarget = nil
 local isSpectating = false
@@ -459,6 +514,7 @@ local cameraAngleX = 0
 local cameraAngleY = 15
 local lastMousePos = nil
 local isMouseDown = false
+local isSpecMinimized = false
 
 local SpecFrame = Instance.new("Frame")
 SpecFrame.Name = "SpecFrame"
@@ -482,7 +538,7 @@ SpecTitleBar.Parent = SpecFrame
 Instance.new("UICorner", SpecTitleBar).CornerRadius = UDim.new(0, 10)
 
 local SpecTitleText = Instance.new("TextLabel", SpecTitleBar)
-SpecTitleText.Size = UDim2.new(1, -40, 1, 0)
+SpecTitleText.Size = UDim2.new(1, -70, 1, 0)
 SpecTitleText.Position = UDim2.new(0, 12, 0, 0)
 SpecTitleText.Text = "CÂMERA (APENAS TIMES)"
 SpecTitleText.TextColor3 = Color3.fromRGB(240, 240, 245)
@@ -491,14 +547,26 @@ SpecTitleText.Font = Enum.Font.GothamBold
 SpecTitleText.TextXAlignment = Enum.TextXAlignment.Left
 SpecTitleText.BackgroundTransparency = 1
 
+-- BOTÃO MINIMIZAR / RESTAURAR (sempre visível)
+local SpecMinimizeBtn = Instance.new("TextButton", SpecTitleBar)
+SpecMinimizeBtn.Size = UDim2.new(0, 24, 0, 24)
+SpecMinimizeBtn.Position = UDim2.new(1, -56, 0.5, -12)
+SpecMinimizeBtn.BackgroundColor3 = Color3.fromRGB(40, 120, 220)
+SpecMinimizeBtn.Text = "─"
+SpecMinimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+SpecMinimizeBtn.Font = Enum.Font.GothamBold
+SpecMinimizeBtn.TextSize = 14
+Instance.new("UICorner", SpecMinimizeBtn).CornerRadius = UDim.new(1, 0)
+
+-- BOTÃO FECHAR (X DESENHADO)
 local SpecCloseBtn = Instance.new("TextButton", SpecTitleBar)
 SpecCloseBtn.Size = UDim2.new(0, 24, 0, 24)
 SpecCloseBtn.Position = UDim2.new(1, -28, 0.5, -12)
 SpecCloseBtn.BackgroundColor3 = Color3.fromRGB(220, 50, 65)
-SpecCloseBtn.Text = "✕"
-SpecCloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-SpecCloseBtn.Font = Enum.Font.GothamBold
-Instance.new("UICorner", SpecCloseBtn).CornerRadius = UDim.new(0, 6)
+SpecCloseBtn.Text = ""
+SpecCloseBtn.Parent = SpecTitleBar
+Instance.new("UICorner", SpecCloseBtn).CornerRadius = UDim.new(1, 0)
+createDrawnX(SpecCloseBtn)
 
 OpenSpecBtn.MouseButton1Click:Connect(function() SpecFrame.Visible = not SpecFrame.Visible end)
 SpecCloseBtn.MouseButton1Click:Connect(function() SpecFrame.Visible = false end)
@@ -539,9 +607,13 @@ Instance.new("UICorner", ShiftLockBtn).CornerRadius = UDim.new(0, 6)
 local function toggleShiftLock()
     shiftLockMode = not shiftLockMode
     if shiftLockMode then
-        ShiftLockBtn.Text = "🔒 SHIFT LOCK: ON"; ShiftLockBtn.BackgroundColor3 = Color3.fromRGB(30, 180, 100); ShiftLockBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        ShiftLockBtn.Text = "🔒 SHIFT LOCK: ON"
+        ShiftLockBtn.BackgroundColor3 = Color3.fromRGB(30, 180, 100)
+        ShiftLockBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
     else
-        ShiftLockBtn.Text = "🔒 SHIFT LOCK: OFF"; ShiftLockBtn.BackgroundColor3 = Color3.fromRGB(35, 40, 50); ShiftLockBtn.TextColor3 = Color3.fromRGB(200, 200, 210)
+        ShiftLockBtn.Text = "🔒 SHIFT LOCK: OFF"
+        ShiftLockBtn.BackgroundColor3 = Color3.fromRGB(35, 40, 50)
+        ShiftLockBtn.TextColor3 = Color3.fromRGB(200, 200, 210)
     end
 end
 ShiftLockBtn.MouseButton1Click:Connect(toggleShiftLock)
@@ -585,15 +657,67 @@ StopSpecBtn.Font = Enum.Font.GothamBold
 StopSpecBtn.TextSize = 10
 Instance.new("UICorner", StopSpecBtn).CornerRadius = UDim.new(0, 6)
 
+-- ================================================
+-- LÓGICA DE MINIMIZAR / RESTAURAR (CORRIGIDA)
+-- ================================================
+local function setSpecMinimized(minimized)
+    isSpecMinimized = minimized
+    
+    if minimized then
+        -- Minimizado: só título + botões de controle
+        SpecFrame.Size = UDim2.new(0, 320, 0, 85)
+        
+        SpecList.Visible = false
+        StopSpecBtn.Visible = false
+        
+        QuickControlFrame.Position = UDim2.new(0, 12, 0, 42)
+        QuickControlFrame.Size = UDim2.new(1, -24, 0, 36)
+        
+        ShiftLockBtn.Size = UDim2.new(0, 120, 1, 0)
+        PrevBtn.Size = UDim2.new(0, 70, 1, 0)
+        PrevBtn.Position = UDim2.new(1, -145, 0, 0)
+        NextBtn.Size = UDim2.new(0, 70, 1, 0)
+        NextBtn.Position = UDim2.new(1, -70, 0, 0)
+        
+        SpecMinimizeBtn.Text = "□"
+        SpecMinimizeBtn.BackgroundColor3 = Color3.fromRGB(30, 180, 100)
+        SpecTitleText.Text = "CÂMERA (MINIMIZADO)"
+    else
+        -- Restaurado
+        SpecFrame.Size = UDim2.new(0, 320, 0, 260)
+        
+        SpecList.Visible = true
+        StopSpecBtn.Visible = true
+        
+        QuickControlFrame.Position = UDim2.new(0, 12, 0, 42)
+        QuickControlFrame.Size = UDim2.new(1, -24, 0, 36)
+        
+        ShiftLockBtn.Size = UDim2.new(0, 130, 1, 0)
+        PrevBtn.Size = UDim2.new(0, 75, 1, 0)
+        PrevBtn.Position = UDim2.new(1, -155, 0, 0)
+        NextBtn.Size = UDim2.new(0, 75, 1, 0)
+        NextBtn.Position = UDim2.new(1, -75, 0, 0)
+        
+        SpecMinimizeBtn.Text = "─"
+        SpecMinimizeBtn.BackgroundColor3 = Color3.fromRGB(40, 120, 220)
+        SpecTitleText.Text = "CÂMERA (APENAS TIMES)"
+    end
+end
+
+SpecMinimizeBtn.MouseButton1Click:Connect(function()
+    setSpecMinimized(not isSpecMinimized)
+end)
+
 local function stopSpectating()
-    isSpectating = false; spectatingTarget = nil; CurrentCamera.CameraType = Enum.CameraType.Custom
+    isSpectating = false
+    spectatingTarget = nil
+    CurrentCamera.CameraType = Enum.CameraType.Custom
     if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
         CurrentCamera.CameraSubject = LocalPlayer.Character.Humanoid
     end
 end
 StopSpecBtn.MouseButton1Click:Connect(stopSpectating)
 
--- REGRA CRÍTICA: APENAS JOGADORES EM TIMES (A OU B) PODEM SER ESPECTADOS
 local function getActivePlayersList()
     local targetList = {}
     for _, p in pairs(selectedTeam1) do if p and p.Parent then table.insert(targetList, p) end end
@@ -603,7 +727,9 @@ end
 
 local function spectatePlayer(player)
     if not player or not player.Character then return end
-    spectatingTarget = player; isSpectating = true; CurrentCamera.CameraType = Enum.CameraType.Scriptable
+    spectatingTarget = player
+    isSpectating = true
+    CurrentCamera.CameraType = Enum.CameraType.Scriptable
 end
 
 local function cyclePlayer(dir)
@@ -626,7 +752,6 @@ local function updateSpecList()
     for _, child in ipairs(SpecList:GetChildren()) do if child:IsA("Frame") then child:Destroy() end end
 
     local list = getActivePlayersList()
-    
     local targetStillInList = false
     
     for _, p in ipairs(list) do
@@ -678,11 +803,12 @@ task.spawn(function()
     end
 end)
 
--- INPUTS EIXO Y INVERTIDO E CONTROLES
+-- INPUTS
 UserInputService.InputBegan:Connect(function(input, gpe)
     if gpe then return end
     if input.UserInputType == Enum.UserInputType.MouseButton2 then
-        isMouseDown = true; lastMousePos = UserInputService:GetMouseLocation()
+        isMouseDown = true
+        lastMousePos = UserInputService:GetMouseLocation()
     elseif input.KeyCode == Enum.KeyCode.LeftShift then
         toggleShiftLock()
     end
@@ -699,14 +825,13 @@ UserInputService.InputChanged:Connect(function(input)
         lastMousePos = currentPos
 
         cameraAngleX = cameraAngleX - delta.X * 0.4
-        -- EIXO Y INVERTIDO (+delta.Y)
         cameraAngleY = math.clamp(cameraAngleY + delta.Y * 0.4, -75, 75)
     elseif input.UserInputType == Enum.UserInputType.MouseWheel then
         cameraDistance = math.clamp(cameraDistance - input.Position.Z * 2, 4, 40)
     end
 end)
 
--- LOOP DA CÂMERA DO ESPECTADOR
+-- LOOP DA CÂMERA
 _G.CS2SpectatorConnection = RunService.RenderStepped:Connect(function()
     if not isSpectating or not spectatingTarget or not spectatingTarget.Character then return end
 
