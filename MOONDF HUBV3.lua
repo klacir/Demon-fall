@@ -130,7 +130,7 @@ local TRANSLATIONS = {
         EXTRAS = "Extras",
         EXTRAS_DESC = "Utilidades",
         CLICK_TP = "Click TP",
-        CLICK_TP_DESC = "Ctrl + Click para TP",
+        CLICK_TP_DESC = "Clique para TP",
         NO_CLIP = "No Clip",
         NO_CLIP_DESC = "Atravessar paredes",
         NO_FOG = "No Fog",
@@ -339,7 +339,7 @@ local TRANSLATIONS = {
         EXTRAS = "Extras",
         EXTRAS_DESC = "Utilities",
         CLICK_TP = "Click TP",
-        CLICK_TP_DESC = "Ctrl + Click to TP",
+        CLICK_TP_DESC = "Click to TP",
         NO_CLIP = "No Clip",
         NO_CLIP_DESC = "Walk through walls",
         NO_FOG = "No Fog",
@@ -982,26 +982,67 @@ end
 function toggleClickTP(state)
     clickTPToggle = state
     globalEnv.clickTPToggle = state
-    if state then
-        if clickTPConn then clickTPConn:Disconnect() end
-        clickTPConn = UserInputService.InputBegan:Connect(function(input, gp)
-            if not clickTPToggle or gp then return end
-            if input.UserInputType ~= Enum.UserInputType.MouseButton1 and input.UserInputType ~= Enum.UserInputType.Touch then return end
-            if input.UserInputType == Enum.UserInputType.Touch or UserInputService.TouchEnabled then
-                return
+    if clickTPConn then
+        clickTPConn:Disconnect()
+        clickTPConn = nil
+    end
+    if not state then return end
+
+    clickTPConn = UserInputService.InputBegan:Connect(function(input, gp)
+        if not clickTPToggle then return end
+        -- só botão esquerdo do mouse / toque
+        if input.UserInputType ~= Enum.UserInputType.MouseButton1
+            and input.UserInputType ~= Enum.UserInputType.Touch then
+            return
+        end
+        -- não TP se estiver clicando no hub
+        if hubInteracting or (typeof(isPointerOverHub) == "function" and isPointerOverHub()) then
+            return
+        end
+
+        local char = player.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        if not hrp then
+            hrp = root
+        end
+        if not hrp then return end
+
+        -- Raycast da câmera → mouse (mais confiável que mouse.Hit)
+        local cam = workspace.CurrentCamera
+        if not cam then return end
+        local mousePos = UserInputService:GetMouseLocation()
+        local ray = cam:ViewportPointToRay(mousePos.X, mousePos.Y)
+        local params = RaycastParams.new()
+        params.FilterType = Enum.RaycastFilterType.Exclude
+        params.FilterDescendantsInstances = { char }
+        params.IgnoreWater = true
+
+        local result = workspace:Raycast(ray.Origin, ray.Direction * 2000, params)
+        local targetPos
+        if result then
+            targetPos = result.Position + Vector3.new(0, 3, 0)
+        else
+            -- fallback: mouse.Hit ou ponto no ar na direção do clique
+            local ok, hit = pcall(function()
+                local m = player:GetMouse()
+                return m and m.Hit and m.Hit.Position
+            end)
+            if ok and hit then
+                targetPos = hit + Vector3.new(0, 3, 0)
+            else
+                targetPos = ray.Origin + ray.Direction * 100
             end
-            if not UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) and not UserInputService:IsKeyDown(Enum.KeyCode.RightControl) then
-                return
-            end
-            if not root then return end
-            local mouse = player:GetMouse()
-            if mouse and mouse.Hit then
-                root.CFrame = CFrame.new(mouse.Hit.Position + Vector3.new(0, 3, 0))
+        end
+
+        pcall(function()
+            hrp.CFrame = CFrame.new(targetPos)
+            hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+            if hrp:IsA("BasePart") then
+                pcall(function() hrp.Velocity = Vector3.new(0, 0, 0) end)
             end
         end)
-    else
-        if clickTPConn then clickTPConn:Disconnect(); clickTPConn = nil end
-    end
+        root = hrp
+    end)
 end
 
 function applyNoFog(state)
@@ -1477,81 +1518,96 @@ local function findRealHealthAndMax(plr)
     if not char then return nil, nil end
 
     local currentHp = nil
-    local detectedMaxHp = nil
-    local maxHpNames = {"MaxHealth", "MaxHP", "Max_Health", "MHP", "Max_HP", "MaximumHealth"}
-
-    local hpVal = char:FindFirstChild("Health") or char:FindFirstChild("HP") or char:FindFirstChild("CurrentHealth")
+    -- HP atual: Character.Health (Demon Fall)
+    local hpVal = char:FindFirstChild("Health")
     if hpVal and hpVal:IsA("ValueBase") then
         currentHp = tonumber(hpVal.Value)
     end
-
-    for _, name in ipairs(maxHpNames) do
-        local mVal = char:FindFirstChild(name)
-        if mVal and mVal:IsA("ValueBase") and tonumber(mVal.Value) and tonumber(mVal.Value) > 100 then
-            detectedMaxHp = tonumber(mVal.Value)
-            break
-        end
+    if not currentHp then
+        local pHp = plr:FindFirstChild("Health")
+        if pHp and pHp:IsA("ValueBase") then currentHp = tonumber(pHp.Value) end
     end
-
-    local foldersToCheck = {"Status", "Data", "Stats", "leaderstats"}
-    for _, folderName in ipairs(foldersToCheck) do
-        local folder = plr:FindFirstChild(folderName) or char:FindFirstChild(folderName)
-        if folder then
-            if not currentHp then
-                local pHP = folder:FindFirstChild("Health") or folder:FindFirstChild("HP")
-                if pHP and pHP:IsA("ValueBase") then currentHp = tonumber(pHP.Value) end
-            end
-            if not detectedMaxHp then
-                for _, name in ipairs(maxHpNames) do
-                    local pMax = folder:FindFirstChild(name)
-                    if pMax and pMax:IsA("ValueBase") and tonumber(pMax.Value) and tonumber(pMax.Value) > 100 then
-                        detectedMaxHp = tonumber(pMax.Value)
-                        break
-                    end
-                end
-            end
-        end
-    end
-
-    if not currentHp and char:GetAttribute("Health") then
-        currentHp = tonumber(char:GetAttribute("Health"))
-    end
-    if not detectedMaxHp then
-        for _, name in ipairs(maxHpNames) do
-            if char:GetAttribute(name) and tonumber(char:GetAttribute(name)) > 100 then
-                detectedMaxHp = tonumber(char:GetAttribute(name))
-                break
-            end
-        end
-    end
-
     if not currentHp then
         local hum = char:FindFirstChildOfClass("Humanoid")
         if hum then currentHp = hum.Health end
     end
+    if not currentHp then return nil, nil end
 
-    if currentHp then
-        local userId = plr.UserId
-        local timeSinceSpawn = os.clock() - (playerSpawnTime[userId] or 0)
-        local isRecoveringFromRespawn = (timeSinceSpawn < 4)
-
-        if not isRecoveringFromRespawn then
-            if not maxHealthCache[userId] or currentHp > maxHealthCache[userId] then
-                maxHealthCache[userId] = currentHp
-            end
-        end
-
-        if detectedMaxHp and detectedMaxHp > 100 then
-            maxHealthCache[userId] = math.max(maxHealthCache[userId] or 100, detectedMaxHp)
-        end
-
-        local baseMax = maxHealthCache[userId] or 100
-        local finalMaxHp = math.clamp(baseMax, currentHp, ABSOLUTE_MAX_HP)
-        return math.floor(currentHp), math.floor(finalMaxHp)
+    -- Max HP REAL: Player.MaxHealth
+    local maxHp = nil
+    local maxVal = plr:FindFirstChild("MaxHealth")
+    if maxVal and maxVal:IsA("ValueBase") then
+        local v = tonumber(maxVal.Value)
+        if v and v > 0 then maxHp = v end
     end
+    if not maxHp then
+        local cMax = char:FindFirstChild("MaxHealth")
+        if cMax and cMax:IsA("ValueBase") then
+            local v = tonumber(cMax.Value)
+            if v and v > 0 then maxHp = v end
+        end
+    end
+    -- fallback: pico observado
+    local userId = plr.UserId
+    local timeSinceSpawn = os.clock() - (playerSpawnTime[userId] or 0)
+    if timeSinceSpawn >= 4 then
+        if not maxHealthCache[userId] or currentHp > (maxHealthCache[userId] or 0) then
+            maxHealthCache[userId] = currentHp
+        end
+    end
+    if maxHp then
+        maxHealthCache[userId] = maxHp
+    else
+        maxHp = maxHealthCache[userId] or math.max(currentHp, 100)
+    end
+    if maxHp < currentHp then maxHp = currentHp end
+    if maxHp > ABSOLUTE_MAX_HP then maxHp = ABSOLUTE_MAX_HP end
 
-    return nil, nil
+    return math.floor(currentHp), math.floor(maxHp)
 end
+
+local function getPlayerStamina(plr)
+    local cur, maxS = nil, nil
+    local s = plr:FindFirstChild("Stamina")
+    if s and s:IsA("ValueBase") then cur = tonumber(s.Value) end
+    local ms = plr:FindFirstChild("MaxStamina")
+    if ms and ms:IsA("ValueBase") then maxS = tonumber(ms.Value) end
+    local char = plr.Character
+    if char then
+        if not cur then
+            local cs = char:FindFirstChild("Stamina")
+            if cs and cs:IsA("ValueBase") then cur = tonumber(cs.Value) end
+        end
+        if not maxS then
+            local cms = char:FindFirstChild("MaxStamina")
+            if cms and cms:IsA("ValueBase") then maxS = tonumber(cms.Value) end
+        end
+    end
+    if not cur then return nil, nil end
+    maxS = maxS or 200
+    if maxS < 1 then maxS = 1 end
+    return math.clamp(cur, 0, maxS), maxS
+end
+
+local function getPlayerBreathing(plr)
+    local b = plr:FindFirstChild("Breathing")
+    if b and b:IsA("ValueBase") then
+        local v = tonumber(b.Value)
+        if v then return math.clamp(v, 0, 100) end
+    end
+    local char = plr.Character
+    if char then
+        local cb = char:FindFirstChild("Breathing")
+        if cb and cb:IsA("ValueBase") then
+            local v = tonumber(cb.Value)
+            if v then return math.clamp(v, 0, 100) end
+        end
+    end
+    return nil
+end
+
+-- Distância média: barras/texto somem longe
+local ESP_MAX_DIST = 180
 
 local function clearAllHealthESP()
     for _, plr in ipairs(Players:GetPlayers()) do
@@ -1560,6 +1616,13 @@ local function clearAllHealthESP()
             if head then
                 local tag = head:FindFirstChild("MoonDFHealthESP")
                 if tag then tag:Destroy() end
+            end
+            local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                for _, n in ipairs({"MoonDF_StaminaBar", "MoonDF_BreathBar"}) do
+                    local b = hrp:FindFirstChild(n)
+                    if b then b:Destroy() end
+                end
             end
             local oldHl = plr.Character:FindFirstChild("MoonDFHighlight")
             if oldHl then oldHl:Destroy() end
@@ -1571,10 +1634,60 @@ local function clearAllHealthESP()
     end
 end
 
+local function ensureSideBar(hrp, name, offsetX)
+    local gui = hrp:FindFirstChild(name)
+    if gui and gui:IsA("BillboardGui") then return gui end
+    if gui then gui:Destroy() end
+    gui = Instance.new("BillboardGui")
+    gui.Name = name
+    -- tamanho compacto: ~altura do torso, largura fina
+    gui.Size = UDim2.new(0, 6, 0, 52)
+    gui.StudsOffset = Vector3.new(offsetX, 0.2, 0)
+    gui.AlwaysOnTop = true
+    gui.MaxDistance = ESP_MAX_DIST
+    gui.LightInfluence = 0
+    gui.Parent = hrp
+
+    local track = Instance.new("Frame")
+    track.Name = "Track"
+    track.Size = UDim2.new(1, 0, 1, 0)
+    track.BackgroundColor3 = Color3.fromRGB(20, 22, 28)
+    track.BackgroundTransparency = 0.25
+    track.BorderSizePixel = 0
+    track.Parent = gui
+    Instance.new("UICorner", track).CornerRadius = UDim.new(1, 0)
+
+    local fill = Instance.new("Frame")
+    fill.Name = "Fill"
+    fill.AnchorPoint = Vector2.new(0, 1)
+    fill.Position = UDim2.new(0, 0, 1, 0)
+    fill.Size = UDim2.new(1, 0, 1, 0)
+    fill.BorderSizePixel = 0
+    fill.Parent = track
+    Instance.new("UICorner", fill).CornerRadius = UDim.new(1, 0)
+
+    return gui
+end
+
+local function setSideBarPct(gui, pct, color)
+    if not gui then return end
+    local track = gui:FindFirstChild("Track")
+    local fill = track and track:FindFirstChild("Fill")
+    if not fill then return end
+    pct = math.clamp(pct or 0, 0, 1)
+    fill.Size = UDim2.new(1, 0, pct, 0)
+    if color then fill.BackgroundColor3 = color end
+end
+
 local function drawHealthESP()
     if not espEnabled then return end
+    local myRoot = root
+    local myPos = myRoot and myRoot.Position
+
     for _, plr in ipairs(Players:GetPlayers()) do
-        if plr ~= player then
+        if plr == player then
+            -- skip self
+        else
         local char = plr.Character
         if not char then
             if espFolder then
@@ -1582,18 +1695,24 @@ local function drawHealthESP()
                 if hl then hl:Destroy() end
             end
         else
-
         local head = char:FindFirstChild("Head")
         local hrp = char:FindFirstChild("HumanoidRootPart")
 
+        -- Barras só em média distância; nome+HP em qualquer distância
+        local inRangeBars = true
+        if myPos and hrp then
+            inRangeBars = (hrp.Position - myPos).Magnitude <= ESP_MAX_DIST
+        end
+
+        -- HP tag na cabeça (mapa inteiro)
         local tag = head and head:FindFirstChild("MoonDFHealthESP")
         if head and not tag then
             tag = Instance.new("BillboardGui")
             tag.Name = "MoonDFHealthESP"
-            tag.Size = UDim2.new(0, 180, 0, 32)
-            tag.StudsOffset = Vector3.new(0, 3.2, 0)
+            tag.Size = UDim2.new(0, 160, 0, 28)
+            tag.StudsOffset = Vector3.new(0, 2.8, 0)
             tag.AlwaysOnTop = true
-            tag.MaxDistance = 2000
+            tag.MaxDistance = 0 -- 0 = sem limite (nome+vida em qualquer distância)
             tag.Parent = head
 
             local txt = Instance.new("TextLabel")
@@ -1601,10 +1720,23 @@ local function drawHealthESP()
             txt.Size = UDim2.new(1, 0, 1, 0)
             txt.BackgroundTransparency = 1
             txt.Font = Enum.Font.GothamBold
-            txt.TextSize = 13
-            txt.TextStrokeTransparency = 0.15
+            txt.TextSize = 12
+            txt.TextStrokeTransparency = 0.2
             txt.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
             txt.Parent = tag
+        end
+        if tag then
+            tag.Enabled = true
+            tag.MaxDistance = 0 -- sempre visível no mapa inteiro
+        end
+
+        -- Barras verticais: esquerda = Stamina, direita = Breathing (média distância)
+        local stamGui, breathGui
+        if hrp then
+            stamGui = ensureSideBar(hrp, "MoonDF_StaminaBar", -1.35)
+            breathGui = ensureSideBar(hrp, "MoonDF_BreathBar", 1.35)
+            stamGui.Enabled = inRangeBars
+            breathGui.Enabled = inRangeBars
         end
 
         local hlName = "HL_" .. tostring(plr.UserId)
@@ -1618,9 +1750,9 @@ local function drawHealthESP()
             highlight.Parent = espFolder
         end
         if highlight then
-            if highlight.Adornee ~= char then
-                highlight.Adornee = char
-            end
+            if highlight.Adornee ~= char then highlight.Adornee = char end
+            -- highlight também global (nome/vida já global; outline ajuda a achar)
+            highlight.Enabled = true
         end
         local legacy = char:FindFirstChild("MoonDFHighlight")
         if legacy then legacy:Destroy() end
@@ -1636,7 +1768,7 @@ local function drawHealthESP()
 
         if tag and tag:FindFirstChild("TextDisplay") then
             if currentHp and maxHp then
-                tag.TextDisplay.Text = string.format("%s | %d/%d HP", plr.DisplayName, math.floor(currentHp), math.floor(maxHp))
+                tag.TextDisplay.Text = string.format("%s | %d/%d", plr.DisplayName, math.floor(currentHp), math.floor(maxHp))
             else
                 tag.TextDisplay.Text = plr.DisplayName .. " | ..."
             end
@@ -1646,7 +1778,32 @@ local function drawHealthESP()
         if highlight then
             highlight.FillColor = healthColor
             highlight.OutlineColor = healthColor
-            highlight.Enabled = true
+        end
+
+        -- Stamina (esquerda, verde)
+        if stamGui then
+            local cur, maxS = getPlayerStamina(plr)
+            if cur and maxS then
+                local pct = math.clamp(cur / maxS, 0, 1)
+                local col = pct > 0.4 and Color3.fromRGB(70, 220, 110)
+                    or (pct > 0.2 and Color3.fromRGB(230, 200, 50) or Color3.fromRGB(230, 70, 60))
+                setSideBarPct(stamGui, pct, col)
+            else
+                setSideBarPct(stamGui, 0, Color3.fromRGB(50, 55, 60))
+            end
+        end
+
+        -- Breathing (direita, ciano)
+        if breathGui then
+            local breath = getPlayerBreathing(plr)
+            if breath then
+                local pct = math.clamp(breath / 100, 0, 1)
+                local col = pct > 0.45 and Color3.fromRGB(70, 210, 255)
+                    or (pct > 0.2 and Color3.fromRGB(255, 190, 60) or Color3.fromRGB(255, 70, 80))
+                setSideBarPct(breathGui, pct, col)
+            else
+                setSideBarPct(breathGui, 0, Color3.fromRGB(50, 55, 60))
+            end
         end
         end
         end
