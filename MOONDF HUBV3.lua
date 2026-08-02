@@ -2336,14 +2336,15 @@ local popupDesc = new("TextLabel", {
 })
 
 local btnContainer = new("Frame", {Parent = popup, Position = UDim2.new(0, 16, 1, -68), Size = UDim2.new(1, -32, 0, 52), BackgroundTransparency = 1})
+-- Cores fixas com contraste (no Carbon, Accent/On são brancos e o texto sumia)
 local pcBtn = new("TextButton", {
     Parent = btnContainer,
     AnchorPoint = Vector2.new(0, 0),
     Position = UDim2.new(0, 0, 0, 0),
     Size = UDim2.new(0.5, -8, 1, 0),
-    BackgroundColor3 = THEME.Accent,
+    BackgroundColor3 = Color3.fromRGB(45, 110, 230),
     Text = "PC",
-    TextColor3 = Color3.new(1,1,1),
+    TextColor3 = Color3.fromRGB(255, 255, 255),
     Font = Enum.Font.GothamBold,
     TextSize = 16,
     BorderSizePixel = 0
@@ -2355,9 +2356,9 @@ local mobileBtn = new("TextButton", {
     AnchorPoint = Vector2.new(0, 0),
     Position = UDim2.new(0.5, 8, 0, 0),
     Size = UDim2.new(0.5, -8, 1, 0),
-    BackgroundColor3 = THEME.On,
+    BackgroundColor3 = Color3.fromRGB(30, 170, 110),
     Text = "Mobile",
-    TextColor3 = Color3.new(1,1,1),
+    TextColor3 = Color3.fromRGB(255, 255, 255),
     Font = Enum.Font.GothamBold,
     TextSize = 16,
     BorderSizePixel = 0
@@ -2374,9 +2375,9 @@ local function applyPlatformChoice(choice)
     if Camera and Camera.ViewportSize then
         local vx, vy = Camera.ViewportSize.X, Camera.ViewportSize.Y
         if isMobile then
-            DEFAULT_WIDTH = math.floor(math.clamp(vx * 0.72, 260, 420))
+            DEFAULT_WIDTH = math.floor(math.clamp(vx * 0.72, 280, 420))
             DEFAULT_HEIGHT = math.floor(math.clamp(vy * 0.48, 200, 340))
-            MIN_WIDTH = 240
+            MIN_WIDTH = 280
             MIN_HEIGHT = 170
             RIGHT_AREA_SCALE = 0.38
         else
@@ -2397,13 +2398,7 @@ popupClose.MouseButton1Click:Connect(function()
     for _, v in pairs(screenGui:GetDescendants()) do pcall(function() if v and v.Parent then v:Destroy() end end) end
 end)
 
-spawn(function()
-    task.wait(6)
-    if not userChoice then
-        local usingTouch = UserInputService.TouchEnabled
-        applyPlatformChoice(usingTouch and "MOBILE" or "PC")
-    end
-end)
+-- Sem auto-seleção: o menu permanece até o usuário escolher PC ou Mobile
 
 function createHubUI()
     for _, v in pairs(screenGui:GetChildren()) do
@@ -2490,30 +2485,25 @@ function createHubUI()
     })
     makeRound(closeBtn, 6)
 
-    local leftPane = new("Frame", {Parent = uiRoot, Position = UDim2.new(0, isMobile and 6 or 10, 0, isMobile and 36 or 56), Size = UDim2.new(0, isMobile and 110 or 220, 1, isMobile and -52 or -76), BackgroundTransparency = 1})
-    local rightPane = new("Frame", {Parent = uiRoot, Position = UDim2.new(0, (isMobile and 120 or 240), 0, isMobile and 36 or 56), Size = UDim2.new(1, -(isMobile and 126 or 250), 1, isMobile and -52 or -76), BackgroundTransparency = 1})
+    local leftPane = new("Frame", {Parent = uiRoot, Position = UDim2.new(0, isMobile and 6 or 10, 0, isMobile and 36 or 56), Size = UDim2.new(0, isMobile and 110 or 220, 1, isMobile and -42 or -66), BackgroundTransparency = 1})
+    local rightPane = new("Frame", {Parent = uiRoot, Position = UDim2.new(0, (isMobile and 120 or 240), 0, isMobile and 36 or 56), Size = UDim2.new(1, -(isMobile and 126 or 250), 1, isMobile and -42 or -66), BackgroundTransparency = 1})
 
     local leftBg = new("Frame", {Parent = leftPane, Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = THEME.Background, BorderSizePixel = 0, BackgroundTransparency = CurrentOpacity})
     makeRound(leftBg, 8);
     local leftStroke = makeStroke(leftBg, THEME.Border, 1)
 
-    local topicsList = new("ScrollingFrame", {Parent = leftBg, Position = UDim2.new(0, 8, 0, 8), Size = UDim2.new(1, -16, 1, -16), BackgroundTransparency = 1, ScrollBarThickness = isMobile and 8 or 6, CanvasSize = UDim2.new(0,0,0,0)})
+    local topicsList = new("ScrollingFrame", {Parent = leftBg, Position = UDim2.new(0, 8, 0, 8), Size = UDim2.new(1, -16, 1, -16), BackgroundTransparency = 1, ScrollBarThickness = 0, CanvasSize = UDim2.new(0,0,0,0)})
     local topicsLayout = new("UIListLayout", {Parent = topicsList, Padding = UDim.new(0, isMobile and 4 or 8), SortOrder = Enum.SortOrder.LayoutOrder})
 
     local rightBg = new("Frame", {Parent = rightPane, Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = THEME.Background, BorderSizePixel = 0, BackgroundTransparency = CurrentOpacity})
     makeRound(rightBg, 8);
     local rightStroke = makeStroke(rightBg, THEME.Border, 1)
 
-    local scroll = new("ScrollingFrame", {Parent = rightBg, Position = UDim2.new(0, 8, 0, 8), Size = UDim2.new(1, -16, 1, -16), BackgroundTransparency = 1, ScrollBarThickness = isMobile and 10 or 8, CanvasSize = UDim2.new(0,0,0,0)})
+    local scroll = new("ScrollingFrame", {Parent = rightBg, Position = UDim2.new(0, 8, 0, 8), Size = UDim2.new(1, -16, 1, -16), BackgroundTransparency = 1, ScrollBarThickness = 0, CanvasSize = UDim2.new(0,0,0,0)})
     local buttonsLayout = new("UIListLayout", {Parent = scroll, Padding = UDim.new(0, isMobile and 5 or 10)})
     buttonsLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
-    local footer = new("TextLabel", {
-        Parent = uiRoot, Position = UDim2.new(0, 12, 1, isMobile and -26 or -28), Size = UDim2.new(1, -24, 0, isMobile and 20 or 22),
-        BackgroundTransparency = 1,
-        Text = T("FOOTER_TEXT"),
-        TextColor3 = THEME.SubText, Font = Enum.Font.Gotham, TextSize = (isMobile and 10 or 11)
-    })
+    -- Footer removido (pedido do usuário)
 
     local resizer = new("Frame", {Parent = uiRoot, AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, isMobile and -8 or -10, 1, isMobile and -8 or -10), Size = UDim2.new(0, isMobile and 14 or 18, 0, isMobile and 14 or 18), BackgroundTransparency = 1})
     local resDot = new("Frame", {Parent = resizer, Size = UDim2.new(1, 1, 1, 1), BackgroundColor3 = THEME.Hover, BorderSizePixel = 0});
@@ -2609,7 +2599,8 @@ function createHubUI()
 
     local function createEntry(params, parentFrame, depth, onChildrenChanged)
         depth = depth or 0
-        local baseH = isMobile and 40 or 60
+        -- baseH aumentado no mobile para a descrição não ser cortada (antes 40 cortava o texto)
+        local baseH = isMobile and 50 or 60
         local barColor = params.Color or TYPE_COLORS[params.Type] or THEME.Accent
 
         local wrapper = new("Frame", {Parent = parentFrame, Name = "Entry", Size = UDim2.new(1, -12, 0, baseH), BackgroundTransparency = 1, ClipsDescendants = true})
@@ -2624,25 +2615,31 @@ function createHubUI()
             BackgroundTransparency = CurrentOpacity
         })
         makeRound(bg, 8);
-        local accent = new("Frame", {Parent = bg, Position = UDim2.new(0, 8 + depth * 12, 0.5, isMobile and -16 or -18), Size = UDim2.new(0, 6, 0, isMobile and 32 or 36), BackgroundColor3 = barColor})
+        local accent = new("Frame", {Parent = bg, Position = UDim2.new(0, 8 + depth * 12, 0.5, isMobile and -18 or -18), Size = UDim2.new(0, 6, 0, isMobile and 36 or 36), BackgroundColor3 = barColor})
         makeRound(accent, 6)
 
+        -- Tamanhos relativos ao RIGHT_AREA_SCALE para não invadir a área dos controles.
+        -- Sem TextTruncate: o nome só é cortado visualmente (pelo ClipsDescendants do botão) se realmente passar do layout — sem reticências censurando o texto.
+        local textRightPad = isMobile and 20 or 28
         local nameLabel = new("TextLabel", {
-            Parent = bg, Position = UDim2.new(0, 28 + depth * 12, 0, 8), Size = UDim2.new(0.6, -28, 0, isMobile and 18 or 20),
+            Parent = bg, Position = UDim2.new(0, 28 + depth * 12, 0, isMobile and 6 or 8),
+            Size = UDim2.new(1 - RIGHT_AREA_SCALE, -textRightPad - (depth * 12), 0, isMobile and 16 or 20),
             BackgroundTransparency = 1, Text = params.Name or "Unnamed", TextColor3 = THEME.Text,
-            Font = Enum.Font.GothamSemibold, TextSize = (isMobile and 13 or 15), TextXAlignment = Enum.TextXAlignment.Left,
-            ZIndex = 2
+            Font = Enum.Font.GothamSemibold, TextSize = (isMobile and 12 or 15), TextXAlignment = Enum.TextXAlignment.Left,
+            TextTruncate = Enum.TextTruncate.None, ZIndex = 2
         })
         local descLabel = new("TextLabel", {
-            Parent = bg, Position = UDim2.new(0, 28 + depth * 12, 0, isMobile and 28 or 30), Size = UDim2.new(1, -164, 0, isMobile and 16 or 18),
+            Parent = bg, Position = UDim2.new(0, 28 + depth * 12, 0, isMobile and 24 or 30),
+            Size = UDim2.new(1 - RIGHT_AREA_SCALE, -textRightPad - (depth * 12), 0, isMobile and 18 or 18),
             BackgroundTransparency = 1, Text = params.Description or "", TextColor3 = THEME.SubText,
-            Font = Enum.Font.Gotham, TextSize = (isMobile and 11 or 12), TextXAlignment = Enum.TextXAlignment.Left,
-            ZIndex = 2
+            Font = Enum.Font.Gotham, TextSize = (isMobile and 10 or 12), TextXAlignment = Enum.TextXAlignment.Left,
+            TextTruncate = Enum.TextTruncate.None, ZIndex = 2
         })
 
         local rightArea = new("Frame", {
-            Parent = bg, AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -12, 0.5, 0),
-            Size = UDim2.new(RIGHT_AREA_SCALE, -12, 0, isMobile and 40 or 44), BackgroundTransparency = 1, ZIndex = 5
+            Parent = bg, AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -8, 0.5, 0),
+            Size = UDim2.new(RIGHT_AREA_SCALE, -8, 0, isMobile and 42 or 44), BackgroundTransparency = 1, ZIndex = 5,
+            ClipsDescendants = true
         })
 
         local childrenContainer = new("Frame", {Parent = wrapper, Position = UDim2.new(0, 0, 0, baseH), Size = UDim2.new(1, 0, 0, 0), BackgroundTransparency = 1, ClipsDescendants = true})
@@ -2699,18 +2696,65 @@ function createHubUI()
         elseif params.Type == "Toggle" then
             local state = false
             if params.StateKey then state = globalEnv._HubStates[params.StateKey] or false end
-            local knob = new("Frame", {Parent = rightArea, Size = UDim2.new(0, isMobile and 40 or 46, 0, isMobile and 22 or 26), Position = UDim2.new(1, isMobile and -40 or -46, 0.5, isMobile and -11 or -13), BackgroundColor3 = THEME.Off});
+            local baseKnobW = isMobile and 40 or 46
+            local baseKnobH = isMobile and 22 or 26
+            local baseSub = isMobile and 16 or 18
+            local basePad = isMobile and 3 or 4
+
+            local knob = new("Frame", {
+                Parent = rightArea,
+                AnchorPoint = Vector2.new(1, 0.5),
+                Size = UDim2.new(0, baseKnobW, 0, baseKnobH),
+                Position = UDim2.new(1, -2, 0.5, 0),
+                BackgroundColor3 = THEME.Off
+            })
             makeRound(knob, 14)
-            local subKnob = new("Frame", {Parent = knob, Size = UDim2.new(0, isMobile and 16 or 18, 0, isMobile and 16 or 18), Position = UDim2.new(0, isMobile and 3 or 4, 0, isMobile and 3 or 4), BackgroundColor3 = Color3.new(1, 1, 1)});
+            local subKnob = new("Frame", {
+                Parent = knob,
+                AnchorPoint = Vector2.new(0, 0.5),
+                Size = UDim2.new(0, baseSub, 0, baseSub),
+                Position = UDim2.new(0, basePad, 0.5, 0),
+                BackgroundColor3 = Color3.new(1, 1, 1)
+            })
             makeRound(subKnob, 999)
+
+            local curKnobW, curKnobH, curSub, curPad = baseKnobW, baseKnobH, baseSub, basePad
+
+            local function layoutToggle()
+                local areaW = math.max(0, rightArea.AbsoluteSize.X)
+                local areaH = math.max(0, rightArea.AbsoluteSize.Y)
+                -- Nunca maior que o espaço disponível → nunca fica cortado
+                local maxW = math.max(24, areaW - 4)
+                local maxH = math.max(14, areaH - 4)
+                curKnobW = math.min(baseKnobW, maxW)
+                curKnobH = math.min(baseKnobH, maxH)
+                local scale = math.min(curKnobW / baseKnobW, curKnobH / baseKnobH)
+                curSub = math.max(10, math.floor(baseSub * scale + 0.5))
+                curPad = math.max(2, math.floor(basePad * scale + 0.5))
+                if curSub + curPad * 2 > curKnobW then
+                    curSub = math.max(8, curKnobW - curPad * 2)
+                end
+
+                knob.Size = UDim2.new(0, curKnobW, 0, curKnobH)
+                knob.Position = UDim2.new(1, -2, 0.5, 0)
+                subKnob.Size = UDim2.new(0, curSub, 0, curSub)
+                if state then
+                    subKnob.Position = UDim2.new(1, -(curSub + curPad), 0.5, 0)
+                    subKnob.AnchorPoint = Vector2.new(0, 0.5)
+                else
+                    subKnob.Position = UDim2.new(0, curPad, 0.5, 0)
+                    subKnob.AnchorPoint = Vector2.new(0, 0.5)
+                end
+            end
+
             local function applyVisual(s)
                 if s then
                     tween(knob, {BackgroundColor3 = THEME.On}, 0.15)
-                    tween(subKnob, {Position = UDim2.new(1, isMobile and -18 or -22, 0, isMobile and 3 or 4)}, 0.15)
+                    tween(subKnob, {Position = UDim2.new(1, -(curSub + curPad), 0.5, 0)}, 0.15)
                     tween(bg, {BackgroundColor3 = THEME.Hover}, 0.15)
                 else
                     tween(knob, {BackgroundColor3 = THEME.Off}, 0.15)
-                    tween(subKnob, {Position = UDim2.new(0, isMobile and 3 or 4, 0, isMobile and 3 or 4)}, 0.15)
+                    tween(subKnob, {Position = UDim2.new(0, curPad, 0.5, 0)}, 0.15)
                     tween(bg, {BackgroundColor3 = THEME.PanelBg}, 0.15)
                 end
             end
@@ -2724,6 +2768,8 @@ function createHubUI()
                     if params.OnDisable then pcall(params.OnDisable) end
                 end
             end
+            table.insert(connections, rightArea:GetPropertyChangedSignal("AbsoluteSize"):Connect(layoutToggle))
+            task.defer(layoutToggle)
             applyVisual(state)
             table.insert(connections, hoverBox.MouseButton1Click:Connect(function() if hubVisible then applyState(not state) end end))
 
@@ -2783,8 +2829,8 @@ function createHubUI()
 
             local function updateSelectedLabelPos()
                 local bounds = nameLabel.TextBounds
-                selectedValLabel.Position = UDim2.new(0, 28 + depth * 12 + bounds.X + 4, 0, 8)
-                selectedValLabel.Size = UDim2.new(0, isMobile and 140 or 200, 0, isMobile and 16 or 20)
+                selectedValLabel.Position = UDim2.new(0, 28 + depth * 12 + bounds.X + 4, 0, isMobile and 6 or 8)
+                selectedValLabel.Size = UDim2.new(0, isMobile and 100 or 200, 0, isMobile and 16 or 20)
             end
             updateSelectedLabelPos()
             nameLabel:GetPropertyChangedSignal("TextBounds"):Connect(updateSelectedLabelPos)
@@ -2834,30 +2880,86 @@ function createHubUI()
 
             local cur = globalEnv._ScriptHubStates[key] ~= nil and globalEnv._ScriptHubStates[key] or (params.Default ~= nil and tonumber(params.Default) or minV)
             cur = clamp(math.floor(cur + 0.5), minV, maxV)
-            local track = new("Frame", {Parent = rightArea, Size = UDim2.new(1, -28, 0, isMobile and 6 or 8), Position = UDim2.new(0, 8, 0.5, isMobile and -3 or -4), BackgroundColor3 = THEME.Off, BorderSizePixel = 0})
+            -- Soft min da track (só usado quando há espaço). NUNCA força track maior que rightArea.
+            local SOFT_MIN_TRACK = isMobile and 36 or 52
+            local valWFull = isMobile and 32 or 52
+            local trackPad = isMobile and 3 or 6
+            local knobSize = isMobile and 12 or 16
+            local trackH = isMobile and 6 or 8
+            local knobYOff = isMobile and -6 or -8
+            local valLabelH = isMobile and 14 or 18
+
+            local track = new("Frame", {Parent = rightArea, Size = UDim2.new(1, -(valWFull + trackPad + 4), 0, trackH), Position = UDim2.new(0, trackPad, 0.5, -trackH/2), BackgroundColor3 = THEME.Off, BorderSizePixel = 0})
             makeRound(track, 6)
             local fill = new("Frame", {Parent = track, Size = UDim2.new(0,0,1,0), Position = UDim2.new(0,0,0,0), BackgroundColor3 = THEME.Accent, BorderSizePixel = 0})
             makeRound(fill, 6)
-            local knob = new("Frame", {Parent = rightArea, Size = UDim2.new(0,isMobile and 14 or 16,0,isMobile and 14 or 16), Position = UDim2.new(0,8,0.5,isMobile and -7 or -8), BackgroundColor3 = (THEME.KnobColor or Color3.fromRGB(245,245,245)), BorderSizePixel = 0})
+            -- Knob no rightArea (não na track) para não ser cortado verticalmente; X sempre clampado dentro do botão
+            local knob = new("Frame", {Parent = rightArea, Size = UDim2.new(0, knobSize, 0, knobSize), AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0, trackPad, 0.5, 0), BackgroundColor3 = (THEME.KnobColor or Color3.fromRGB(245,245,245)), BorderSizePixel = 0})
             makeRound(knob, 999)
-            knob.Active = true; knob.ClipsDescendants = true
-            local valLabel = new("TextLabel", {Parent = rightArea, AnchorPoint = Vector2.new(1,0.5), Position = UDim2.new(1, -4, 0.5, 0), Size = UDim2.new(0, isMobile and 44 or 52, 0, isMobile and 16 or 18), BackgroundTransparency = 1, Text = tostring(cur), TextColor3 = THEME.SubText, Font = Enum.Font.GothamBold, TextSize = (isMobile and 11 or 12), TextXAlignment = Enum.TextXAlignment.Right})
+            knob.Active = true
+            local valLabel = new("TextLabel", {Parent = rightArea, AnchorPoint = Vector2.new(1,0.5), Position = UDim2.new(1, -1, 0.5, 0), Size = UDim2.new(0, valWFull, 0, valLabelH), BackgroundTransparency = 1, Text = tostring(cur), TextColor3 = THEME.SubText, Font = Enum.Font.GothamBold, TextSize = (isMobile and 10 or 12), TextXAlignment = Enum.TextXAlignment.Right})
             track.Active = true
             fill.Active = true
+
+            local function layoutTrack()
+                local areaW = math.max(0, rightArea.AbsoluteSize.X)
+                -- Margem extra (PC maior) para a bolinha não encostar/sair da borda do botão
+                local edgePad = isMobile and 2 or 6
+                local maxTrackPossible = math.max(0, areaW - trackPad - edgePad)
+
+                local useValW = valWFull
+                local remainingForTrack = maxTrackPossible - useValW - 2
+                if remainingForTrack < SOFT_MIN_TRACK then
+                    useValW = math.max(0, maxTrackPossible - SOFT_MIN_TRACK - 2)
+                    if useValW < 12 then
+                        useValW = 0
+                        valLabel.Visible = false
+                    else
+                        valLabel.Visible = true
+                        valLabel.Size = UDim2.new(0, useValW, 0, valLabelH)
+                    end
+                else
+                    valLabel.Visible = true
+                    valLabel.Size = UDim2.new(0, useValW, 0, valLabelH)
+                end
+
+                local trackW = math.max(0, maxTrackPossible - (valLabel.Visible and (useValW + 2) or 0))
+                trackW = math.min(trackW, maxTrackPossible)
+                track.Size = UDim2.new(0, trackW, 0, trackH)
+                track.Position = UDim2.new(0, trackPad, 0.5, -trackH/2)
+                return trackW
+            end
+
             local function updateVisuals(instant)
+                local trackW = layoutTrack()
+                local areaW = math.max(0, rightArea.AbsoluteSize.X)
                 local pct = 0
                 if maxV > minV then pct = (cur - minV) / (maxV - minV) end
-                local trackW = math.max(0, track.AbsoluteSize.X)
-                local maxTrackW = math.max(60, trackW)
-                local fillW = math.floor(maxTrackW * pct + 0.5)
-                local knobX = math.floor(8 + fillW - (knob.AbsoluteSize.X / 2) + 0.5)
+                local fillW = math.floor(trackW * pct + 0.5)
+                fillW = clamp(fillW, 0, trackW)
+
+                -- Encolhe a bolinha se o espaço for apertado (PC pequeno)
+                local kSize = knobSize
+                local availForKnob = math.max(8, areaW - 4)
+                if availForKnob < knobSize then
+                    kSize = math.max(8, math.floor(availForKnob))
+                end
+                if math.abs(knob.Size.X.Offset - kSize) > 0.5 then
+                    knob.Size = UDim2.new(0, kSize, 0, kSize)
+                end
+
+                local half = kSize / 2
+                -- Posição do centro na coordenada do rightArea (trackPad + fillW)
+                local desired = trackPad + fillW
+                -- Bolinha inteira sempre dentro do rightArea: [half .. areaW-half]
+                local knobX = clamp(desired, half, math.max(half, areaW - half))
 
                 if instant then
                     fill.Size = UDim2.new(0, fillW, 1, 0)
-                    knob.Position = UDim2.new(0, knobX, 0.5, isMobile and -7 or -8)
+                    knob.Position = UDim2.new(0, knobX, 0.5, 0)
                 else
                     tween(fill, {Size = UDim2.new(0, fillW, 1, 0)}, 0.12)
-                    tween(knob, {Position = UDim2.new(0, knobX, 0.5, isMobile and -7 or -8)}, 0.12)
+                    tween(knob, {Position = UDim2.new(0, knobX, 0.5, 0)}, 0.12)
                 end
                 valLabel.Text = tostring(cur)
             end
@@ -2880,6 +2982,7 @@ function createHubUI()
                 return clamp(math.floor(raw + 0.5), minV, maxV)
             end
             table.insert(connections, track:GetPropertyChangedSignal("AbsoluteSize"):Connect(function() updateVisuals(true) end))
+            table.insert(connections, rightArea:GetPropertyChangedSignal("AbsoluteSize"):Connect(function() updateVisuals(true) end))
             task.defer(function() updateVisuals(true) end)
             local dragging = false
             local dragConnChanged, dragConnEnded
@@ -3016,10 +3119,10 @@ function createHubUI()
         local totalW = uiRoot.AbsoluteSize.X
         local leftWidth = math.clamp(math.floor(totalW * (isMobile and 0.28 or 0.26)), 120, 320)
         leftWidth = math.min(leftWidth, math.max(100, totalW - 160))
-        leftPane.Size = UDim2.new(0, leftWidth, 1, isMobile and -70 or -80)
+        leftPane.Size = UDim2.new(0, leftWidth, 1, isMobile and -48 or -66)
         local rightX = leftWidth + 20
-        rightPane.Position = UDim2.new(0, rightX, 0, isMobile and 50 or 56)
-        rightPane.Size = UDim2.new(0, totalW - rightX - 10, 1, isMobile and -70 or -80)
+        rightPane.Position = UDim2.new(0, rightX, 0, isMobile and 42 or 56)
+        rightPane.Size = UDim2.new(0, totalW - rightX - 10, 1, isMobile and -48 or -66)
         refreshMainScroll()
     end
 
@@ -3094,13 +3197,11 @@ function createHubUI()
         miniButton.TextColor3 = THEME.Accent
         miniStroke.Color = THEME.Accent
         titleLabel.TextColor3 = THEME.Text
-        footer.TextColor3 = THEME.SubText
         uiRootStroke.Color = THEME.Border
         leftStroke.Color = THEME.Border
         rightStroke.Color = THEME.Border
 
         titleLabel.Text = T("TITLE_MAIN")
-        footer.Text = T("FOOTER_TEXT")
 
         addTopic("GENERAL", T("TOPIC_GENERAL"), {
             { Type = "ListAuto", Name = T("FLY_SPEED"), Description = T("FLY_SPEED_DESC"), Options = {
