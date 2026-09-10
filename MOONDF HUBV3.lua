@@ -6,6 +6,11 @@
     - Variáveis de GUI usam uiRoot para evitar conflito com 'root' do personagem (HumanoidRootPart).
     - Preservadas as funcionalidades do seu V3; apenas organizei a ordem para que callbacks encontrem as funções.
     - FIX DRAG: AnchorPoint (0,0) + delta puro (MakeDraggable) — sem salto ao clicar.
+
+    UPDATE: 
+    1. Removido o spam M1 automático quando NPC agressivo próximo (agora só quando não está stunado).
+    2. Distância ao ser atingido aumentada para 25 (antes 12).
+    3. Lunge melhorado: tempo máximo de corrida aumentado, mais cliques garantidos em intervalo curto.
 ]]
 
 -- ============================================================================== 
@@ -36,6 +41,7 @@ local TRANSLATIONS = {
         TOPIC_GENERAL = "Geral",
         TOPIC_MOBS = "Mobs",
         TOPIC_FARM = "Farm",
+        TOPIC_AUTOSKILLS = "AutoSkills",
         TOPIC_PLAYERS = "Players",
         TOPIC_TELEPORTS = "Teleportes",
         TOPIC_DEV = "Developer",
@@ -43,6 +49,26 @@ local TRANSLATIONS = {
 
         DEV_TOOLS = "Ferramentas",
         DEV_TOOLS_DESC = "Coords e utilidades",
+        DEV_LOAD_MOBS = "Detectar mobs carregados",
+        DEV_LOAD_MOBS_DESC = "Lista apenas os mobs que já estão no mapa (sem teleportar)",
+        DEV_LOADED_MOBS = "Mobs carregados",
+        DEV_LOADED_MOBS_DESC = "Lista nomes exatos sem repetição",
+        DEV_MOB_ACTIONS = "Ações do mob",
+        DEV_COPY_MOB_NAME = "Copiar nome",
+        DEV_COPY_MOB_NAME_DESC = "Copia o nome exato",
+        DEV_CAPTURE_NPC_LOGS = "Capturar logs do NPC",
+        DEV_CAPTURE_NPC_LOGS_DESC = "Detecta e registra tudo que estiver disponível no NPC carregado",
+        DEV_COPY_NPC_LOGS = "Copiar logs capturados",
+        DEV_COPY_NPC_LOGS_DESC = "Copia todas as informações capturadas deste NPC",
+        DEV_NO_NPC_LOGS = "Nenhum log capturado",
+        DEV_NO_NPC_LOGS_DESC = "Use Capturar logs antes de copiar",
+        DEV_TELEPORT_MOB = "Teleportar",
+        DEV_TELEPORT_MOB_DESC = "Vai até o mob carregado",
+        DEV_FARM_MOB = "Farmar",
+        DEV_FARM_MOB_DESC = "Inicia ou para o farm deste mob",
+        DEV_DETECTED_COUNT = "Mobs detectados: %d",
+        DEV_NO_MOBS = "Nenhum mob carregado",
+        DEV_NO_MOBS_DESC = "Use o botão de detectar depois que os mobs estiverem carregados",
         DEV_COORDS = "Copiar Coordenadas",
         DEV_COORDS_DESC = "Copia CFrame atual pro clipboard",
         DEV_FUNNY = "Funções Engraçadas",
@@ -148,12 +174,27 @@ local TRANSLATIONS = {
         TP_MODE_DESC = "Posição relativa ao mob",
         DISTANCE = "Distância",
         DISTANCE_DESC = "Distância do alvo",
+        ANTI_EXECUTE = "Anti Execute",
+        ANTI_EXECUTE_DESC = "Mantém a distância atual quando você morrer no farm",
         EXECUTE_DISTANCE = "Dist. Execute",
         EXECUTE_DISTANCE_DESC = "Distância ao executar",
         AUTO_ATTACK = "Auto Attack",
         AUTO_ATTACK_DESC = "Spam M1",
+        AUTOSKILLS_DESC = "Skills e respiração automáticas",
+        AUTO_SKILL_1 = "Auto Skill 1",
+        AUTO_SKILL_2 = "Auto Skill 2",
+        AUTO_SKILL_3 = "Auto Skill 3",
+        AUTO_SKILL_4 = "Auto Skill 4",
+        AUTO_SKILL_5 = "Auto Skill 5",
+        AUTO_SKILL_6 = "Auto Skill 6",
+        AUTO_SKILL_7 = "Auto Skill 7",
+        AUTO_SKILL_T = "Auto Skill T",
+        AUTO_SKILL_Y = "Auto Skill Y",
+        AUTO_SKILL_DESC = "Pressiona a cada 5 segundos",
+        AUTO_BREATH = "Auto Breath",
+        AUTO_BREATH_DESC = "Abaixo de 40%: espera, segura G e tenta novamente se falhar",
         LOAD_MOBS = "Carregar Mobs",
-        LOAD_MOBS_DESC = "TP pelos spawns",
+        LOAD_MOBS_DESC = "Detecta os mobs já carregados sem teleportar",
         FARM_MOBS_LIST = "Lista de Farm Mobs",
         FARM_MOBS_LIST_DESC = "Selecione o Mob para farmar",
         FARM = "Farm",
@@ -162,6 +203,19 @@ local TRANSLATIONS = {
 
         RAIDS = "Raids (Locais)",
         RAIDS_DESC = "Farm de Raids",
+        EVENTS = "Eventos",
+        EVENTS_DESC = "Locais especiais e eventos",
+        EVENT_TP_DESC = "Teleporta para o local",
+        EVENT_RAID = "Raid",
+        EVENT_RAID_DESC = "Teleporta para a área da Raid",
+        EVENT_DOUMA = "Douma — Castelo Infinito",
+        EVENT_AKAZA = "Akaza — Castelo Infinito",
+        EVENT_KOKUSHIBO = "Kokushibo — Castelo Infinito",
+        EVENT_SLAYER_CASTLE = "Slayer Corps — Castelo Infinito",
+        EVENT_SOUP = "Vendedor de Sopa",
+        EVENT_MEAT = "Vendedor de Carne",
+        EVENT_JEWEL_SELLER = "Vendedor de Joias",
+        EVENT_NICHIRIN_HORN = "Nichirins e Vendedor de Chifres Oni",
         TP_RAID_AREA = "TP Área Raid",
         TP_RAID_AREA_DESC = "Vai para o inicio",
         INFINITE_CASTLE = "Castelo Infinito (Locais)",
@@ -261,6 +315,7 @@ local TRANSLATIONS = {
         TOPIC_GENERAL = "General",
         TOPIC_MOBS = "Mobs",
         TOPIC_FARM = "Farm",
+        TOPIC_AUTOSKILLS = "AutoSkills",
         TOPIC_PLAYERS = "Players",
         TOPIC_TELEPORTS = "Teleports",
         TOPIC_DEV = "Developer",
@@ -268,6 +323,26 @@ local TRANSLATIONS = {
 
         DEV_TOOLS = "Tools",
         DEV_TOOLS_DESC = "Coords and utilities",
+        DEV_LOAD_MOBS = "Detect loaded mobs",
+        DEV_LOAD_MOBS_DESC = "Lists only mobs already on the map (no teleport)",
+        DEV_LOADED_MOBS = "Loaded mobs",
+        DEV_LOADED_MOBS_DESC = "Exact names without duplicates",
+        DEV_MOB_ACTIONS = "Mob actions",
+        DEV_COPY_MOB_NAME = "Copy name",
+        DEV_COPY_MOB_NAME_DESC = "Copies the exact name",
+        DEV_CAPTURE_NPC_LOGS = "Capture NPC logs",
+        DEV_CAPTURE_NPC_LOGS_DESC = "Detects and records everything available on the loaded NPC",
+        DEV_COPY_NPC_LOGS = "Copy captured logs",
+        DEV_COPY_NPC_LOGS_DESC = "Copies all information captured from this NPC",
+        DEV_NO_NPC_LOGS = "No logs captured",
+        DEV_NO_NPC_LOGS_DESC = "Use Capture logs before copying",
+        DEV_TELEPORT_MOB = "Teleport",
+        DEV_TELEPORT_MOB_DESC = "Go to the loaded mob",
+        DEV_FARM_MOB = "Farm",
+        DEV_FARM_MOB_DESC = "Start or stop farming this mob",
+        DEV_DETECTED_COUNT = "Mobs detected: %d",
+        DEV_NO_MOBS = "No mobs loaded",
+        DEV_NO_MOBS_DESC = "Use the detect button after mobs are loaded",
         DEV_COORDS = "Copy Coordinates",
         DEV_COORDS_DESC = "Copies current CFrame to clipboard",
         DEV_FUNNY = "Funny Functions",
@@ -357,12 +432,27 @@ local TRANSLATIONS = {
         TP_MODE_DESC = "Position relative to mob",
         DISTANCE = "Distance",
         DISTANCE_DESC = "Distance from target",
+        ANTI_EXECUTE = "Anti Execute",
+        ANTI_EXECUTE_DESC = "Keeps the current distance when you die while farming",
         EXECUTE_DISTANCE = "Execute Dist.",
         EXECUTE_DISTANCE_DESC = "Distance when executing",
         AUTO_ATTACK = "Auto Attack",
         AUTO_ATTACK_DESC = "Spam M1",
+        AUTOSKILLS_DESC = "Automatic skills and breathing",
+        AUTO_SKILL_1 = "Auto Skill 1",
+        AUTO_SKILL_2 = "Auto Skill 2",
+        AUTO_SKILL_3 = "Auto Skill 3",
+        AUTO_SKILL_4 = "Auto Skill 4",
+        AUTO_SKILL_5 = "Auto Skill 5",
+        AUTO_SKILL_6 = "Auto Skill 6",
+        AUTO_SKILL_7 = "Auto Skill 7",
+        AUTO_SKILL_T = "Auto Skill T",
+        AUTO_SKILL_Y = "Auto Skill Y",
+        AUTO_SKILL_DESC = "Presses every 5 seconds",
+        AUTO_BREATH = "Auto Breath",
+        AUTO_BREATH_DESC = "Below 40%: waits, holds G and retries if it fails",
         LOAD_MOBS = "Load Mobs",
-        LOAD_MOBS_DESC = "TP through spawns",
+        LOAD_MOBS_DESC = "Detects already loaded mobs without teleporting",
         FARM_MOBS_LIST = "Farm Mobs List",
         FARM_MOBS_LIST_DESC = "Select Mob to farm",
         FARM = "Farm",
@@ -370,6 +460,19 @@ local TRANSLATIONS = {
 
         RAIDS = "Raids (Locations)",
         RAIDS_DESC = "Raid Farm",
+        EVENTS = "Events",
+        EVENTS_DESC = "Special locations and events",
+        EVENT_TP_DESC = "Teleport to this location",
+        EVENT_RAID = "Raid",
+        EVENT_RAID_DESC = "Teleport to the Raid area",
+        EVENT_DOUMA = "Douma — Infinite Castle",
+        EVENT_AKAZA = "Akaza — Infinite Castle",
+        EVENT_KOKUSHIBO = "Kokushibo — Infinite Castle",
+        EVENT_SLAYER_CASTLE = "Slayer Corps — Infinite Castle",
+        EVENT_SOUP = "Soup Vendor",
+        EVENT_MEAT = "Meat Vendor",
+        EVENT_JEWEL_SELLER = "Jewel Vendor",
+        EVENT_NICHIRIN_HORN = "Nichirin and Oni Horn Vendor",
         TP_RAID_AREA = "TP Raid Area",
         TP_RAID_AREA_DESC = "Go to start",
         INFINITE_CASTLE = "Infinite Castle (Locations)",
@@ -471,127 +574,220 @@ end
 -- =========================
 -- CONFIGURAÇÃO VISUAL & TEMAS
 -- =========================
-globalEnv.CurrentThemeName = globalEnv.CurrentThemeName or "Carbon"
+globalEnv.CurrentThemeName = globalEnv.CurrentThemeName or "Material You"
 local CurrentThemeName = globalEnv.CurrentThemeName
 globalEnv.CurrentOpacity = globalEnv.CurrentOpacity or 0
 local CurrentOpacity = globalEnv.CurrentOpacity
 
---[[
-  TEMAS REFEITOS DO ZERO (atmosfera Tornify-inspired)
-  Nomes únicos (sem barra). Crimson e Amethyst removidos.
-]]
 local THEME_PRESETS = {
-    -- Carbon: preto fosco premium
+    -- Paleta padrão inspirada no Material You (M3): superfícies tonais,
+    -- contraste acessível e uma cor primária usada nos estados ativos.
+    ["Material You"] = {
+        Background = Color3.fromRGB(18, 19, 24),
+        PanelBg    = Color3.fromRGB(30, 31, 38),
+        Surface    = Color3.fromRGB(30, 31, 38),
+        SurfaceContainer = Color3.fromRGB(36, 37, 45),
+        SurfaceVariant = Color3.fromRGB(70, 70, 79),
+        Text       = Color3.fromRGB(232, 225, 229),
+        OnSurface  = Color3.fromRGB(232, 225, 229),
+        SubText    = Color3.fromRGB(202, 196, 208),
+        OnSurfaceVariant = Color3.fromRGB(202, 196, 208),
+        Off        = Color3.fromRGB(73, 69, 79),
+        On         = Color3.fromRGB(208, 188, 255),
+        Border     = Color3.fromRGB(147, 143, 153),
+        Outline    = Color3.fromRGB(147, 143, 153),
+        OutlineVariant = Color3.fromRGB(70, 70, 79),
+        Hover      = Color3.fromRGB(49, 47, 56),
+        Danger     = Color3.fromRGB(255, 180, 171),
+        Accent     = Color3.fromRGB(208, 188, 255),
+        Primary    = Color3.fromRGB(208, 188, 255),
+        PrimaryContainer = Color3.fromRGB(79, 55, 139),
+        OnPrimary  = Color3.fromRGB(56, 30, 114),
+        KnobColor  = Color3.fromRGB(255, 251, 255)
+    },
     ["Carbon"] = {
-        Background = Color3.fromRGB(9, 9, 9),
-        PanelBg    = Color3.fromRGB(21, 21, 21),
-        Text       = Color3.fromRGB(244, 244, 244),
-        SubText    = Color3.fromRGB(154, 154, 154),
-        Off        = Color3.fromRGB(40, 40, 40),
-        On         = Color3.fromRGB(255, 255, 255),
-        Border     = Color3.fromRGB(35, 35, 35),
-        Hover      = Color3.fromRGB(32, 32, 32),
-        Danger     = Color3.fromRGB(220, 60, 70),
-        Accent     = Color3.fromRGB(255, 255, 255),
-        KnobColor  = Color3.fromRGB(255, 255, 255)
+        Background = Color3.fromRGB(17, 18, 20),
+        PanelBg    = Color3.fromRGB(29, 30, 33),
+        Surface    = Color3.fromRGB(29, 30, 33),
+        SurfaceContainer = Color3.fromRGB(36, 37, 40),
+        SurfaceVariant = Color3.fromRGB(67, 70, 76),
+        Text       = Color3.fromRGB(232, 232, 236),
+        OnSurface  = Color3.fromRGB(232, 232, 236),
+        SubText    = Color3.fromRGB(194, 195, 201),
+        OnSurfaceVariant = Color3.fromRGB(194, 195, 201),
+        Off        = Color3.fromRGB(72, 73, 78),
+        On         = Color3.fromRGB(196, 199, 208),
+        Border     = Color3.fromRGB(145, 147, 154),
+        Outline    = Color3.fromRGB(145, 147, 154),
+        OutlineVariant = Color3.fromRGB(67, 70, 76),
+        Hover      = Color3.fromRGB(47, 49, 53),
+        Danger     = Color3.fromRGB(255, 180, 171),
+        Accent     = Color3.fromRGB(196, 199, 208),
+        Primary    = Color3.fromRGB(196, 199, 208),
+        PrimaryContainer = Color3.fromRGB(66, 70, 80),
+        OnPrimary  = Color3.fromRGB(35, 37, 43),
+        KnobColor  = Color3.fromRGB(250, 250, 255)
     },
-    -- Arctic: gelo limpo e claro
     ["Arctic"] = {
-        Background = Color3.fromRGB(237, 245, 255),
-        PanelBg    = Color3.fromRGB(221, 235, 255),
-        Text       = Color3.fromRGB(23, 36, 51),
-        SubText    = Color3.fromRGB(90, 120, 150),
-        Off        = Color3.fromRGB(190, 210, 230),
-        On         = Color3.fromRGB(94, 184, 255),
-        Border     = Color3.fromRGB(180, 210, 240),
-        Hover      = Color3.fromRGB(200, 225, 250),
-        Danger     = Color3.fromRGB(230, 55, 70),
-        Accent     = Color3.fromRGB(94, 184, 255),
+        Background = Color3.fromRGB(247, 249, 255),
+        PanelBg    = Color3.fromRGB(239, 241, 248),
+        Surface    = Color3.fromRGB(239, 241, 248),
+        SurfaceContainer = Color3.fromRGB(231, 233, 241),
+        SurfaceVariant = Color3.fromRGB(222, 226, 236),
+        Text       = Color3.fromRGB(25, 28, 36),
+        OnSurface  = Color3.fromRGB(25, 28, 36),
+        SubText    = Color3.fromRGB(72, 76, 88),
+        OnSurfaceVariant = Color3.fromRGB(72, 76, 88),
+        Off        = Color3.fromRGB(119, 121, 129),
+        On         = Color3.fromRGB(67, 91, 145),
+        Border     = Color3.fromRGB(119, 121, 129),
+        Outline    = Color3.fromRGB(119, 121, 129),
+        OutlineVariant = Color3.fromRGB(198, 202, 212),
+        Hover      = Color3.fromRGB(226, 228, 237),
+        Danger     = Color3.fromRGB(186, 26, 26),
+        Accent     = Color3.fromRGB(67, 91, 145),
+        Primary    = Color3.fromRGB(67, 91, 145),
+        PrimaryContainer = Color3.fromRGB(215, 226, 255),
+        OnPrimary  = Color3.fromRGB(255, 255, 255),
         KnobColor  = Color3.fromRGB(255, 255, 255)
     },
-    -- Nebula: roxo espacial profundo
     ["Nebula"] = {
-        Background = Color3.fromRGB(16, 8, 30),
-        PanelBg    = Color3.fromRGB(35, 25, 60),
-        Text       = Color3.fromRGB(240, 230, 255),
-        SubText    = Color3.fromRGB(160, 140, 200),
-        Off        = Color3.fromRGB(50, 40, 80),
-        On         = Color3.fromRGB(184, 146, 255),
-        Border     = Color3.fromRGB(70, 55, 110),
-        Hover      = Color3.fromRGB(45, 35, 75),
-        Danger     = Color3.fromRGB(255, 70, 100),
-        Accent     = Color3.fromRGB(184, 146, 255),
-        KnobColor  = Color3.fromRGB(255, 245, 255)
+        Background = Color3.fromRGB(24, 20, 30),
+        PanelBg    = Color3.fromRGB(35, 30, 42),
+        Surface    = Color3.fromRGB(35, 30, 42),
+        SurfaceContainer = Color3.fromRGB(44, 38, 52),
+        SurfaceVariant = Color3.fromRGB(76, 69, 84),
+        Text       = Color3.fromRGB(239, 228, 242),
+        OnSurface  = Color3.fromRGB(239, 228, 242),
+        SubText    = Color3.fromRGB(205, 190, 209),
+        OnSurfaceVariant = Color3.fromRGB(205, 190, 209),
+        Off        = Color3.fromRGB(79, 70, 85),
+        On         = Color3.fromRGB(235, 184, 255),
+        Border     = Color3.fromRGB(155, 143, 158),
+        Outline    = Color3.fromRGB(155, 143, 158),
+        OutlineVariant = Color3.fromRGB(76, 69, 84),
+        Hover      = Color3.fromRGB(55, 47, 64),
+        Danger     = Color3.fromRGB(255, 180, 171),
+        Accent     = Color3.fromRGB(235, 184, 255),
+        Primary    = Color3.fromRGB(235, 184, 255),
+        PrimaryContainer = Color3.fromRGB(103, 44, 121),
+        OnPrimary  = Color3.fromRGB(74, 18, 91),
+        KnobColor  = Color3.fromRGB(255, 244, 255)
     },
-    -- Neon: radioativo / toxic
     ["Neon"] = {
-        Background = Color3.fromRGB(0, 17, 0),
-        PanelBg    = Color3.fromRGB(0, 42, 26),
-        Text       = Color3.fromRGB(0, 255, 170),
-        SubText    = Color3.fromRGB(0, 180, 120),
-        Off        = Color3.fromRGB(0, 60, 40),
-        On         = Color3.fromRGB(0, 255, 136),
-        Border     = Color3.fromRGB(0, 120, 80),
-        Hover      = Color3.fromRGB(0, 55, 35),
-        Danger     = Color3.fromRGB(255, 50, 50),
-        Accent     = Color3.fromRGB(0, 255, 136),
-        KnobColor  = Color3.fromRGB(0, 255, 170)
+        Background = Color3.fromRGB(13, 22, 19),
+        PanelBg    = Color3.fromRGB(20, 35, 30),
+        Surface    = Color3.fromRGB(20, 35, 30),
+        SurfaceContainer = Color3.fromRGB(26, 45, 38),
+        SurfaceVariant = Color3.fromRGB(61, 79, 70),
+        Text       = Color3.fromRGB(220, 255, 238),
+        OnSurface  = Color3.fromRGB(220, 255, 238),
+        SubText    = Color3.fromRGB(171, 216, 192),
+        OnSurfaceVariant = Color3.fromRGB(171, 216, 192),
+        Off        = Color3.fromRGB(65, 82, 73),
+        On         = Color3.fromRGB(108, 235, 170),
+        Border     = Color3.fromRGB(139, 170, 151),
+        Outline    = Color3.fromRGB(139, 170, 151),
+        OutlineVariant = Color3.fromRGB(61, 79, 70),
+        Hover      = Color3.fromRGB(31, 51, 42),
+        Danger     = Color3.fromRGB(255, 180, 171),
+        Accent     = Color3.fromRGB(108, 235, 170),
+        Primary    = Color3.fromRGB(108, 235, 170),
+        PrimaryContainer = Color3.fromRGB(0, 83, 54),
+        OnPrimary  = Color3.fromRGB(0, 55, 35),
+        KnobColor  = Color3.fromRGB(219, 255, 235)
     },
-    -- Carmesim: carmesin profundo
     ["Carmesim"] = {
-        Background = Color3.fromRGB(10, 0, 0),
-        PanelBg    = Color3.fromRGB(26, 0, 0),
-        Text       = Color3.fromRGB(255, 240, 240),
-        SubText    = Color3.fromRGB(200, 120, 120),
-        Off        = Color3.fromRGB(55, 10, 10),
-        On         = Color3.fromRGB(139, 0, 0),
-        Border     = Color3.fromRGB(100, 20, 20),
-        Hover      = Color3.fromRGB(40, 5, 5),
-        Danger     = Color3.fromRGB(255, 60, 60),
-        Accent     = Color3.fromRGB(255, 59, 59),
-        KnobColor  = Color3.fromRGB(255, 220, 220)
+        Background = Color3.fromRGB(30, 17, 18),
+        PanelBg    = Color3.fromRGB(46, 25, 27),
+        Surface    = Color3.fromRGB(46, 25, 27),
+        SurfaceContainer = Color3.fromRGB(57, 31, 33),
+        SurfaceVariant = Color3.fromRGB(88, 64, 65),
+        Text       = Color3.fromRGB(255, 237, 238),
+        OnSurface  = Color3.fromRGB(255, 237, 238),
+        SubText    = Color3.fromRGB(233, 188, 190),
+        OnSurfaceVariant = Color3.fromRGB(233, 188, 190),
+        Off        = Color3.fromRGB(93, 64, 66),
+        On         = Color3.fromRGB(255, 180, 171),
+        Border     = Color3.fromRGB(188, 139, 141),
+        Outline    = Color3.fromRGB(188, 139, 141),
+        OutlineVariant = Color3.fromRGB(88, 64, 65),
+        Hover      = Color3.fromRGB(69, 37, 40),
+        Danger     = Color3.fromRGB(255, 180, 171),
+        Accent     = Color3.fromRGB(255, 180, 171),
+        Primary    = Color3.fromRGB(255, 180, 171),
+        PrimaryContainer = Color3.fromRGB(147, 0, 10),
+        OnPrimary  = Color3.fromRGB(105, 0, 5),
+        KnobColor  = Color3.fromRGB(255, 248, 247)
     },
-    -- Galaxy: midnight azul-espacial
     ["Galaxy"] = {
-        Background = Color3.fromRGB(10, 15, 44),
-        PanelBg    = Color3.fromRGB(13, 19, 43),
-        Text       = Color3.fromRGB(230, 240, 255),
-        SubText    = Color3.fromRGB(120, 140, 200),
-        Off        = Color3.fromRGB(30, 40, 80),
-        On         = Color3.fromRGB(59, 76, 192),
-        Border     = Color3.fromRGB(40, 55, 120),
-        Hover      = Color3.fromRGB(20, 28, 60),
-        Danger     = Color3.fromRGB(255, 70, 90),
-        Accent     = Color3.fromRGB(107, 142, 245),
-        KnobColor  = Color3.fromRGB(220, 230, 255)
+        Background = Color3.fromRGB(17, 19, 31),
+        PanelBg    = Color3.fromRGB(27, 30, 47),
+        Surface    = Color3.fromRGB(27, 30, 47),
+        SurfaceContainer = Color3.fromRGB(35, 39, 58),
+        SurfaceVariant = Color3.fromRGB(67, 70, 94),
+        Text       = Color3.fromRGB(228, 225, 255),
+        OnSurface  = Color3.fromRGB(228, 225, 255),
+        SubText    = Color3.fromRGB(193, 194, 224),
+        OnSurfaceVariant = Color3.fromRGB(193, 194, 224),
+        Off        = Color3.fromRGB(70, 72, 97),
+        On         = Color3.fromRGB(190, 198, 255),
+        Border     = Color3.fromRGB(145, 145, 178),
+        Outline    = Color3.fromRGB(145, 145, 178),
+        OutlineVariant = Color3.fromRGB(67, 70, 94),
+        Hover      = Color3.fromRGB(42, 46, 67),
+        Danger     = Color3.fromRGB(255, 180, 171),
+        Accent     = Color3.fromRGB(190, 198, 255),
+        Primary    = Color3.fromRGB(190, 198, 255),
+        PrimaryContainer = Color3.fromRGB(65, 73, 137),
+        OnPrimary  = Color3.fromRGB(39, 47, 106),
+        KnobColor  = Color3.fromRGB(244, 243, 255)
     },
-    -- Blush: rosa suave amanhecer
     ["Blush"] = {
-        Background = Color3.fromRGB(255, 225, 238),
-        PanelBg    = Color3.fromRGB(245, 207, 224),
-        Text       = Color3.fromRGB(45, 31, 41),
-        SubText    = Color3.fromRGB(120, 90, 105),
-        Off        = Color3.fromRGB(230, 190, 210),
-        On         = Color3.fromRGB(255, 126, 185),
-        Border     = Color3.fromRGB(220, 170, 190),
-        Hover      = Color3.fromRGB(248, 221, 232),
-        Danger     = Color3.fromRGB(230, 55, 80),
-        Accent     = Color3.fromRGB(255, 126, 185),
+        Background = Color3.fromRGB(255, 247, 249),
+        PanelBg    = Color3.fromRGB(255, 237, 243),
+        Surface    = Color3.fromRGB(255, 237, 243),
+        SurfaceContainer = Color3.fromRGB(255, 228, 237),
+        SurfaceVariant = Color3.fromRGB(246, 218, 228),
+        Text       = Color3.fromRGB(45, 28, 35),
+        OnSurface  = Color3.fromRGB(45, 28, 35),
+        SubText    = Color3.fromRGB(112, 76, 89),
+        OnSurfaceVariant = Color3.fromRGB(112, 76, 89),
+        Off        = Color3.fromRGB(137, 106, 118),
+        On         = Color3.fromRGB(174, 52, 102),
+        Border     = Color3.fromRGB(166, 124, 139),
+        Outline    = Color3.fromRGB(166, 124, 139),
+        OutlineVariant = Color3.fromRGB(230, 194, 207),
+        Hover      = Color3.fromRGB(255, 226, 235),
+        Danger     = Color3.fromRGB(186, 26, 26),
+        Accent     = Color3.fromRGB(174, 52, 102),
+        Primary    = Color3.fromRGB(174, 52, 102),
+        PrimaryContainer = Color3.fromRGB(255, 216, 229),
+        OnPrimary  = Color3.fromRGB(255, 255, 255),
         KnobColor  = Color3.fromRGB(255, 255, 255)
     },
-    -- Branco: branco sofisticado limpo
     ["Branco"] = {
-        Background = Color3.fromRGB(252, 252, 250),
-        PanelBg    = Color3.fromRGB(242, 242, 238),
-        Text       = Color3.fromRGB(28, 28, 26),
-        SubText    = Color3.fromRGB(110, 110, 100),
-        Off        = Color3.fromRGB(210, 210, 200),
-        On         = Color3.fromRGB(60, 60, 55),
-        Border     = Color3.fromRGB(200, 200, 190),
-        Hover      = Color3.fromRGB(235, 235, 230),
-        Danger     = Color3.fromRGB(220, 50, 60),
-        Accent     = Color3.fromRGB(50, 50, 45),
-        KnobColor  = Color3.fromRGB(255, 255, 255)
+        Background = Color3.fromRGB(255, 251, 254),
+        PanelBg    = Color3.fromRGB(247, 242, 247),
+        Surface    = Color3.fromRGB(247, 242, 247),
+        SurfaceContainer = Color3.fromRGB(241, 236, 241),
+        SurfaceVariant = Color3.fromRGB(232, 224, 231),
+        Text       = Color3.fromRGB(30, 28, 32),
+        OnSurface  = Color3.fromRGB(30, 28, 32),
+        SubText    = Color3.fromRGB(76, 70, 78),
+        OnSurfaceVariant = Color3.fromRGB(76, 70, 78),
+        Off        = Color3.fromRGB(121, 116, 123),
+        On         = Color3.fromRGB(103, 80, 110),
+        Border     = Color3.fromRGB(121, 116, 123),
+        Outline    = Color3.fromRGB(121, 116, 123),
+        OutlineVariant = Color3.fromRGB(202, 196, 202),
+        Hover      = Color3.fromRGB(239, 233, 239),
+        Danger     = Color3.fromRGB(186, 26, 26),
+        Accent     = Color3.fromRGB(103, 80, 110),
+        Primary    = Color3.fromRGB(103, 80, 110),
+        PrimaryContainer = Color3.fromRGB(235, 219, 239),
+        OnPrimary  = Color3.fromRGB(255, 255, 255),
+        KnobColor  = Color3.fromRGB(255, 251, 255)
     },
 }
 
@@ -605,18 +801,17 @@ else
 end
 
 local TYPE_COLORS = {
-    Label          = Color3.fromRGB(255, 255, 255),
-    Single         = Color3.fromRGB(0, 255, 128),
-    Toggle         = Color3.fromRGB(255, 50, 50),
-    Slider         = Color3.fromRGB(0, 170, 255),
-    InputImmediate = Color3.fromRGB(170, 0, 255),
-    InputSelect    = Color3.fromRGB(200, 0, 255),
-    ListPersistent = Color3.fromRGB(255, 170, 0),
-    ListAuto       = Color3.fromRGB(255, 170, 0),
-    Container      = Color3.fromRGB(255, 255, 0)
+    Label          = Color3.fromRGB(145, 143, 153),
+    Single         = Color3.fromRGB(128, 218, 188),
+    Toggle         = Color3.fromRGB(255, 180, 171),
+    Slider         = Color3.fromRGB(174, 203, 255),
+    InputImmediate = Color3.fromRGB(225, 190, 231),
+    InputSelect    = Color3.fromRGB(255, 216, 228),
+    ListPersistent = Color3.fromRGB(255, 216, 145),
+    ListAuto       = Color3.fromRGB(255, 216, 145),
+    Container      = Color3.fromRGB(208, 188, 255)
 }
 
--- Estados globais
 globalEnv._HubStates = globalEnv._HubStates or {}
 globalEnv._HubSelections = globalEnv._HubSelections or {}
 globalEnv._ScriptHubStates = globalEnv._ScriptHubStates or {}
@@ -645,11 +840,11 @@ end
 local function makeRound(inst, rad) return new("UICorner", {Parent = inst, CornerRadius = UDim.new(0, rad)}) end
 local function makeStroke(inst, col, th) return new("UIStroke", {Parent = inst, Color = col or THEME.Border, Thickness = th or 1}) end
 local function clamp(v, a, b) if v < a then return a end if v > b then return b end return v end
+local function contrastText(color)
+    local lum = (color.R * 0.299 + color.G * 0.587 + color.B * 0.114)
+    return lum > 0.55 and Color3.fromRGB(28, 28, 32) or Color3.new(1, 1, 1)
+end
 
--- ======================================================================
--- MakeDraggable — DELTA PURO (funciona com qualquer AnchorPoint)
--- Não mistura mouse com AbsolutePosition no mesmo cálculo → sem salto.
--- ======================================================================
 local function MakeDraggable(handle, target)
     local dragging = false
     local dragStart = nil
@@ -670,13 +865,6 @@ local function MakeDraggable(handle, target)
         end
     end)
 
-    handle.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement
-            or input.UserInputType == Enum.UserInputType.Touch then
-            -- apenas guarda referência se necessário
-        end
-    end)
-
     UserInputService.InputChanged:Connect(function(input)
         if not dragging then return end
         if input.UserInputType ~= Enum.UserInputType.MouseMovement
@@ -691,7 +879,6 @@ local function MakeDraggable(handle, target)
     end)
 end
 
--- Remove instâncias antigas do Hub
 for _, v in pairs(CoreGui:GetChildren()) do
     if v.Name == "MoonDF_VirginHub" then
         pcall(function() v:Destroy() end)
@@ -709,7 +896,7 @@ local screenGui = new("ScreenGui", {
 pcall(function() screenGui.Enabled = true end)
 
 -- ======================================================================
--- GAME LOGIC (preservado / funções públicas mantidas)
+-- GAME LOGIC
 -- ======================================================================
 
 local player = Players.LocalPlayer
@@ -747,16 +934,369 @@ local currentMob = nil
 local isEnabled = false
 local connection = nil
 local loadingAllMobs = false
+local notifyDev
 local teleportAndLookLooping = false
+local farmNoclipWasEnabled = false
 globalEnv.selectedPlayerName = globalEnv.selectedPlayerName or nil
 local selectedPlayerName = globalEnv.selectedPlayerName
 globalEnv.teleportMode = globalEnv.teleportMode or "Behind"
 local teleportMode = globalEnv.teleportMode
 globalEnv.FARM_DISTANCE = globalEnv.FARM_DISTANCE or 4
 local FARM_DISTANCE = globalEnv.FARM_DISTANCE
-globalEnv.EXECUTE_DISTANCE = globalEnv.EXECUTE_DISTANCE or 1
+local savedExecuteDistance = tonumber(globalEnv._ScriptHubStates["ExecuteDistance"])
+if savedExecuteDistance then
+    globalEnv.EXECUTE_DISTANCE = savedExecuteDistance
+elseif globalEnv.EXECUTE_DISTANCE == nil or tonumber(globalEnv.EXECUTE_DISTANCE) == 1 then
+    globalEnv.EXECUTE_DISTANCE = 20
+end
 local EXECUTE_DISTANCE = globalEnv.EXECUTE_DISTANCE
 local PLAYER_EXECUTE_DISTANCE = 20
+globalEnv.antiExecute = globalEnv.antiExecute ~= false
+local antiExecute = globalEnv.antiExecute
+
+-- Sistema de AutoSkills mantido em uma tabela global para não estourar
+-- o limite de registradores locais do Luau neste script grande.
+AutoSkillSystem = globalEnv._MoonDFAutoSkillSystem or {}
+globalEnv._MoonDFAutoSkillSystem = AutoSkillSystem
+AutoSkillSystem.enabled = {}
+AutoSkillSystem.nextUse = {}
+AutoSkillSystem.keyMap = {
+    ["1"] = Enum.KeyCode.One,
+    ["2"] = Enum.KeyCode.Two,
+    ["3"] = Enum.KeyCode.Three,
+    ["4"] = Enum.KeyCode.Four,
+    ["5"] = Enum.KeyCode.Five,
+    ["6"] = Enum.KeyCode.Six,
+    ["7"] = Enum.KeyCode.Seven,
+    T = Enum.KeyCode.T,
+    Y = Enum.KeyCode.Y
+}
+AutoSkillSystem.loopRunning = false
+AutoSkillSystem.autoBreath = false
+AutoSkillSystem.breathHolding = false
+AutoSkillSystem.breathPreparing = false
+AutoSkillSystem.breathStartedAt = 0
+AutoSkillSystem.breathPrepareStartedAt = 0
+AutoSkillSystem.breathRetryAt = 0
+AutoSkillSystem.breathRetryPending = false
+AutoSkillSystem.breathMonitorRunning = false
+AutoSkillSystem.breathSafeDistance = 150
+AutoSkillSystem.skillInterval = 5
+AutoSkillSystem.breathThreshold = 40
+AutoSkillSystem.breathPrepareDelay = 2
+AutoSkillSystem.breathChargeTimeout = 4
+AutoSkillSystem.breathRetryDelay = 6
+
+AutoSkillSystem.readBreathing = function()
+    local sources = {player, character}
+    local wanted = {
+        breathing = true,
+        currentbreathing = true,
+        breath = true
+    }
+    for _, source in ipairs(sources) do
+        if source then
+            local function readNode(node)
+                local nodeName = string.lower(tostring(node.Name or ""))
+                if wanted[nodeName] and node:IsA("ValueBase") then
+                    local number = tonumber(node.Value)
+                    if number then return math.clamp(number, 0, 100) end
+                end
+                for name, value in pairs(node:GetAttributes()) do
+                    if wanted[string.lower(tostring(name))] then
+                        local number = tonumber(value)
+                        if number then return math.clamp(number, 0, 100) end
+                    end
+                end
+                return nil
+            end
+
+            local direct = readNode(source)
+            if direct ~= nil then return direct end
+            for _, descendant in ipairs(source:GetDescendants()) do
+                local number = readNode(descendant)
+                if number ~= nil then return number end
+            end
+        end
+    end
+    return nil
+end
+
+AutoSkillSystem.isActiveCooldownValue = function(value)
+    if value:IsA("BoolValue") then return value.Value == true end
+    if value:IsA("NumberValue") or value:IsA("IntValue") then
+        return tonumber(value.Value) ~= nil and tonumber(value.Value) > 0
+    end
+    if value:IsA("StringValue") then
+        local text = string.lower(tostring(value.Value))
+        return text ~= "" and text ~= "0" and text ~= "false" and text ~= "ready"
+    end
+    return false
+end
+
+AutoSkillSystem.matchesSkillCooldown = function(name, key)
+    local lower = string.lower(name)
+    if not string.find(lower, "cooldown", 1, true) then return false end
+    local token = string.lower(tostring(key))
+    local patterns = {
+        "skill" .. token,
+        "form" .. token,
+        "ability" .. token,
+        "slot" .. token,
+        "key" .. token,
+        "cooldown" .. token,
+        token .. "cooldown"
+    }
+    for _, pattern in ipairs(patterns) do
+        if string.find(lower, pattern, 1, true) then return true end
+    end
+    -- Alguns servidores usam um único FormCooldown para a forma atual.
+    return string.find(lower, "form", 1, true) ~= nil
+end
+
+AutoSkillSystem.isSkillOnCooldown = function(key)
+    local sources = {player, character}
+    for _, source in ipairs(sources) do
+        if source then
+            for _, descendant in ipairs(source:GetDescendants()) do
+                if descendant:IsA("ValueBase")
+                    and AutoSkillSystem.matchesSkillCooldown(descendant.Name, key)
+                    and AutoSkillSystem.isActiveCooldownValue(descendant) then
+                    return true
+                end
+            end
+            for name, value in pairs(source:GetAttributes()) do
+                if AutoSkillSystem.matchesSkillCooldown(name, key) then
+                    local number = tonumber(value)
+                    if value == true
+                        or (number and number > 0)
+                        or (type(value) == "string" and value ~= "" and value ~= "0") then
+                        return true
+                    end
+                end
+            end
+        end
+    end
+    return false
+end
+
+AutoSkillSystem.isActionBusy = function()
+    local sources = {character, player}
+    local stateNames = {
+        "attacking", "attack", "m1", "m2",
+        "busy", "usingability",
+        "usingskill", "skillactive", "abilityactive",
+        "formactive", "transforming", "transformation"
+    }
+
+    local function isStateName(name)
+        local lower = string.lower(tostring(name or "")):gsub("[%s_%-]", "")
+        if string.find(lower, "cooldown", 1, true)
+            or string.find(lower, "timer", 1, true)
+            or lower == "cd" then
+            return false
+        end
+        for _, state in ipairs(stateNames) do
+            if lower == state or string.find(lower, state, 1, true) then
+                return true
+            end
+        end
+        return false
+    end
+
+    local function isActiveValue(value)
+        if value == true then return true end
+        local number = tonumber(value)
+        if number then return number ~= 0 end
+        local text = string.lower(tostring(value or ""))
+        return text ~= "" and text ~= "false" and text ~= "ready"
+            and text ~= "idle" and text ~= "none" and text ~= "0"
+    end
+
+    for _, source in ipairs(sources) do
+        if source then
+            for name, value in pairs(source:GetAttributes()) do
+                if isStateName(name) and isActiveValue(value) then
+                    return true
+                end
+            end
+            for _, descendant in ipairs(source:GetDescendants()) do
+                if isStateName(descendant.Name) then
+                    if descendant:IsA("BoolValue") and descendant.Value then
+                        return true
+                    elseif descendant:IsA("StringValue") and isActiveValue(descendant.Value) then
+                        return true
+                    elseif (descendant:IsA("NumberValue") or descendant:IsA("IntValue"))
+                        and tonumber(descendant.Value) ~= 0 then
+                        return true
+                    end
+                end
+            end
+        end
+    end
+
+    local char = player and player.Character
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    local animator = hum and hum:FindFirstChildOfClass("Animator")
+    if animator then
+        for _, track in ipairs(animator:GetPlayingAnimationTracks()) do
+            local name = string.lower(tostring(track.Name or ""))
+            local animationId = ""
+            pcall(function()
+                if track.Animation then
+                    animationId = string.lower(tostring(track.Animation.AnimationId or ""))
+                end
+            end)
+            if name:find("attack", 1, true)
+                or name:find("skill", 1, true)
+                or name:find("ability", 1, true)
+                or name:find("form", 1, true)
+                or animationId:find("attack", 1, true) then
+                return true
+            end
+        end
+    end
+    return false
+end
+
+AutoSkillSystem.releaseBreath = function()
+    if AutoSkillSystem.breathHolding then
+        pcall(function()
+            VIM:SendKeyEvent(false, Enum.KeyCode.G, false, game)
+        end)
+    end
+    AutoSkillSystem.breathHolding = false
+    AutoSkillSystem.breathPreparing = false
+    AutoSkillSystem.breathStartedAt = 0
+    AutoSkillSystem.breathPrepareStartedAt = 0
+end
+
+AutoSkillSystem.updateBreath = function()
+    if not AutoSkillSystem.autoBreath then
+        AutoSkillSystem.releaseBreath()
+        return
+    end
+
+    local breath = AutoSkillSystem.readBreathing()
+    if AutoSkillSystem.breathHolding then
+        if (breath and breath >= 99.5)
+        then
+            print("[MoonDF AutoBreath] respiração chegou a 100%; soltando G")
+            AutoSkillSystem.releaseBreath()
+        elseif os.clock() - AutoSkillSystem.breathStartedAt >= AutoSkillSystem.breathChargeTimeout then
+            print("[MoonDF AutoBreath] falha: não chegou a 100% em 4s; nova tentativa em 6s")
+            AutoSkillSystem.releaseBreath()
+            AutoSkillSystem.breathRetryAt = os.clock() + AutoSkillSystem.breathRetryDelay
+            AutoSkillSystem.breathRetryPending = true
+        end
+    elseif breath and breath >= AutoSkillSystem.breathThreshold
+        and AutoSkillSystem.breathPreparing then
+        -- A barra pode se recuperar sozinha enquanto a animação termina.
+        AutoSkillSystem.breathPreparing = false
+        AutoSkillSystem.breathPrepareStartedAt = 0
+    elseif breath
+        and (breath < AutoSkillSystem.breathThreshold
+            or AutoSkillSystem.breathRetryPending)
+        and os.clock() >= (AutoSkillSystem.breathRetryAt or 0) then
+        if not AutoSkillSystem.breathPreparing then
+            AutoSkillSystem.breathPreparing = true
+            AutoSkillSystem.breathPrepareStartedAt = os.clock()
+            if AutoSkillSystem.breathRetryPending then
+                print("[MoonDF AutoBreath] nova tentativa de respiração; aguardando 2s")
+            else
+                print("[MoonDF AutoBreath] respiração abaixo de 40%; aguardando 2s")
+            end
+        end
+
+        -- Primeiro deixa a forma/ataque atual terminar. Pressionar G durante
+        -- uma forma ativa é ignorado pelo jogo.
+        local preparingFor = os.clock() - AutoSkillSystem.breathPrepareStartedAt
+        if not AutoSkillSystem.isActionBusy()
+            and preparingFor >= AutoSkillSystem.breathPrepareDelay then
+            AutoSkillSystem.breathHolding = true
+            AutoSkillSystem.breathStartedAt = os.clock()
+            AutoSkillSystem.breathRetryPending = false
+            pcall(function()
+                print("[MoonDF AutoBreath] pressionando G | respiração: " .. tostring(breath))
+                VIM:SendKeyEvent(true, Enum.KeyCode.G, false, game)
+            end)
+        end
+    end
+end
+
+AutoSkillSystem.pressSkill = function(key)
+    local keyCode = AutoSkillSystem.keyMap[key]
+    if not keyCode then return end
+    pcall(function()
+        VIM:SendKeyEvent(true, keyCode, false, game)
+        task.wait(0.04)
+        VIM:SendKeyEvent(false, keyCode, false, game)
+    end)
+end
+
+AutoSkillSystem.hasWork = function()
+    if AutoSkillSystem.autoBreath then return true end
+    for _, enabled in pairs(AutoSkillSystem.enabled) do
+        if enabled then return true end
+    end
+    return false
+end
+
+AutoSkillSystem.startLoop = function()
+    if AutoSkillSystem.loopRunning then return end
+    AutoSkillSystem.loopRunning = true
+    task.spawn(function()
+        while AutoSkillSystem.loopRunning and AutoSkillSystem.hasWork() do
+            for key, enabled in pairs(AutoSkillSystem.enabled) do
+                if enabled
+                    and not AutoSkillSystem.breathPreparing
+                    and not AutoSkillSystem.breathHolding
+                    and os.clock() >= (AutoSkillSystem.nextUse[key] or 0)
+                then
+                    AutoSkillSystem.pressSkill(key)
+                    AutoSkillSystem.nextUse[key] = os.clock() + AutoSkillSystem.skillInterval
+                end
+            end
+            task.wait(0.08)
+        end
+        AutoSkillSystem.releaseBreath()
+        AutoSkillSystem.loopRunning = false
+    end)
+end
+
+AutoSkillSystem.startBreathMonitor = function()
+    if AutoSkillSystem.breathMonitorRunning then return end
+    AutoSkillSystem.breathMonitorRunning = true
+    task.spawn(function()
+        while AutoSkillSystem.breathMonitorRunning and AutoSkillSystem.autoBreath do
+            local ok, err = pcall(AutoSkillSystem.updateBreath)
+            if not ok then
+                warn("[MoonDF AutoBreath] erro no monitor: " .. tostring(err))
+            end
+            task.wait(0.1)
+        end
+        AutoSkillSystem.breathMonitorRunning = false
+    end)
+end
+
+AutoSkillSystem.toggleSkill = function(key, state)
+    AutoSkillSystem.enabled[key] = state == true
+    if state then AutoSkillSystem.startLoop() end
+end
+
+AutoSkillSystem.toggleBreath = function(state)
+    AutoSkillSystem.autoBreath = state == true
+    if state then
+        AutoSkillSystem.breathRetryAt = 0
+        AutoSkillSystem.startBreathMonitor()
+        AutoSkillSystem.startLoop()
+    else
+        AutoSkillSystem.releaseBreath()
+        AutoSkillSystem.breathRetryAt = 0
+        AutoSkillSystem.breathRetryPending = false
+        AutoSkillSystem.breathMonitorRunning = false
+    end
+end
 
 globalEnv.clickTPToggle = globalEnv.clickTPToggle or false
 local clickTPToggle = globalEnv.clickTPToggle
@@ -823,6 +1363,18 @@ local LOCATIONS = {
     Castelo1 = CFrame.new(-9986.8, 6898.9, -4678.2),
     Castelo2 = CFrame.new(3433.3, 3732.3, 1879.8),
     Castelo3 = CFrame.new(3396.3, 4010.6, 1768.6)
+}
+
+local EVENT_LOCATIONS = {
+    Raid = LOCATIONS.Raid,
+    Douma = CFrame.new(3358.5, 3738.2, 1673.3),
+    Akaza = CFrame.new(3440.8, 3735.8, 1855.5),
+    Kokushibo = CFrame.new(3458.0, 4022.0, 1618.1),
+    SlayerCastle = CFrame.new(-10065.0, 6907.6, -4570.1),
+    SoupVendor = CFrame.new(-3695.3, 709.9, -1272.5),
+    MeatVendor = CFrame.new(-3414.2, 706.4, -1579.0),
+    JewelVendor = CFrame.new(-3635.1, 707.9, -1473.6),
+    NichirinHornVendor = CFrame.new(-1419.5, 874.1, -6309.4)
 }
 
 local BREATHS = {
@@ -990,12 +1542,10 @@ function toggleClickTP(state)
 
     clickTPConn = UserInputService.InputBegan:Connect(function(input, gp)
         if not clickTPToggle then return end
-        -- só botão esquerdo do mouse / toque
         if input.UserInputType ~= Enum.UserInputType.MouseButton1
             and input.UserInputType ~= Enum.UserInputType.Touch then
             return
         end
-        -- não TP se estiver clicando no hub
         if hubInteracting or (typeof(isPointerOverHub) == "function" and isPointerOverHub()) then
             return
         end
@@ -1007,7 +1557,6 @@ function toggleClickTP(state)
         end
         if not hrp then return end
 
-        -- Raycast da câmera → mouse (mais confiável que mouse.Hit)
         local cam = workspace.CurrentCamera
         if not cam then return end
         local mousePos = UserInputService:GetMouseLocation()
@@ -1022,7 +1571,6 @@ function toggleClickTP(state)
         if result then
             targetPos = result.Position + Vector3.new(0, 3, 0)
         else
-            -- fallback: mouse.Hit ou ponto no ar na direção do clique
             local ok, hit = pcall(function()
                 local m = player:GetMouse()
                 return m and m.Hit and m.Hit.Position
@@ -1082,15 +1630,283 @@ function toggleUltraLite(state)
     end
 end
 
-local function findEnemy(mobName)
-    local targetPlayer = Players:FindFirstChild(mobName)
-    if targetPlayer and targetPlayer.Character then return targetPlayer.Character end
-    return workspace:FindFirstChild(mobName)
+-- Cache + throttle: evita GetDescendants a cada RenderStepped quando o mob morreu
+-- (causa principal de freeze ao farmar alvos inexistentes).
+local enemyCache = { name = nil, model = nil, lastScan = 0, interval = 0.40 }
+
+function isValidEnemyModel(model)
+    if not model or not model.Parent then return false end
+    if not model:IsA("Model") then return false end
+    if not model:FindFirstChildOfClass("Humanoid") then return false end
+    return model:FindFirstChild("HumanoidRootPart")
+        or model:FindFirstChild("Torso")
+        or model:FindFirstChild("Head")
 end
 
-local function teleportAndLook()
+function findEnemy(mobName)
+    if not mobName or mobName == "" then return nil end
+
+    -- Fast path: cache ainda válido
+    if enemyCache.name == mobName and isValidEnemyModel(enemyCache.model) then
+        return enemyCache.model
+    end
+
+    -- Player (barato)
+    local targetPlayer = Players:FindFirstChild(mobName)
+    if targetPlayer and targetPlayer.Character and isValidEnemyModel(targetPlayer.Character) then
+        enemyCache.name = mobName
+        enemyCache.model = targetPlayer.Character
+        return targetPlayer.Character
+    end
+
+    -- Filho direto do workspace (barato)
+    local direct = workspace:FindFirstChild(mobName)
+    if direct and isValidEnemyModel(direct) then
+        enemyCache.name = mobName
+        enemyCache.model = direct
+        return direct
+    end
+
+    -- Scan completo throttled — não trava o frame quando não há mob
+    local now = os.clock()
+    if (now - (enemyCache.lastScan or 0)) < (enemyCache.interval or 0.40) then
+        return nil
+    end
+    enemyCache.lastScan = now
+
+    local found = nil
+    for _, descendant in ipairs(workspace:GetDescendants()) do
+        if descendant:IsA("Model") and descendant.Name == mobName and isValidEnemyModel(descendant) then
+            found = descendant
+            break
+        end
+    end
+    enemyCache.name = mobName
+    enemyCache.model = found
+    return found
+end
+
+local FS = {
+    safeDist = 28,
+    ragdollWait = 0.55,
+    lungeCd = 1.0,
+    lungeRunHold = 0.51,
+    stunRecoilHold = 1.5,
+    stunHoldUntil = 0,
+    execInterval = 5,
+    execLockTime = 60,
+    wasRagdoll = false,
+    ragdollSince = 0,
+    lastLunge = 0,
+    lastExec = 0,
+    lunging = false,
+    didLunge = false,
+    playerStunned = false,
+    curDist = nil,
+    execUntil = 0,
+    execTarget = nil,
+    predLeadMin = 0.12,
+    predLeadMax = 0.55,
+}
+
+FS.isDemon = function()
+    local char = player and player.Character
+    if not char then return false end
+    local race = ""
+    local ok, r = pcall(function() return char:GetAttribute("Race") end)
+    if ok and r then race = tostring(r) end
+    if race == "" then
+        if char:FindFirstChild("Demon") then race = "Demon"
+        elseif char:FindFirstChild("Demon Slayer") then race = "Demon Slayer" end
+    end
+    race = string.lower(race)
+    if race == "" or string.find(race, "slayer", 1, true) then return false end
+    return string.find(race, "demon", 1, true) ~= nil
+end
+
+FS.zeroHP = function(enemy)
+    if not enemy or not enemy.Parent then return false end
+    if enemy:FindFirstChild("Dead") or enemy:FindFirstChild("Executed") then return true end
+    local hpVal = enemy:FindFirstChild("Health")
+    if hpVal and hpVal:IsA("ValueBase") and tonumber(hpVal.Value) <= 0 then return true end
+    local hum = enemy:FindFirstChildOfClass("Humanoid")
+    if hum and hum.Health <= 0 then return true end
+    return false
+end
+
+FS.ragdolled = function(enemy)
+    if not enemy or not enemy.Parent then return false end
+    if enemy:FindFirstChild("Ragdoll") then return true end
+    local hum = enemy:FindFirstChildOfClass("Humanoid")
+    return hum ~= nil and hum.PlatformStand == true
+end
+
+FS.iAmStunned = function()
+    local char = player and player.Character
+    if not char then return false end
+    if char:FindFirstChild("Stun") or char:FindFirstChild("Ragdoll") then return true end
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    return hum ~= nil and hum.PlatformStand == true
+end
+
+FS.execLocked = function(enemy)
+    return enemy and tick() < FS.execUntil and FS.execTarget == enemy
+end
+
+FS.markExec = function(enemy)
+    if not enemy then return end
+    FS.execTarget = enemy
+    FS.execUntil = tick() + FS.execLockTime
+end
+
+FS.predictPlayerPos = function(enemy)
+    if not enemy then return nil end
+    local plr = Players:GetPlayerFromCharacter(enemy)
+    if not plr then return nil end
+    local eRoot = enemy:FindFirstChild("HumanoidRootPart") or enemy:FindFirstChild("Torso")
+    if not eRoot then return nil end
+    local hum = enemy:FindFirstChildOfClass("Humanoid")
+    local vel = Vector3.zero
+    pcall(function()
+        vel = eRoot.AssemblyLinearVelocity or eRoot.Velocity or Vector3.zero
+    end)
+    local flat = Vector3.new(vel.X, 0, vel.Z)
+    local speed = flat.Magnitude
+    if speed < 10 then return nil end
+    local t = FS.predLeadMin + (math.clamp(speed, 10, 40) - 10) / 30 * (FS.predLeadMax - FS.predLeadMin)
+    local pred = eRoot.Position + flat.Unit * (speed * t)
+    if hum then
+        local md = hum.MoveDirection
+        if md and md.Magnitude > 0.2 then
+            local mdFlat = Vector3.new(md.X, 0, md.Z)
+            if mdFlat.Magnitude > 0.1 then
+                pred = eRoot.Position + mdFlat.Unit * (speed * t)
+            end
+        end
+    end
+    return pred
+end
+
+AutoSkillSystem.targetFormActiveUntil = setmetatable({}, {__mode = "k"})
+AutoSkillSystem.targetFormDistance = 150
+
+function targetIsUsingForm(target)
+    if not target or not target.Parent then return false end
+
+    local hasForm = false
+    for _, child in ipairs(target:GetChildren()) do
+        local name = tostring(child.Name or "")
+        local lower = string.lower(name)
+
+        if string.sub(name, 1, 8) == "Activate" then
+            local utility = string.find(lower, "crow", 1, true)
+                or string.find(lower, "dash", 1, true)
+                or string.find(lower, "scar", 1, true)
+                or string.find(lower, "meditat", 1, true)
+                or string.find(lower, "utility", 1, true)
+                or string.find(lower, "emote", 1, true)
+                or string.find(lower, "item", 1, true)
+            if not utility and not string.find(lower, "lunge", 1, true) then
+                hasForm = true
+                break
+            end
+        elseif name == "ItemCooldown" then
+            local targetName = ""
+            pcall(function()
+                if child:IsA("ObjectValue") and child.Value then
+                    targetName = tostring(child.Value.Name or child.Value)
+                elseif child:IsA("StringValue") then
+                    targetName = tostring(child.Value)
+                end
+            end)
+            local utility = targetName == ""
+                or string.find(string.lower(targetName), "crow", 1, true)
+                or string.find(string.lower(targetName), "dash", 1, true)
+                or string.find(string.lower(targetName), "scar", 1, true)
+                or string.find(string.lower(targetName), "meditat", 1, true)
+                or string.find(string.lower(targetName), "utility", 1, true)
+                or string.find(string.lower(targetName), "emote", 1, true)
+                or string.find(string.lower(targetName), "lunge", 1, true)
+            if not utility then
+                hasForm = true
+                break
+            end
+        end
+    end
+
+    local now = os.clock()
+    if hasForm then
+        -- Pequeno buffer para o objeto desaparecer sem deixar o farm colado
+        -- no alvo no mesmo frame em que a forma termina.
+        AutoSkillSystem.targetFormActiveUntil[target] = now + 0.45
+        return true
+    end
+    if (AutoSkillSystem.targetFormActiveUntil[target] or 0) > now then
+        return true
+    end
+    AutoSkillSystem.targetFormActiveUntil[target] = nil
+    return false
+end
+
+-- Estabilizador de câmera durante farm (tabela única = 1 registrador local).
+FarmCam = FarmCam or {
+    active = false,
+    savedType = nil,
+    savedSubject = nil,
+}
+function FarmCam.start()
+    local cam = workspace.CurrentCamera
+    if not cam then return end
+    if not FarmCam.active then
+        FarmCam.savedType = cam.CameraType
+        FarmCam.savedSubject = cam.CameraSubject
+        FarmCam.active = true
+    end
+    cam.CameraType = Enum.CameraType.Scriptable
+end
+function FarmCam.stop()
+    local cam = workspace.CurrentCamera
+    if cam and FarmCam.active then
+        pcall(function()
+            cam.CameraType = FarmCam.savedType or Enum.CameraType.Custom
+            if FarmCam.savedSubject and FarmCam.savedSubject.Parent then
+                cam.CameraSubject = FarmCam.savedSubject
+            elseif humanoid and humanoid.Parent then
+                cam.CameraSubject = humanoid
+            end
+        end)
+    end
+    FarmCam.active = false
+    FarmCam.savedType = nil
+    FarmCam.savedSubject = nil
+end
+function FarmCam.update(focusPos)
+    if not FarmCam.active or not root or not root.Parent then return end
+    local cam = workspace.CurrentCamera
+    if not cam then return end
+    local focus = focusPos or root.Position
+    local back = root.Position - focus
+    local flat = Vector3.new(back.X, 0, back.Z)
+    if flat.Magnitude < 0.15 then
+        flat = Vector3.new(root.CFrame.LookVector.X, 0, root.CFrame.LookVector.Z)
+        if flat.Magnitude < 0.15 then flat = Vector3.new(0, 0, 1) end
+    end
+    flat = flat.Unit
+    local camPos = root.Position + flat * 11 + Vector3.new(0, 7, 0)
+    cam.CFrame = CFrame.new(camPos, focus + Vector3.new(0, 1.5, 0))
+end
+
+function teleportAndLook()
     local enemy = currentMob and findEnemy(currentMob)
-    if not enemy or not root then return end
+    local currentCharacter = player and player.Character
+    local currentRoot = currentCharacter and currentCharacter:FindFirstChild("HumanoidRootPart")
+    if currentCharacter and currentRoot then
+        character = currentCharacter
+        root = currentRoot
+        humanoid = currentCharacter:FindFirstChildOfClass("Humanoid") or humanoid
+    end
+    -- Sem inimigo: não faz scan pesado nem teleporta — evita freeze
+    if not enemy or not root or not root.Parent then return end
     local enemyRoot = enemy:FindFirstChild("HumanoidRootPart") or enemy:FindFirstChild("Torso")
     if not enemyRoot then
         local success, pivot = pcall(function() return enemy:GetPivot() end)
@@ -1098,45 +1914,84 @@ local function teleportAndLook()
         if not enemyRoot then return end
     end
 
-    local currentDistance = FARM_DISTANCE
-    local isExecuting = false
-    if enemy:FindFirstChild("Executing") or enemy:FindFirstChild("Execute") then isExecuting = true end
+    if FS.execTarget and FS.execTarget ~= enemy then
+        FS.execTarget = nil
+        FS.execUntil = 0
+    end
 
-    if isExecuting then
-        if Players:GetPlayerFromCharacter(enemy) then currentDistance = PLAYER_EXECUTE_DISTANCE else currentDistance = EXECUTE_DISTANCE end
+    local currentDistance = FS.curDist or FARM_DISTANCE
+    local isExecuting = enemy:FindFirstChild("Executing") or enemy:FindFirstChild("Execute")
+    local isZeroHP = FS.zeroHP(enemy)
+    local localPlayerDead = not humanoid or humanoid.Health <= 0
+    local enemyUsingForm = targetIsUsingForm(enemy)
+
+    if localPlayerDead and not antiExecute then
+        currentDistance = 1
+    elseif isZeroHP and not isExecuting then
+        currentDistance = 1
+    elseif isExecuting then
+        if Players:GetPlayerFromCharacter(enemy) then
+            currentDistance = PLAYER_EXECUTE_DISTANCE
+        else
+            currentDistance = math.max(0, tonumber(EXECUTE_DISTANCE) or 1)
+        end
+    end
+    if enemyUsingForm and not (localPlayerDead and not antiExecute) then
+        currentDistance = math.max(currentDistance, AutoSkillSystem.targetFormDistance or 150)
+    end
+    if AutoSkillSystem.breathPreparing or AutoSkillSystem.breathHolding then
+        currentDistance = math.max(currentDistance, AutoSkillSystem.breathSafeDistance or 150)
+    end
+
+    local targetPos = enemyRoot.Position
+    local pred = FS.predictPlayerPos(enemy)
+    if pred then
+        targetPos = pred
     end
 
     local offset = Vector3.new(0, 0, 0)
-    if teleportMode == "Below" then offset = Vector3.new(0, -currentDistance, 0)
-    elseif teleportMode == "Above" then offset = Vector3.new(0, currentDistance, 0)
-    elseif teleportMode == "Behind" then
-        local lookVec = enemyRoot.CFrame.LookVector
+    local lookCF = enemyRoot.CFrame
+    if teleportMode == "Below" then
+        offset = Vector3.new(0, -currentDistance, 0)
+    elseif teleportMode == "Above" then
+        offset = Vector3.new(0, currentDistance, 0)
+    else
+        local lookVec
+        if pred then
+            local flatVel = Vector3.new((pred - enemyRoot.Position).X, 0, (pred - enemyRoot.Position).Z)
+            if flatVel.Magnitude > 0.1 then
+                lookVec = flatVel.Unit
+            else
+                lookVec = lookCF and lookCF.LookVector or Vector3.new(0, 0, -1)
+            end
+        else
+            lookVec = lookCF and lookCF.LookVector or Vector3.new(0, 0, -1)
+        end
         offset = -lookVec * currentDistance
     end
-    root.CFrame = CFrame.new(enemyRoot.Position + offset, enemyRoot.Position)
-    root.Velocity = Vector3.new(0,0,0)
+
+    root.CFrame = CFrame.new(targetPos + offset, targetPos)
+    pcall(function()
+        root.Velocity = Vector3.new(0, 0, 0)
+        root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+    end)
+    FarmCam.update(targetPos)
 end
 
-local function teleportAndLookWithKeys()
-    local b_timer = 0
+function teleportAndLookWithKeys()
     while teleportAndLookLooping do
         teleportAndLook()
-        VIM:SendKeyEvent(true, Enum.KeyCode.E, false, game)
-        VIM:SendKeyEvent(false, Enum.KeyCode.E, false, game)
-        if b_timer <= 0 then
-            VIM:SendKeyEvent(true, Enum.KeyCode.B, false, game)
-            VIM:SendKeyEvent(false, Enum.KeyCode.B, false, game)
-            b_timer = 5
+        if not AutoSkillSystem.breathPreparing and not AutoSkillSystem.breathHolding then
+            VIM:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+            VIM:SendKeyEvent(false, Enum.KeyCode.E, false, game)
         end
-        local delta = 0.2
-        b_timer = b_timer - delta
-        task.wait(delta)
+        task.wait(0.2)
     end
 end
 
 local farmAttackLooping = false
 
-local function getCombatRemote()
+function getCombatRemote()
     local rs = game:GetService("ReplicatedStorage")
     local remotes = rs:FindFirstChild("Remotes")
     if remotes then
@@ -1252,28 +2107,38 @@ UserInputService.InputEnded:Connect(function(input, _gp)
     end
 end)
 
-local function sendM1()
+local function sendMouseM1(forceMouseClick)
+    if not forceMouseClick and shouldSkipVisualClick() then return end
+    pcall(function()
+        local mousePos = UserInputService:GetMouseLocation()
+        local x, y = mousePos.X, mousePos.Y
+        if x <= 0 or y <= 0 then
+            local viewport = Camera and Camera.ViewportSize
+            x = viewport and viewport.X * 0.5 or 0
+            y = viewport and viewport.Y * 0.5 or 0
+        end
+        VIM:SendMouseButtonEvent(x, y, 0, true, game, 1)
+        task.wait(0.04)
+        VIM:SendMouseButtonEvent(x, y, 0, false, game, 1)
+    end)
+end
+
+local function sendM1(allowDuringLunge)
+    if AutoSkillSystem.breathPreparing or AutoSkillSystem.breathHolding then return end
+    if FS.lunging and not allowDuringLunge then return end
     pcall(function()
         local remote = getCombatRemote()
-        if remote then
-            remote:FireServer("Combat", "Server")
-        end
+        if remote then remote:FireServer("Combat", "Server") end
     end)
-    if not shouldSkipVisualClick() then
-        pcall(function()
-            VIM:SendMouseButtonEvent(0, 0, 0, true, game, 1)
-            task.wait(0.04)
-            VIM:SendMouseButtonEvent(0, 0, 0, false, game, 1)
-        end)
-    end
+    sendMouseM1(false)
 end
 
 local function sendM2()
+    if AutoSkillSystem.breathPreparing or AutoSkillSystem.breathHolding then return end
+    if FS.lunging then return end
     pcall(function()
         local remote = getCombatRemote()
-        if remote then
-            remote:FireServer("Combat", "Heavy")
-        end
+        if remote then remote:FireServer("Combat", "Heavy") end
     end)
     if not shouldSkipVisualClick() then
         pcall(function()
@@ -1284,9 +2149,103 @@ local function sendM2()
     end
 end
 
+FS.doLunge = function()
+    if AutoSkillSystem.breathPreparing or AutoSkillSystem.breathHolding then return end
+    if FS.lunging or FS.playerStunned then return end
+    if (tick() - FS.lastLunge) < FS.lungeCd then return end
+    FS.lunging = true
+    FS.lastLunge = tick()
+    pcall(function()
+        -- Double-tap W inicia o sprint; cliques M1 começam 10ms depois do timing anterior.
+        -- lungeRunHold sincronizado com a duração real da sequência (0.11 + 5*0.08 = 0.51).
+        VIM:SendKeyEvent(true, Enum.KeyCode.W, false, game)
+        task.wait(0.05)
+        VIM:SendKeyEvent(false, Enum.KeyCode.W, false, game)
+        task.wait(0.08)
+        VIM:SendKeyEvent(true, Enum.KeyCode.W, false, game)
+        local runStarted = tick()
+        task.wait(0.11) -- +10ms vs 0.10: primeiro clique do lunge 10ms depois
+
+        for _ = 1, 5 do
+            sendMouseM1(true)
+            task.wait(0.08)
+        end
+
+        local remainingRun = (FS.lungeRunHold or 0.51) - (tick() - runStarted)
+        if remainingRun > 0 then
+            task.wait(remainingRun)
+        end
+        VIM:SendKeyEvent(false, Enum.KeyCode.W, false, game)
+    end)
+    task.wait(0.05)
+    FS.lunging = false
+end
+
+FS.doExec = function()
+    if AutoSkillSystem.breathPreparing or AutoSkillSystem.breathHolding then return end
+    local localHumanoid = player and player.Character
+        and player.Character:FindFirstChildOfClass("Humanoid")
+    if localHumanoid and localHumanoid.Health <= 0 then return end
+    if (tick() - FS.lastExec) < FS.execInterval then return end
+    FS.lastExec = tick()
+    pcall(function()
+        VIM:SendKeyEvent(true, Enum.KeyCode.B, false, game)
+        task.wait(0.05)
+        VIM:SendKeyEvent(false, Enum.KeyCode.B, false, game)
+    end)
+end
+
 local function smartAttackOnce()
+    if AutoSkillSystem.breathPreparing or AutoSkillSystem.breathHolding then
+        return
+    end
+
     local enemy = getCurrentFarmCharacter()
-    if enemy and isTargetBlocking(enemy) then
+    local demonMode = FS.isDemon()
+
+    if not enemy or not enemy.Parent then
+        return
+    end
+
+    local localHumanoid = player and player.Character
+        and player.Character:FindFirstChildOfClass("Humanoid")
+    if localHumanoid and localHumanoid.Health <= 0 then
+        return
+    end
+
+    if targetIsUsingForm(enemy) then
+        return
+    end
+
+    if FS.zeroHP(enemy) then FS.markExec(enemy) end
+    if FS.execLocked(enemy) then
+        FS.doExec()
+        return
+    end
+
+    if FS.playerStunned and not demonMode then
+        return
+    end
+
+    if FS.ragdolled(enemy) and not demonMode then
+        if not FS.wasRagdoll then
+            FS.wasRagdoll = true
+            FS.ragdollSince = tick()
+            FS.didLunge = false
+        end
+        if not FS.didLunge and (tick() - FS.ragdollSince) >= FS.ragdollWait then
+            FS.doLunge()
+            FS.didLunge = true
+        end
+        return
+    end
+
+    if FS.wasRagdoll then
+        FS.wasRagdoll = false
+        FS.didLunge = false
+    end
+
+    if isTargetBlocking(enemy) and not demonMode then
         local safety = 0
         while (autoAttack or isEnabled) and safety < 40 do
             enemy = getCurrentFarmCharacter()
@@ -1302,40 +2261,100 @@ end
 
 local function autoAttackLoop()
     while autoAttack do
-        if isEnabled and currentMob then
+        if not AutoSkillSystem.breathPreparing and not AutoSkillSystem.breathHolding then
             smartAttackOnce()
-        else
-            sendM1()
         end
         task.wait(0.14)
     end
 end
 
 local function farmAttackLoop()
+    local nextFarmExecute = 0
     while farmAttackLooping and isEnabled do
-        if not autoAttack then
-            smartAttackOnce()
+        if AutoSkillSystem.breathPreparing or AutoSkillSystem.breathHolding then
+            task.wait(0.14)
+        else
+        local demonMode = FS.isDemon()
+        local stunnedNow = FS.iAmStunned()
+        if stunnedNow and not FS.playerStunned then
+            FS.playerStunned = true
+            if not demonMode then
+                FS.curDist = FS.safeDist
+                FS.stunHoldUntil = 0
+            end
+        elseif not stunnedNow and FS.playerStunned then
+            -- Stun acabou: mantém recuo por stunRecoilHold (1.5s) antes de voltar
+            FS.playerStunned = false
+            FS.stunHoldUntil = tick() + (FS.stunRecoilHold or 1.5)
+            if not demonMode and not FS.curDist then
+                FS.curDist = FS.safeDist
+            end
+        elseif not FS.playerStunned and FS.curDist and (FS.stunHoldUntil or 0) > 0 then
+            if tick() >= FS.stunHoldUntil then
+                FS.curDist = nil
+                FS.stunHoldUntil = 0
+            end
         end
+        if tick() >= nextFarmExecute then
+            FS.doExec()
+            nextFarmExecute = tick() + (FS.execInterval or 5)
+        end
+        smartAttackOnce()
         task.wait(0.14)
+        end
     end
 end
 
 function toggleTeleport(enable, mobName)
     if enable then
+        if not isEnabled then
+            farmNoclipWasEnabled = noclipToggle
+        end
+        toggleNoclip(true)
         if connection then connection:Disconnect() end
         teleportAndLookLooping = true
+        enemyCache.name = nil
+        enemyCache.model = nil
+        enemyCache.lastScan = 0
+        FarmCam.start()
         connection = RunService.RenderStepped:Connect(teleportAndLook)
         spawn(teleportAndLookWithKeys)
         currentMob = mobName
         isEnabled = true
         farmAttackLooping = true
+        FS.wasRagdoll = false
+        FS.didLunge = false
+        FS.playerStunned = false
+        FS.curDist = nil
+        FS.stunHoldUntil = 0
+        FS.lastExec = 0
+        FS.execUntil = 0
+        FS.execTarget = nil
+        FS.lunging = false
         spawn(farmAttackLoop)
     else
+        local hadFarmEnabled = isEnabled
         if connection then connection:Disconnect() connection = nil end
         teleportAndLookLooping = false
         farmAttackLooping = false
         isEnabled = false
         currentMob = nil
+        enemyCache.name = nil
+        enemyCache.model = nil
+        enemyCache.lastScan = 0
+        FS.wasRagdoll = false
+        FS.didLunge = false
+        FS.playerStunned = false
+        FS.curDist = nil
+        FS.stunHoldUntil = 0
+        FS.execUntil = 0
+        FS.execTarget = nil
+        FS.lunging = false
+        FarmCam.stop()
+        if hadFarmEnabled then
+            toggleNoclip(farmNoclipWasEnabled)
+            farmNoclipWasEnabled = false
+        end
     end
 end
 
@@ -1451,16 +2470,65 @@ local function oreFarmLoop()
     end
 end
 
-local function loadAllMobs()
+local loadedMobNames = {}
+local loadedMobNameSet = {}
+globalEnv._MoonDFCapturedNpcLogs = globalEnv._MoonDFCapturedNpcLogs or {}
+
+local function collectLoadedMobNames()
+    local unique = {}
+    for _, model in ipairs(workspace:GetDescendants()) do
+        if model:IsA("Model") and model ~= character
+            and not Players:GetPlayerFromCharacter(model)
+            and model:FindFirstChildOfClass("Humanoid")
+            and (model:FindFirstChild("HumanoidRootPart")
+                or model:FindFirstChild("Torso")
+                or model:FindFirstChild("Head")) then
+            unique[model.Name] = true
+        end
+    end
+
+    local names = {}
+    for name in pairs(unique) do
+        table.insert(names, name)
+    end
+    table.sort(names, function(a, b)
+        local lowerA, lowerB = string.lower(a), string.lower(b)
+        if lowerA == lowerB then return a < b end
+        return lowerA < lowerB
+    end)
+    return names
+end
+
+local function rememberLoadedMobNames()
+    for _, name in ipairs(collectLoadedMobNames()) do
+        if not loadedMobNameSet[name] then
+            loadedMobNameSet[name] = true
+            table.insert(loadedMobNames, name)
+        end
+    end
+    table.sort(loadedMobNames, function(a, b)
+        local lowerA, lowerB = string.lower(a), string.lower(b)
+        if lowerA == lowerB then return a < b end
+        return lowerA < lowerB
+    end)
+end
+
+local function detectLoadedMobs()
     if loadingAllMobs then return end
     loadingAllMobs = true
-    local initialPosition = root.CFrame
-    for i, coord in ipairs(LOAD_COORDINATES) do
-        root.CFrame = CFrame.new(coord)
-        task.wait(2)
-    end
-    root.CFrame = initialPosition
+    loadedMobNames = {}
+    loadedMobNameSet = {}
+    rememberLoadedMobNames()
     loadingAllMobs = false
+    notifyDev(#loadedMobNames > 0
+        and string.format(T("DEV_DETECTED_COUNT"), #loadedMobNames)
+        or T("DEV_NO_MOBS"))
+end
+
+local function teleportToEvent(cframe)
+    if root and cframe then
+        root.CFrame = cframe
+    end
 end
 
 local function loadAllMap()
@@ -1518,7 +2586,6 @@ local function findRealHealthAndMax(plr)
     if not char then return nil, nil end
 
     local currentHp = nil
-    -- HP atual: Character.Health (Demon Fall)
     local hpVal = char:FindFirstChild("Health")
     if hpVal and hpVal:IsA("ValueBase") then
         currentHp = tonumber(hpVal.Value)
@@ -1533,7 +2600,6 @@ local function findRealHealthAndMax(plr)
     end
     if not currentHp then return nil, nil end
 
-    -- Max HP REAL: Player.MaxHealth
     local maxHp = nil
     local maxVal = plr:FindFirstChild("MaxHealth")
     if maxVal and maxVal:IsA("ValueBase") then
@@ -1547,7 +2613,6 @@ local function findRealHealthAndMax(plr)
             if v and v > 0 then maxHp = v end
         end
     end
-    -- fallback: pico observado
     local userId = plr.UserId
     local timeSinceSpawn = os.clock() - (playerSpawnTime[userId] or 0)
     if timeSinceSpawn >= 4 then
@@ -1606,7 +2671,6 @@ local function getPlayerBreathing(plr)
     return nil
 end
 
--- Distância média: barras/texto somem longe
 local ESP_MAX_DIST = 180
 
 local function clearAllHealthESP()
@@ -1640,7 +2704,6 @@ local function ensureSideBar(hrp, name, offsetX)
     if gui then gui:Destroy() end
     gui = Instance.new("BillboardGui")
     gui.Name = name
-    -- tamanho compacto: ~altura do torso, largura fina
     gui.Size = UDim2.new(0, 6, 0, 52)
     gui.StudsOffset = Vector3.new(offsetX, 0.2, 0)
     gui.AlwaysOnTop = true
@@ -1686,126 +2749,119 @@ local function drawHealthESP()
 
     for _, plr in ipairs(Players:GetPlayers()) do
         if plr == player then
-            -- skip self
         else
-        local char = plr.Character
-        if not char then
-            if espFolder then
-                local hl = espFolder:FindFirstChild("HL_" .. tostring(plr.UserId))
-                if hl then hl:Destroy() end
-            end
-        else
-        local head = char:FindFirstChild("Head")
-        local hrp = char:FindFirstChild("HumanoidRootPart")
-
-        -- Barras só em média distância; nome+HP em qualquer distância
-        local inRangeBars = true
-        if myPos and hrp then
-            inRangeBars = (hrp.Position - myPos).Magnitude <= ESP_MAX_DIST
-        end
-
-        -- HP tag na cabeça (mapa inteiro)
-        local tag = head and head:FindFirstChild("MoonDFHealthESP")
-        if head and not tag then
-            tag = Instance.new("BillboardGui")
-            tag.Name = "MoonDFHealthESP"
-            tag.Size = UDim2.new(0, 160, 0, 28)
-            tag.StudsOffset = Vector3.new(0, 2.8, 0)
-            tag.AlwaysOnTop = true
-            tag.MaxDistance = 0 -- 0 = sem limite (nome+vida em qualquer distância)
-            tag.Parent = head
-
-            local txt = Instance.new("TextLabel")
-            txt.Name = "TextDisplay"
-            txt.Size = UDim2.new(1, 0, 1, 0)
-            txt.BackgroundTransparency = 1
-            txt.Font = Enum.Font.GothamBold
-            txt.TextSize = 12
-            txt.TextStrokeTransparency = 0.2
-            txt.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-            txt.Parent = tag
-        end
-        if tag then
-            tag.Enabled = true
-            tag.MaxDistance = 0 -- sempre visível no mapa inteiro
-        end
-
-        -- Barras verticais: esquerda = Stamina, direita = Breathing (média distância)
-        local stamGui, breathGui
-        if hrp then
-            stamGui = ensureSideBar(hrp, "MoonDF_StaminaBar", -1.35)
-            breathGui = ensureSideBar(hrp, "MoonDF_BreathBar", 1.35)
-            stamGui.Enabled = inRangeBars
-            breathGui.Enabled = inRangeBars
-        end
-
-        local hlName = "HL_" .. tostring(plr.UserId)
-        local highlight = espFolder and espFolder:FindFirstChild(hlName)
-        if not highlight and espFolder then
-            highlight = Instance.new("Highlight")
-            highlight.Name = hlName
-            highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-            highlight.FillTransparency = 0.55
-            highlight.OutlineTransparency = 0
-            highlight.Parent = espFolder
-        end
-        if highlight then
-            if highlight.Adornee ~= char then highlight.Adornee = char end
-            -- highlight também global (nome/vida já global; outline ajuda a achar)
-            highlight.Enabled = true
-        end
-        local legacy = char:FindFirstChild("MoonDFHighlight")
-        if legacy then legacy:Destroy() end
-
-        local currentHp, maxHp = findRealHealthAndMax(plr)
-        local healthColor
-        if currentHp and maxHp and maxHp > 0 then
-            local percent = math.clamp(currentHp / maxHp, 0, 1)
-            healthColor = Color3.fromHSV(percent * 0.33, 0.95, 1)
-        else
-            healthColor = Color3.fromRGB(180, 180, 200)
-        end
-
-        if tag and tag:FindFirstChild("TextDisplay") then
-            if currentHp and maxHp then
-                tag.TextDisplay.Text = string.format("%s | %d/%d", plr.DisplayName, math.floor(currentHp), math.floor(maxHp))
+            local char = plr.Character
+            if not char then
+                if espFolder then
+                    local hl = espFolder:FindFirstChild("HL_" .. tostring(plr.UserId))
+                    if hl then hl:Destroy() end
+                end
             else
-                tag.TextDisplay.Text = plr.DisplayName .. " | ..."
-            end
-            tag.TextDisplay.TextColor3 = healthColor
-        end
+                local head = char:FindFirstChild("Head")
+                local hrp = char:FindFirstChild("HumanoidRootPart")
 
-        if highlight then
-            highlight.FillColor = healthColor
-            highlight.OutlineColor = healthColor
-        end
+                local inRangeBars = true
+                if myPos and hrp then
+                    inRangeBars = (hrp.Position - myPos).Magnitude <= ESP_MAX_DIST
+                end
 
-        -- Stamina (esquerda, verde)
-        if stamGui then
-            local cur, maxS = getPlayerStamina(plr)
-            if cur and maxS then
-                local pct = math.clamp(cur / maxS, 0, 1)
-                local col = pct > 0.4 and Color3.fromRGB(70, 220, 110)
-                    or (pct > 0.2 and Color3.fromRGB(230, 200, 50) or Color3.fromRGB(230, 70, 60))
-                setSideBarPct(stamGui, pct, col)
-            else
-                setSideBarPct(stamGui, 0, Color3.fromRGB(50, 55, 60))
-            end
-        end
+                local tag = head and head:FindFirstChild("MoonDFHealthESP")
+                if head and not tag then
+                    tag = Instance.new("BillboardGui")
+                    tag.Name = "MoonDFHealthESP"
+                    tag.Size = UDim2.new(0, 160, 0, 28)
+                    tag.StudsOffset = Vector3.new(0, 2.8, 0)
+                    tag.AlwaysOnTop = true
+                    tag.MaxDistance = 0
+                    tag.Parent = head
 
-        -- Breathing (direita, ciano)
-        if breathGui then
-            local breath = getPlayerBreathing(plr)
-            if breath then
-                local pct = math.clamp(breath / 100, 0, 1)
-                local col = pct > 0.45 and Color3.fromRGB(70, 210, 255)
-                    or (pct > 0.2 and Color3.fromRGB(255, 190, 60) or Color3.fromRGB(255, 70, 80))
-                setSideBarPct(breathGui, pct, col)
-            else
-                setSideBarPct(breathGui, 0, Color3.fromRGB(50, 55, 60))
+                    local txt = Instance.new("TextLabel")
+                    txt.Name = "TextDisplay"
+                    txt.Size = UDim2.new(1, 0, 1, 0)
+                    txt.BackgroundTransparency = 1
+                    txt.Font = Enum.Font.GothamBold
+                    txt.TextSize = 12
+                    txt.TextStrokeTransparency = 0.2
+                    txt.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+                    txt.Parent = tag
+                end
+                if tag then
+                    tag.Enabled = true
+                    tag.MaxDistance = 0
+                end
+
+                local stamGui, breathGui
+                if hrp then
+                    stamGui = ensureSideBar(hrp, "MoonDF_StaminaBar", -1.35)
+                    breathGui = ensureSideBar(hrp, "MoonDF_BreathBar", 1.35)
+                    stamGui.Enabled = inRangeBars
+                    breathGui.Enabled = inRangeBars
+                end
+
+                local hlName = "HL_" .. tostring(plr.UserId)
+                local highlight = espFolder and espFolder:FindFirstChild(hlName)
+                if not highlight and espFolder then
+                    highlight = Instance.new("Highlight")
+                    highlight.Name = hlName
+                    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                    highlight.FillTransparency = 0.55
+                    highlight.OutlineTransparency = 0
+                    highlight.Parent = espFolder
+                end
+                if highlight then
+                    if highlight.Adornee ~= char then highlight.Adornee = char end
+                    highlight.Enabled = true
+                end
+                local legacy = char:FindFirstChild("MoonDFHighlight")
+                if legacy then legacy:Destroy() end
+
+                local currentHp, maxHp = findRealHealthAndMax(plr)
+                local healthColor
+                if currentHp and maxHp and maxHp > 0 then
+                    local percent = math.clamp(currentHp / maxHp, 0, 1)
+                    healthColor = Color3.fromHSV(percent * 0.33, 0.95, 1)
+                else
+                    healthColor = Color3.fromRGB(180, 180, 200)
+                end
+
+                if tag and tag:FindFirstChild("TextDisplay") then
+                    if currentHp and maxHp then
+                        tag.TextDisplay.Text = string.format("%s | %d/%d", plr.DisplayName, math.floor(currentHp), math.floor(maxHp))
+                    else
+                        tag.TextDisplay.Text = plr.DisplayName .. " | ..."
+                    end
+                    tag.TextDisplay.TextColor3 = healthColor
+                end
+
+                if highlight then
+                    highlight.FillColor = healthColor
+                    highlight.OutlineColor = healthColor
+                end
+
+                if stamGui then
+                    local cur, maxS = getPlayerStamina(plr)
+                    if cur and maxS then
+                        local pct = math.clamp(cur / maxS, 0, 1)
+                        local col = pct > 0.4 and Color3.fromRGB(70, 220, 110)
+                            or (pct > 0.2 and Color3.fromRGB(230, 200, 50) or Color3.fromRGB(230, 70, 60))
+                        setSideBarPct(stamGui, pct, col)
+                    else
+                        setSideBarPct(stamGui, 0, Color3.fromRGB(50, 55, 60))
+                    end
+                end
+
+                if breathGui then
+                    local breath = getPlayerBreathing(plr)
+                    if breath then
+                        local pct = math.clamp(breath / 100, 0, 1)
+                        local col = pct > 0.45 and Color3.fromRGB(70, 210, 255)
+                            or (pct > 0.2 and Color3.fromRGB(255, 190, 60) or Color3.fromRGB(255, 70, 80))
+                        setSideBarPct(breathGui, pct, col)
+                    else
+                        setSideBarPct(breathGui, 0, Color3.fromRGB(50, 55, 60))
+                    end
+                end
             end
-        end
-        end
         end
     end
 end
@@ -1970,17 +3026,20 @@ function toggleAntiCombat(state)
     end
 end
 
-local devSpinConn, devDiscoConn, devMoonConn, devIceConn = nil, nil, nil, nil
-local devHeliConn, devDrunkConn, devBalloonConn, devRollConn, devHopConn = nil, nil, nil, nil, nil
-local devSpin, devDisco, devMoonwalk, devGiant, devTiny = false, false, false, false, false
-local devIceSlide, devHeli, devDrunk, devBalloon, devRoll, devHop = false, false, false, false, false, false
-local devOriginalSizes = {}
-local devIceVel = Vector3.new(40, 0, 0)
-local devLastWallHit = 0
-globalEnv.iceSlideIntensity = globalEnv.iceSlideIntensity or 50
-local iceSlideIntensity = globalEnv.iceSlideIntensity
+-- DevFX: estado + conexões empacotados (libera dezenas de registradores locais).
+DevFX = DevFX or {
+    spinConn = nil, discoConn = nil, moonConn = nil, iceConn = nil,
+    heliConn = nil, drunkConn = nil, balloonConn = nil, rollConn = nil, hopConn = nil,
+    spin = false, disco = false, moonwalk = false, giant = false, tiny = false,
+    iceSlide = false, heli = false, drunk = false, balloon = false, roll = false, hop = false,
+    originalSizes = {},
+    iceVel = Vector3.new(40, 0, 0),
+    lastWallHit = 0,
+    iceSlideIntensity = (globalEnv.iceSlideIntensity or 50),
+}
+globalEnv.iceSlideIntensity = globalEnv.iceSlideIntensity or DevFX.iceSlideIntensity
 
-local function notifyDev(msg)
+notifyDev = function(msg)
     pcall(function()
         game:GetService("StarterGui"):SetCore("SendNotification", {
             Title = "MOONDF Dev",
@@ -1990,7 +3049,323 @@ local function notifyDev(msg)
     end)
 end
 
-local function copyCoordinates()
+function copyTextToClipboard(text)
+    local ok = false
+    pcall(function()
+        if typeof(setclipboard) == "function" then
+            setclipboard(text)
+            ok = true
+        elseif typeof(toclipboard) == "function" then
+            toclipboard(text)
+            ok = true
+        end
+    end)
+    return ok
+end
+
+function copyMobName(name)
+    local exactName = tostring(name)
+    local copied = copyTextToClipboard(exactName)
+    notifyDev(copied and ("Nome copiado: " .. exactName) or exactName)
+    print("[MOONDF] Mob:", exactName)
+end
+
+function formatNpcLogValue(value)
+    local valueType = typeof(value)
+    if valueType == "string" then
+        return string.format("%q", value)
+    elseif valueType == "Instance" then
+        local ok, fullName = pcall(function() return value:GetFullName() end)
+        return ok and fullName or tostring(value)
+    elseif valueType == "Vector3"
+        or valueType == "Vector2"
+        or valueType == "CFrame"
+        or valueType == "Color3"
+        or valueType == "BrickColor"
+        or valueType == "UDim"
+        or valueType == "UDim2"
+        or valueType == "Rect"
+        or valueType == "Ray"
+        or valueType == "Region3"
+        or valueType == "EnumItem"
+    then
+        return tostring(value)
+    elseif value == nil then
+        return "nil"
+    end
+    return tostring(value)
+end
+
+function appendNpcLogLine(lines, key, value)
+    table.insert(lines, "    " .. tostring(key) .. " = " .. formatNpcLogValue(value))
+end
+
+function appendNpcAttributes(lines, instance)
+    local ok, attributes = pcall(function() return instance:GetAttributes() end)
+    if not ok or type(attributes) ~= "table" then return end
+
+    local names = {}
+    for name in pairs(attributes) do table.insert(names, tostring(name)) end
+    table.sort(names)
+    for _, name in ipairs(names) do
+        appendNpcLogLine(lines, "Attribute." .. name, attributes[name])
+    end
+end
+
+function appendNpcInstanceDetails(lines, instance)
+    local okClass, className = pcall(function() return instance.ClassName end)
+    local okName, instanceName = pcall(function() return instance.Name end)
+    local okFullName, fullName = pcall(function() return instance:GetFullName() end)
+    if not (okClass and okName) then return end
+
+    table.insert(lines, "")
+    table.insert(lines, "[" .. tostring(className) .. "] " .. tostring(instanceName))
+    if okFullName then appendNpcLogLine(lines, "FullName", fullName) end
+    appendNpcAttributes(lines, instance)
+
+    local okTags, tags = pcall(function()
+        return game:GetService("CollectionService"):GetTags(instance)
+    end)
+    if okTags and #tags > 0 then
+        table.sort(tags)
+        appendNpcLogLine(lines, "Tags", table.concat(tags, ", "))
+    end
+
+    if instance:IsA("Model") then
+        local okPrimary, primaryPart = pcall(function() return instance.PrimaryPart end)
+        if okPrimary and primaryPart then appendNpcLogLine(lines, "PrimaryPart", primaryPart) end
+        local okPivot, pivot = pcall(function() return instance:GetPivot() end)
+        if okPivot then appendNpcLogLine(lines, "Pivot", pivot) end
+    elseif instance:IsA("BasePart") then
+        appendNpcLogLine(lines, "CFrame", instance.CFrame)
+        appendNpcLogLine(lines, "Position", instance.Position)
+        appendNpcLogLine(lines, "Size", instance.Size)
+        appendNpcLogLine(lines, "Anchored", instance.Anchored)
+        appendNpcLogLine(lines, "CanCollide", instance.CanCollide)
+        appendNpcLogLine(lines, "CanTouch", instance.CanTouch)
+        appendNpcLogLine(lines, "CanQuery", instance.CanQuery)
+        appendNpcLogLine(lines, "Transparency", instance.Transparency)
+        appendNpcLogLine(lines, "Material", instance.Material)
+        appendNpcLogLine(lines, "Color", instance.Color)
+    elseif instance:IsA("Humanoid") then
+        appendNpcLogLine(lines, "Health", instance.Health)
+        appendNpcLogLine(lines, "MaxHealth", instance.MaxHealth)
+        appendNpcLogLine(lines, "WalkSpeed", instance.WalkSpeed)
+        appendNpcLogLine(lines, "JumpPower", instance.JumpPower)
+        appendNpcLogLine(lines, "JumpHeight", instance.JumpHeight)
+        appendNpcLogLine(lines, "AutoRotate", instance.AutoRotate)
+        appendNpcLogLine(lines, "RigType", instance.RigType)
+        appendNpcLogLine(lines, "DisplayName", instance.DisplayName)
+        appendNpcLogLine(lines, "Sit", instance.Sit)
+        appendNpcLogLine(lines, "PlatformStand", instance.PlatformStand)
+    elseif instance:IsA("ValueBase") then
+        appendNpcLogLine(lines, "Value", instance.Value)
+    elseif instance:IsA("ProximityPrompt") then
+        appendNpcLogLine(lines, "ActionText", instance.ActionText)
+        appendNpcLogLine(lines, "ObjectText", instance.ObjectText)
+        appendNpcLogLine(lines, "HoldDuration", instance.HoldDuration)
+        appendNpcLogLine(lines, "MaxActivationDistance", instance.MaxActivationDistance)
+        appendNpcLogLine(lines, "RequiresLineOfSight", instance.RequiresLineOfSight)
+        appendNpcLogLine(lines, "Enabled", instance.Enabled)
+    elseif instance:IsA("ClickDetector") then
+        appendNpcLogLine(lines, "MaxActivationDistance", instance.MaxActivationDistance)
+    elseif instance:IsA("Sound") then
+        appendNpcLogLine(lines, "SoundId", instance.SoundId)
+        appendNpcLogLine(lines, "Volume", instance.Volume)
+        appendNpcLogLine(lines, "PlaybackSpeed", instance.PlaybackSpeed)
+        appendNpcLogLine(lines, "Playing", instance.Playing)
+    elseif instance:IsA("ParticleEmitter") then
+        appendNpcLogLine(lines, "Texture", instance.Texture)
+        appendNpcLogLine(lines, "Rate", instance.Rate)
+        appendNpcLogLine(lines, "Enabled", instance.Enabled)
+    end
+end
+
+function captureNpcLogs(mobName)
+    local exactName = tostring(mobName)
+    local mob = findLoadedMobModel(exactName)
+    if not mob then
+        notifyDev("NPC não está carregado: " .. exactName)
+        return false
+    end
+
+    local descendants = mob:GetDescendants()
+    table.sort(descendants, function(a, b)
+        local aName = a:GetFullName()
+        local bName = b:GetFullName()
+        return aName < bName
+    end)
+
+    local lines = {
+        "========== MOONDF NPC LOG ==========",
+        "CapturedAt = " .. os.date("%Y-%m-%d %H:%M:%S"),
+        "NPC = " .. exactName,
+        "ClassName = " .. mob.ClassName,
+        "FullName = " .. mob:GetFullName(),
+        "DescendantCount = " .. tostring(#descendants),
+    }
+
+    appendNpcAttributes(lines, mob)
+    local humanoid = mob:FindFirstChildOfClass("Humanoid")
+    if humanoid then
+        table.insert(lines, "")
+        table.insert(lines, "[Summary: Humanoid]")
+        appendNpcLogLine(lines, "Health", humanoid.Health)
+        appendNpcLogLine(lines, "MaxHealth", humanoid.MaxHealth)
+        appendNpcLogLine(lines, "WalkSpeed", humanoid.WalkSpeed)
+        appendNpcLogLine(lines, "RigType", humanoid.RigType)
+    end
+
+    for _, instance in ipairs(descendants) do
+        appendNpcInstanceDetails(lines, instance)
+    end
+    table.insert(lines, "")
+    table.insert(lines, "========== END NPC LOG ==========")
+
+    globalEnv._MoonDFCapturedNpcLogs[exactName] = table.concat(lines, "\n")
+    notifyDev(string.format("Logs capturados: %s (%d itens)", exactName, #descendants + 1))
+    print(globalEnv._MoonDFCapturedNpcLogs[exactName])
+    return true
+end
+
+function copyCapturedNpcLogs(mobName)
+    local exactName = tostring(mobName)
+    local logText = globalEnv._MoonDFCapturedNpcLogs[exactName]
+    if not logText then
+        notifyDev(T("DEV_NO_NPC_LOGS") .. ": " .. exactName)
+        return false
+    end
+
+    local copied = copyTextToClipboard(logText)
+    notifyDev(copied and (T("DEV_COPY_NPC_LOGS") .. ": " .. exactName) or logText)
+    print("[MOONDF] NPC logs " .. (copied and "copied: " or "captured: ") .. exactName)
+    return copied
+end
+
+findLoadedMobModel = function(mobName)
+    local targetPlayer = Players:FindFirstChild(mobName)
+    if targetPlayer and targetPlayer.Character then
+        return targetPlayer.Character
+    end
+
+    local direct = workspace:FindFirstChild(mobName)
+    if direct and direct:IsA("Model") then
+        return direct
+    end
+
+    for _, descendant in ipairs(workspace:GetDescendants()) do
+        if descendant:IsA("Model") and descendant.Name == mobName
+            and descendant ~= character
+            and not Players:GetPlayerFromCharacter(descendant)
+            and descendant:FindFirstChildOfClass("Humanoid")
+            and (descendant:FindFirstChild("HumanoidRootPart")
+                or descendant:FindFirstChild("Torso")
+                or descendant:FindFirstChild("Head")) then
+            return descendant
+        end
+    end
+    return nil
+end
+
+function teleportToLoadedMob(mobName)
+    local mob = findLoadedMobModel(mobName)
+    if not mob then
+        notifyDev("Mob não está carregado: " .. tostring(mobName))
+        return
+    end
+
+    local mobRoot = mob:FindFirstChild("HumanoidRootPart")
+        or mob:FindFirstChild("Torso")
+        or mob:FindFirstChild("Head")
+    local targetCFrame
+    if mobRoot and mobRoot:IsA("BasePart") then
+        targetCFrame = mobRoot.CFrame * CFrame.new(0, 0, 4)
+    else
+        local ok, pivot = pcall(function() return mob:GetPivot() end)
+        if ok then targetCFrame = pivot * CFrame.new(0, 0, 4) end
+    end
+
+    if root and targetCFrame then
+        root.CFrame = targetCFrame
+        notifyDev("Teleportado para: " .. tostring(mobName))
+    end
+end
+
+function getLoadedMobNameOptions()
+    local options = {}
+    rememberLoadedMobNames()
+    for _, mobName in ipairs(loadedMobNames) do
+        local exactName = mobName
+        table.insert(options, {
+            Type = "ListAuto",
+            Name = exactName,
+            Description = T("DEV_MOB_ACTIONS"),
+            Options = {
+                {
+                    Type = "Single",
+                    Name = T("DEV_COPY_MOB_NAME"),
+                    Description = T("DEV_COPY_MOB_NAME_DESC"),
+                    Callback = function()
+                        copyMobName(exactName)
+                    end
+                },
+                {
+                    Type = "Single",
+                    Name = T("DEV_CAPTURE_NPC_LOGS"),
+                    Description = T("DEV_CAPTURE_NPC_LOGS_DESC"),
+                    Callback = function()
+                        captureNpcLogs(exactName)
+                    end
+                },
+                {
+                    Type = "Single",
+                    Name = T("DEV_COPY_NPC_LOGS"),
+                    Description = T("DEV_COPY_NPC_LOGS_DESC"),
+                    Callback = function()
+                        copyCapturedNpcLogs(exactName)
+                    end
+                },
+                {
+                    Type = "Single",
+                    Name = T("DEV_TELEPORT_MOB"),
+                    Description = T("DEV_TELEPORT_MOB_DESC"),
+                    Callback = function()
+                        teleportToLoadedMob(exactName)
+                    end
+                },
+                {
+                    Type = "Toggle",
+                    StateKey = "DevFarmMob_" .. exactName,
+                    Name = T("DEV_FARM_MOB"),
+                    Description = T("DEV_FARM_MOB_DESC"),
+                    OnEnable = function()
+                        if findLoadedMobModel(exactName) then
+                            toggleTeleport(true, exactName)
+                        else
+                            notifyDev("Mob não está carregado: " .. exactName)
+                        end
+                    end,
+                    OnDisable = function()
+                        toggleTeleport(false)
+                    end
+                }
+            }
+        })
+    end
+    if #options == 0 then
+        table.insert(options, {
+            Type = "Single",
+            Name = T("DEV_NO_MOBS"),
+            Description = T("DEV_NO_MOBS_DESC"),
+            Callback = function()
+                notifyDev(T("DEV_NO_MOBS"))
+            end
+        })
+    end
+    return options
+end
+
+function copyCoordinates()
     if not root then
         notifyDev("Sem personagem / HRP")
         return
@@ -2011,19 +3386,19 @@ local function copyCoordinates()
     print("[MOONDF] Coords:", line)
 end
 
-local function toggleDevSpin(state)
-    devSpin = state
-    if devSpinConn then devSpinConn:Disconnect(); devSpinConn = nil end
+function toggleDevSpin(state)
+    DevFX.spin = state
+    if DevFX.spinConn then DevFX.spinConn:Disconnect(); DevFX.spinConn = nil end
     if not state then return end
-    devSpinConn = RunService.Heartbeat:Connect(function(dt)
-        if not devSpin or not root then return end
+    DevFX.spinConn = RunService.Heartbeat:Connect(function(dt)
+        if not DevFX.spin or not root then return end
         root.CFrame = root.CFrame * CFrame.Angles(0, math.rad(720 * dt), 0)
     end)
 end
 
-local function toggleDevDisco(state)
-    devDisco = state
-    if devDiscoConn then devDiscoConn:Disconnect(); devDiscoConn = nil end
+function toggleDevDisco(state)
+    DevFX.disco = state
+    if DevFX.discoConn then DevFX.discoConn:Disconnect(); DevFX.discoConn = nil end
     if not state then
         pcall(function()
             if character then
@@ -2037,8 +3412,8 @@ local function toggleDevDisco(state)
         return
     end
     local t0 = tick()
-    devDiscoConn = RunService.Heartbeat:Connect(function()
-        if not devDisco or not character then return end
+    DevFX.discoConn = RunService.Heartbeat:Connect(function()
+        if not DevFX.disco or not character then return end
         local h = (tick() - t0) % 1
         local c = Color3.fromHSV(h, 1, 1)
         for _, p in ipairs(character:GetDescendants()) do
@@ -2049,12 +3424,12 @@ local function toggleDevDisco(state)
     end)
 end
 
-local function toggleDevMoonwalk(state)
-    devMoonwalk = state
-    if devMoonConn then devMoonConn:Disconnect(); devMoonConn = nil end
+function toggleDevMoonwalk(state)
+    DevFX.moonwalk = state
+    if DevFX.moonConn then DevFX.moonConn:Disconnect(); DevFX.moonConn = nil end
     if not state then return end
-    devMoonConn = RunService.Heartbeat:Connect(function()
-        if not devMoonwalk or not humanoid or not root then return end
+    DevFX.moonConn = RunService.Heartbeat:Connect(function()
+        if not DevFX.moonwalk or not humanoid or not root then return end
         local move = humanoid.MoveDirection
         if move.Magnitude > 0.05 then
             root.CFrame = CFrame.lookAt(root.Position, root.Position - move)
@@ -2062,48 +3437,48 @@ local function toggleDevMoonwalk(state)
     end)
 end
 
-local function setCharacterScale(mult)
+function setCharacterScale(mult)
     if not character then return end
     for _, p in ipairs(character:GetDescendants()) do
         if p:IsA("BasePart") then
-            if not devOriginalSizes[p] then
-                devOriginalSizes[p] = p.Size
+            if not DevFX.originalSizes[p] then
+                DevFX.originalSizes[p] = p.Size
             end
-            p.Size = devOriginalSizes[p] * mult
+            p.Size = DevFX.originalSizes[p] * mult
         end
     end
 end
 
-local function restoreCharacterScale()
-    for part, size in pairs(devOriginalSizes) do
+function restoreCharacterScale()
+    for part, size in pairs(DevFX.originalSizes) do
         if part and part.Parent then
             pcall(function() part.Size = size end)
         end
     end
-    devOriginalSizes = {}
+    DevFX.originalSizes = {}
 end
 
-local function toggleDevGiant(state)
-    devGiant = state
+function toggleDevGiant(state)
+    DevFX.giant = state
     if state then
-        devTiny = false
+        DevFX.tiny = false
         setCharacterScale(3)
     else
         restoreCharacterScale()
     end
 end
 
-local function toggleDevTiny(state)
-    devTiny = state
+function toggleDevTiny(state)
+    DevFX.tiny = state
     if state then
-        devGiant = false
+        DevFX.giant = false
         setCharacterScale(0.4)
     else
         restoreCharacterScale()
     end
 end
 
-local function devFlingSelf()
+function devFlingSelf()
     if not root then return end
     pcall(function()
         local bv = Instance.new("BodyVelocity")
@@ -2117,7 +3492,7 @@ local function devFlingSelf()
     notifyDev("Whee!")
 end
 
-local function devRagdollOnce()
+function devRagdollOnce()
     if not humanoid then return end
     pcall(function()
         humanoid:ChangeState(Enum.HumanoidStateType.Physics)
@@ -2129,40 +3504,40 @@ local function devRagdollOnce()
     end)
 end
 
-local function toggleDevIceSlide(state)
-    devIceSlide = state
-    if devIceConn then devIceConn:Disconnect(); devIceConn = nil end
+function toggleDevIceSlide(state)
+    DevFX.iceSlide = state
+    if DevFX.iceConn then DevFX.iceConn:Disconnect(); DevFX.iceConn = nil end
     if not state then return end
 
     local function baseSpeed()
-        return 15 + (iceSlideIntensity / 100) * 105
+        return 15 + (DevFX.iceSlideIntensity / 100) * 105
     end
     local function maxSpeed()
-        return 40 + (iceSlideIntensity / 100) * 160
+        return 40 + (DevFX.iceSlideIntensity / 100) * 160
     end
     local function bounceMult()
-        return 1.05 + (iceSlideIntensity / 100) * 0.9
+        return 1.05 + (DevFX.iceSlideIntensity / 100) * 0.9
     end
     local function bounceBoost()
-        return 8 + (iceSlideIntensity / 100) * 45
+        return 8 + (DevFX.iceSlideIntensity / 100) * 45
     end
     local function friction()
-        return 0.25 - (iceSlideIntensity / 100) * 0.22
+        return 0.25 - (DevFX.iceSlideIntensity / 100) * 0.22
     end
     local function spinRate()
-        return 80 + (iceSlideIntensity / 100) * 280
+        return 80 + (DevFX.iceSlideIntensity / 100) * 280
     end
     local function bounceUp()
-        return 10 + (iceSlideIntensity / 100) * 40
+        return 10 + (DevFX.iceSlideIntensity / 100) * 40
     end
 
     local ang = math.random() * math.pi * 2
     local bs = baseSpeed()
-    devIceVel = Vector3.new(math.cos(ang) * bs, 0, math.sin(ang) * bs)
-    devLastWallHit = 0
+    DevFX.iceVel = Vector3.new(math.cos(ang) * bs, 0, math.sin(ang) * bs)
+    DevFX.lastWallHit = 0
 
-    devIceConn = RunService.Heartbeat:Connect(function(dt)
-        if not devIceSlide or not root or not character or not humanoid then return end
+    DevFX.iceConn = RunService.Heartbeat:Connect(function(dt)
+        if not DevFX.iceSlide or not root or not character or not humanoid then return end
 
         local isDown = character:FindFirstChild("Down")
             or character:FindFirstChild("Ragdoll")
@@ -2176,16 +3551,16 @@ local function toggleDevIceSlide(state)
         if not isDown then
             local move = humanoid.MoveDirection
             if move.Magnitude > 0.1 then
-                devIceVel = Vector3.new(move.X, 0, move.Z).Unit * bs
+                DevFX.iceVel = Vector3.new(move.X, 0, move.Z).Unit * bs
             end
             return
         end
 
-        local horiz = Vector3.new(devIceVel.X, 0, devIceVel.Z)
+        local horiz = Vector3.new(DevFX.iceVel.X, 0, DevFX.iceVel.Z)
         if horiz.Magnitude < 5 then
             local a = math.random() * math.pi * 2
             horiz = Vector3.new(math.cos(a), 0, math.sin(a)) * bs
-            devIceVel = horiz
+            DevFX.iceVel = horiz
         end
 
         local dir = horiz.Unit
@@ -2195,51 +3570,51 @@ local function toggleDevIceSlide(state)
         params.FilterDescendantsInstances = { character }
 
         local hit = workspace:Raycast(origin, dir * 4.5, params)
-        if hit and (tick() - devLastWallHit) > 0.12 then
-            devLastWallHit = tick()
+        if hit and (tick() - DevFX.lastWallHit) > 0.12 then
+            DevFX.lastWallHit = tick()
             local n = Vector3.new(hit.Normal.X, 0, hit.Normal.Z)
             if n.Magnitude > 0.05 then
                 n = n.Unit
                 local reflected = horiz - 2 * horiz:Dot(n) * n
                 local speed = math.clamp(horiz.Magnitude * bounceMult() + bounceBoost(), bs * 0.8, maxSpeed())
-                devIceVel = reflected.Unit * speed
-                root.AssemblyLinearVelocity = Vector3.new(devIceVel.X, bounceUp(), devIceVel.Z)
+                DevFX.iceVel = reflected.Unit * speed
+                root.AssemblyLinearVelocity = Vector3.new(DevFX.iceVel.X, bounceUp(), DevFX.iceVel.Z)
             end
         else
             local speed = horiz.Magnitude
             local fr = friction()
             if speed > 8 then
-                devIceVel = dir * (speed * (1 - fr * dt))
+                DevFX.iceVel = dir * (speed * (1 - fr * dt))
             else
-                devIceVel = dir * bs
+                DevFX.iceVel = dir * bs
             end
             local vy = root.AssemblyLinearVelocity.Y
-            root.AssemblyLinearVelocity = Vector3.new(devIceVel.X, vy, devIceVel.Z)
+            root.AssemblyLinearVelocity = Vector3.new(DevFX.iceVel.X, vy, DevFX.iceVel.Z)
         end
 
         root.CFrame = root.CFrame * CFrame.Angles(0, 0, math.rad(spinRate() * dt))
     end)
 end
 
-local function toggleDevHeli(state)
-    devHeli = state
-    if devHeliConn then devHeliConn:Disconnect(); devHeliConn = nil end
+function toggleDevHeli(state)
+    DevFX.heli = state
+    if DevFX.heliConn then DevFX.heliConn:Disconnect(); DevFX.heliConn = nil end
     if not state then return end
-    devHeliConn = RunService.Heartbeat:Connect(function(dt)
-        if not devHeli or not root then return end
+    DevFX.heliConn = RunService.Heartbeat:Connect(function(dt)
+        if not DevFX.heli or not root then return end
         root.CFrame = root.CFrame * CFrame.Angles(0, math.rad(900 * dt), 0)
         local v = root.AssemblyLinearVelocity
         root.AssemblyLinearVelocity = Vector3.new(v.X * 0.5, 35, v.Z * 0.5)
     end)
 end
 
-local function toggleDevDrunk(state)
-    devDrunk = state
-    if devDrunkConn then devDrunkConn:Disconnect(); devDrunkConn = nil end
+function toggleDevDrunk(state)
+    DevFX.drunk = state
+    if DevFX.drunkConn then DevFX.drunkConn:Disconnect(); DevFX.drunkConn = nil end
     if not state then return end
     local nextJolt = 0
-    devDrunkConn = RunService.Heartbeat:Connect(function()
-        if not devDrunk or not root then return end
+    DevFX.drunkConn = RunService.Heartbeat:Connect(function()
+        if not DevFX.drunk or not root then return end
         if tick() > nextJolt then
             nextJolt = tick() + 0.25 + math.random() * 0.35
             local j = Vector3.new(math.random(-40, 40), math.random(-5, 15), math.random(-40, 40))
@@ -2249,24 +3624,24 @@ local function toggleDevDrunk(state)
     end)
 end
 
-local function toggleDevBalloon(state)
-    devBalloon = state
-    if devBalloonConn then devBalloonConn:Disconnect(); devBalloonConn = nil end
+function toggleDevBalloon(state)
+    DevFX.balloon = state
+    if DevFX.balloonConn then DevFX.balloonConn:Disconnect(); DevFX.balloonConn = nil end
     if not state then return end
-    devBalloonConn = RunService.Heartbeat:Connect(function(dt)
-        if not devBalloon or not root then return end
+    DevFX.balloonConn = RunService.Heartbeat:Connect(function(dt)
+        if not DevFX.balloon or not root then return end
         local v = root.AssemblyLinearVelocity
         root.AssemblyLinearVelocity = Vector3.new(v.X * 0.85, 18, v.Z * 0.85)
         root.CFrame = root.CFrame * CFrame.Angles(0, math.rad(90 * dt), 0)
     end)
 end
 
-local function toggleDevRoll(state)
-    devRoll = state
-    if devRollConn then devRollConn:Disconnect(); devRollConn = nil end
+function toggleDevRoll(state)
+    DevFX.roll = state
+    if DevFX.rollConn then DevFX.rollConn:Disconnect(); DevFX.rollConn = nil end
     if not state then return end
-    devRollConn = RunService.Heartbeat:Connect(function(dt)
-        if not devRoll or not root then return end
+    DevFX.rollConn = RunService.Heartbeat:Connect(function(dt)
+        if not DevFX.roll or not root then return end
         root.CFrame = root.CFrame * CFrame.Angles(math.rad(540 * dt), 0, 0)
         local look = root.CFrame.LookVector
         local v = root.AssemblyLinearVelocity
@@ -2274,13 +3649,13 @@ local function toggleDevRoll(state)
     end)
 end
 
-local function toggleDevHop(state)
-    devHop = state
-    if devHopConn then devHopConn:Disconnect(); devHopConn = nil end
+function toggleDevHop(state)
+    DevFX.hop = state
+    if DevFX.hopConn then DevFX.hopConn:Disconnect(); DevFX.hopConn = nil end
     if not state then return end
     local nextHop = 0
-    devHopConn = RunService.Heartbeat:Connect(function()
-        if not devHop or not root or not humanoid then return end
+    DevFX.hopConn = RunService.Heartbeat:Connect(function()
+        if not DevFX.hop or not root or not humanoid then return end
         if humanoid.MoveDirection.Magnitude > 0.1 and tick() > nextHop then
             nextHop = tick() + 0.28
             local v = root.AssemblyLinearVelocity
@@ -2289,13 +3664,13 @@ local function toggleDevHop(state)
     end)
 end
 
-local function disconnectSpectateInputs()
+function disconnectSpectateInputs()
     if spectateInputBegan then spectateInputBegan:Disconnect(); spectateInputBegan = nil end
     if spectateInputEnded then spectateInputEnded:Disconnect(); spectateInputEnded = nil end
     if spectateInputChanged then spectateInputChanged:Disconnect(); spectateInputChanged = nil end
 end
 
-local function connectSpectateInputs()
+function connectSpectateInputs()
     disconnectSpectateInputs()
 
     spectateInputBegan = UserInputService.InputBegan:Connect(function(input, gpe)
@@ -2331,7 +3706,7 @@ local function connectSpectateInputs()
     end)
 end
 
-local function stopSpectateCamera()
+function stopSpectateCamera()
     if spectateConn then spectateConn:Disconnect(); spectateConn = nil end
     disconnectSpectateInputs()
     isMouseDownSpec = false
@@ -2435,7 +3810,7 @@ player.CharacterAdded:Connect(function(newChar)
     if infiniteJump then toggleInfiniteJump(true) end
 end)
 
-local function getPlayerNames()
+function getPlayerNames()
     local list = {}
     for _, v in pairs(Players:GetPlayers()) do if v ~= player then table.insert(list, v.Name) end end
     return list
@@ -2445,117 +3820,141 @@ end
 -- UI (POPUP + HUD)
 -- ======================================================================
 
-local isMobile = false
-local SCALE_FACTOR = 1
-local DEFAULT_WIDTH = 760
-local DEFAULT_HEIGHT = 520
-local MIN_WIDTH = 420
-local MIN_HEIGHT = 260
-local RIGHT_AREA_SCALE = 0.33
+-- Empacotado para não estourar o limite de 200 registradores locais do Luau.
+UILayout = UILayout or {
+    isMobile = false,
+    SCALE_FACTOR = 1,
+    DEFAULT_WIDTH = 760,
+    DEFAULT_HEIGHT = 520,
+    MIN_WIDTH = 420,
+    MIN_HEIGHT = 260,
+    RIGHT_AREA_SCALE = 0.33,
+}
 
-local userChoice = nil
-local POPUP_W, POPUP_H = 520, 220
-local popup = new("Frame", {
-    Name = "ModePopup",
-    Parent = screenGui,
-    AnchorPoint = Vector2.new(0, 0), -- FIX: 0,0 (sem salto)
-    Position = UDim2.new(0.5, -POPUP_W/2, 0.5, -POPUP_H/2),
-    Size = UDim2.new(0, POPUP_W, 0, POPUP_H),
-    BackgroundColor3 = THEME.PanelBg,
-    BorderSizePixel = 0,
-    ZIndex = 50
-})
-makeRound(popup, 12)
-local popupStroke = makeStroke(popup, THEME.Border, 1)
+function showPlatformPopup()
+    local userChoice = nil
+    local POPUP_W, POPUP_H = 520, 220
+    local popup = new("Frame", {
+        Name = "ModePopup",
+        Parent = screenGui,
+        AnchorPoint = Vector2.new(0, 0),
+        Position = UDim2.new(0.5, -POPUP_W/2, 0.5, -POPUP_H/2),
+        Size = UDim2.new(0, POPUP_W, 0, POPUP_H),
+        BackgroundColor3 = THEME.SurfaceContainer or THEME.PanelBg,
+        BorderSizePixel = 0,
+        ZIndex = 50
+    })
+    makeRound(popup, 20)
+    makeStroke(popup, THEME.Outline, 1)
 
-local popupTitle = new("TextLabel", {
-    Parent = popup,
-    Position = UDim2.new(0, 16, 0, 12),
-    Size = UDim2.new(1, -32, 0, 30),
-    BackgroundTransparency = 1,
-    Text = T("TITLE_MAIN"),
-    TextColor3 = THEME.Text,
-    Font = Enum.Font.GothamBold,
-    TextSize = 18,
-    TextXAlignment = Enum.TextXAlignment.Left
-})
+    new("TextLabel", {
+        Parent = popup,
+        Position = UDim2.new(0, 16, 0, 12),
+        Size = UDim2.new(1, -32, 0, 30),
+        BackgroundTransparency = 1,
+        Text = T("TITLE_MAIN"),
+        TextColor3 = THEME.Text,
+        Font = Enum.Font.GothamSemibold,
+        TextSize = 18,
+        TextXAlignment = Enum.TextXAlignment.Left
+    })
 
-local popupDesc = new("TextLabel", {
-    Parent = popup,
-    Position = UDim2.new(0, 16, 0, 46),
-    Size = UDim2.new(1, -32, 0, 48),
-    BackgroundTransparency = 1,
-    Text = "Selecione a plataforma / Select platform\nPC -> Versão normal | Mobile -> Versão compacta (toque compatível)",
-    TextColor3 = THEME.SubText,
-    Font = Enum.Font.Gotham,
-    TextSize = 14,
-    TextXAlignment = Enum.TextXAlignment.Left
-})
+    new("TextLabel", {
+        Parent = popup,
+        Position = UDim2.new(0, 16, 0, 46),
+        Size = UDim2.new(1, -32, 0, 48),
+        BackgroundTransparency = 1,
+        Text = "Selecione a plataforma / Select platform\nPC -> Versão normal | Mobile -> Versão compacta (toque compatível)",
+        TextColor3 = THEME.SubText,
+        Font = Enum.Font.Gotham,
+        TextSize = 14,
+        TextXAlignment = Enum.TextXAlignment.Left
+    })
 
-local btnContainer = new("Frame", {Parent = popup, Position = UDim2.new(0, 16, 1, -68), Size = UDim2.new(1, -32, 0, 52), BackgroundTransparency = 1})
--- Cores fixas com contraste (no Carbon, Accent/On são brancos e o texto sumia)
-local pcBtn = new("TextButton", {
-    Parent = btnContainer,
-    AnchorPoint = Vector2.new(0, 0),
-    Position = UDim2.new(0, 0, 0, 0),
-    Size = UDim2.new(0.5, -8, 1, 0),
-    BackgroundColor3 = Color3.fromRGB(45, 110, 230),
-    Text = "PC",
-    TextColor3 = Color3.fromRGB(255, 255, 255),
-    Font = Enum.Font.GothamBold,
-    TextSize = 16,
-    BorderSizePixel = 0
-})
-makeRound(pcBtn, 8)
+    local btnContainer = new("Frame", {
+        Parent = popup,
+        Position = UDim2.new(0, 16, 1, -68),
+        Size = UDim2.new(1, -32, 0, 52),
+        BackgroundTransparency = 1
+    })
+    local pcBtn = new("TextButton", {
+        Parent = btnContainer,
+        AnchorPoint = Vector2.new(0, 0),
+        Position = UDim2.new(0, 0, 0, 0),
+        Size = UDim2.new(0.5, -8, 1, 0),
+        BackgroundColor3 = THEME.Primary,
+        Text = "PC",
+        TextColor3 = THEME.OnPrimary,
+        Font = Enum.Font.GothamSemibold,
+        TextSize = 16,
+        BorderSizePixel = 0
+    })
+    makeRound(pcBtn, 14)
+    makeStroke(pcBtn, THEME.Primary, 1)
 
-local mobileBtn = new("TextButton", {
-    Parent = btnContainer,
-    AnchorPoint = Vector2.new(0, 0),
-    Position = UDim2.new(0.5, 8, 0, 0),
-    Size = UDim2.new(0.5, -8, 1, 0),
-    BackgroundColor3 = Color3.fromRGB(30, 170, 110),
-    Text = "Mobile",
-    TextColor3 = Color3.fromRGB(255, 255, 255),
-    Font = Enum.Font.GothamBold,
-    TextSize = 16,
-    BorderSizePixel = 0
-})
-makeRound(mobileBtn, 8)
+    local mobileBtn = new("TextButton", {
+        Parent = btnContainer,
+        AnchorPoint = Vector2.new(0, 0),
+        Position = UDim2.new(0.5, 8, 0, 0),
+        Size = UDim2.new(0.5, -8, 1, 0),
+        BackgroundColor3 = THEME.PrimaryContainer or THEME.Hover,
+        Text = "Mobile",
+        TextColor3 = THEME.Text,
+        Font = Enum.Font.GothamSemibold,
+        TextSize = 16,
+        BorderSizePixel = 0
+    })
+    makeRound(mobileBtn, 14)
+    makeStroke(mobileBtn, THEME.OutlineVariant, 1)
 
-local popupClose = new("TextButton", {Parent = popup, AnchorPoint = Vector2.new(1,0), Position = UDim2.new(1, -10, 0, 8), Size = UDim2.new(0, 36, 0, 28), BackgroundColor3 = THEME.Danger, Text = "X", TextColor3 = Color3.new(1,1,1), Font = Enum.Font.GothamBold, TextSize = 14, BorderSizePixel = 0})
-makeRound(popupClose, 6)
+    local popupClose = new("TextButton", {
+        Parent = popup,
+        AnchorPoint = Vector2.new(1, 0),
+        Position = UDim2.new(1, -10, 0, 8),
+        Size = UDim2.new(0, 36, 0, 28),
+        BackgroundColor3 = THEME.Danger,
+        Text = "X",
+        TextColor3 = contrastText(THEME.Danger),
+        Font = Enum.Font.GothamBold,
+        TextSize = 14,
+        BorderSizePixel = 0
+    })
+    makeRound(popupClose, 10)
 
-local function applyPlatformChoice(choice)
-    userChoice = choice
-    isMobile = (choice == "MOBILE")
-    SCALE_FACTOR = isMobile and 0.62 or 1.0
-    if Camera and Camera.ViewportSize then
-        local vx, vy = Camera.ViewportSize.X, Camera.ViewportSize.Y
-        if isMobile then
-            DEFAULT_WIDTH = math.floor(math.clamp(vx * 0.72, 280, 420))
-            DEFAULT_HEIGHT = math.floor(math.clamp(vy * 0.48, 200, 340))
-            MIN_WIDTH = 280
-            MIN_HEIGHT = 170
-            RIGHT_AREA_SCALE = 0.38
-        else
-            DEFAULT_WIDTH = 760
-            DEFAULT_HEIGHT = 520
-            MIN_WIDTH = 420
-            MIN_HEIGHT = 260
-            RIGHT_AREA_SCALE = 0.33
+    local function applyPlatformChoice(choice)
+        userChoice = choice
+        UILayout.isMobile = (choice == "MOBILE")
+        UILayout.SCALE_FACTOR = UILayout.isMobile and 0.62 or 1.0
+        if Camera and Camera.ViewportSize then
+            local vx, vy = Camera.ViewportSize.X, Camera.ViewportSize.Y
+            if UILayout.isMobile then
+                UILayout.DEFAULT_WIDTH = math.floor(math.clamp(vx * 0.72, 280, 420))
+                UILayout.DEFAULT_HEIGHT = math.floor(math.clamp(vy * 0.48, 200, 340))
+                UILayout.MIN_WIDTH = 280
+                UILayout.MIN_HEIGHT = 170
+                UILayout.RIGHT_AREA_SCALE = 0.38
+            else
+                UILayout.DEFAULT_WIDTH = 760
+                UILayout.DEFAULT_HEIGHT = 520
+                UILayout.MIN_WIDTH = 420
+                UILayout.MIN_HEIGHT = 260
+                UILayout.RIGHT_AREA_SCALE = 0.33
+            end
         end
+        if popup and popup.Parent then popup:Destroy() end
+        createHubUI()
     end
-    if popup and popup.Parent then popup:Destroy() end
-    createHubUI()
+
+    pcBtn.MouseButton1Click:Connect(function() applyPlatformChoice("PC") end)
+    mobileBtn.MouseButton1Click:Connect(function() applyPlatformChoice("MOBILE") end)
+    popupClose.MouseButton1Click:Connect(function()
+        for _, v in pairs(screenGui:GetDescendants()) do
+            pcall(function()
+                if v and v.Parent then v:Destroy() end
+            end)
+        end
+    end)
 end
-
-pcBtn.MouseButton1Click:Connect(function() applyPlatformChoice("PC") end)
-mobileBtn.MouseButton1Click:Connect(function() applyPlatformChoice("MOBILE") end)
-popupClose.MouseButton1Click:Connect(function()
-    for _, v in pairs(screenGui:GetDescendants()) do pcall(function() if v and v.Parent then v:Destroy() end end) end
-end)
-
--- Sem auto-seleção: o menu permanece até o usuário escolher PC ou Mobile
 
 function createHubUI()
     for _, v in pairs(screenGui:GetChildren()) do
@@ -2570,106 +3969,111 @@ function createHubUI()
     local miniButton = new("TextButton", {
         Name = "MiniButton",
         Parent = screenGui,
-        Size = UDim2.new(0, isMobile and 36 or 50, 0, isMobile and 36 or 50),
+        Size = UDim2.new(0, UILayout.isMobile and 36 or 50, 0, UILayout.isMobile and 36 or 50),
         Position = UDim2.new(0.1, 0, 0.1, 0),
-        BackgroundColor3 = THEME.Background,
+        BackgroundColor3 = THEME.Primary,
         BackgroundTransparency = CurrentOpacity,
         Text = "DF",
-        TextColor3 = THEME.Accent,
-        Font = Enum.Font.FredokaOne,
-        TextSize = (isMobile and 22 or 24),
+        TextColor3 = THEME.OnPrimary,
+        Font = Enum.Font.GothamBold,
+        TextSize = (UILayout.isMobile and 18 or 21),
         Visible = false,
         AutoButtonColor = true,
         ZIndex = 30
     })
-    makeRound(miniButton, isMobile and 10 or 12)
-    local miniStroke = makeStroke(miniButton, THEME.Accent, 2)
+    makeRound(miniButton, UILayout.isMobile and 14 or 18)
+    local miniStroke = makeStroke(miniButton, THEME.Primary, 1)
 
     local cam = workspace.CurrentCamera
     local vx = (cam and cam.ViewportSize.X) or 1280
     local vy = (cam and cam.ViewportSize.Y) or 720
-    local startX = math.floor((vx - DEFAULT_WIDTH) / 2)
-    local startY = math.floor((vy - DEFAULT_HEIGHT) / 2)
+    local startX = math.floor((vx - UILayout.DEFAULT_WIDTH) / 2)
+    local startY = math.floor((vy - UILayout.DEFAULT_HEIGHT) / 2)
 
-    -- FIX: AnchorPoint (0,0) + posição em offset absoluto
     local uiRoot = new("Frame", {
         Name = "MoonDF_VirginHub_Root",
         Parent = screenGui,
         AnchorPoint = Vector2.new(0, 0),
         Position = UDim2.new(0, startX, 0, startY),
-        Size = UDim2.new(0, DEFAULT_WIDTH, 0, DEFAULT_HEIGHT),
+        Size = UDim2.new(0, UILayout.DEFAULT_WIDTH, 0, UILayout.DEFAULT_HEIGHT),
         BackgroundColor3 = THEME.Background,
         BackgroundTransparency = CurrentOpacity,
         BorderSizePixel = 0,
         ClipsDescendants = true,
         ZIndex = 20
     })
-    makeRound(uiRoot, 10)
-    local uiRootStroke = makeStroke(uiRoot, THEME.Border, 2)
+    makeRound(uiRoot, 22)
+    local uiRootStroke = makeStroke(uiRoot, THEME.Outline, 1)
 
     local titleBar = new("Frame", {
         Parent = uiRoot,
-        Size = UDim2.new(1, 0, 0, isMobile and 30 or 42),
+        Size = UDim2.new(1, 0, 0, UILayout.isMobile and 30 or 42),
         BackgroundTransparency = 1,
         Active = true,
         ZIndex = 25
     })
+    local titleAccent = new("Frame", {
+        Parent = titleBar,
+        Position = UDim2.new(0, 14, 1, -2),
+        Size = UDim2.new(0, UILayout.isMobile and 42 or 58, 0, 2),
+        BackgroundColor3 = THEME.Primary,
+        BorderSizePixel = 0,
+        ZIndex = 26
+    })
+    makeRound(titleAccent, 2)
     local titleLabel = new("TextLabel", {
-        Parent = titleBar, Position = UDim2.new(0, 12, 0, isMobile and 6 or 8), Size = UDim2.new(1, -120, 1, isMobile and -12 or -12),
+        Parent = titleBar, Position = UDim2.new(0, 12, 0, UILayout.isMobile and 6 or 8), Size = UDim2.new(1, -120, 1, UILayout.isMobile and -12 or -12),
         BackgroundTransparency = 1, Text = T("TITLE_MAIN"), TextColor3 = THEME.Text,
-        Font = Enum.Font.GothamSemibold, TextSize = (isMobile and 13 or 18), TextXAlignment = Enum.TextXAlignment.Left
+        Font = Enum.Font.GothamBold, TextSize = (UILayout.isMobile and 13 or 18), TextXAlignment = Enum.TextXAlignment.Left
     })
 
     local controlsContainer = new("Frame", {
         Parent = titleBar, AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -8, 0.5, 0),
-        Size = UDim2.new(0, isMobile and 62 or 70, 0, isMobile and 26 or 30), BackgroundTransparency = 1
+        Size = UDim2.new(0, UILayout.isMobile and 62 or 70, 0, UILayout.isMobile and 26 or 30), BackgroundTransparency = 1
     })
 
     local minBtn = new("TextButton", {
         Parent = controlsContainer, Position = UDim2.new(0, 0, 0, 0),
-        Size = UDim2.new(0, isMobile and 26 or 30, 0, isMobile and 26 or 30), BackgroundColor3 = THEME.Off,
+        Size = UDim2.new(0, UILayout.isMobile and 26 or 30, 0, UILayout.isMobile and 26 or 30), BackgroundColor3 = THEME.SurfaceVariant or THEME.Off,
         Text = "-", TextColor3 = THEME.Text,
-        Font = Enum.Font.GothamBold, TextSize = (isMobile and 16 or 18), BorderSizePixel = 0
+        Font = Enum.Font.GothamBold, TextSize = (UILayout.isMobile and 16 or 18), BorderSizePixel = 0
     })
-    makeRound(minBtn, 6)
+    makeRound(minBtn, 10)
+    makeStroke(minBtn, THEME.OutlineVariant, 1)
 
     local closeBtn = new("TextButton", {
-        Parent = controlsContainer, Position = UDim2.new(0, isMobile and 32 or 36, 0, 0),
-        Size = UDim2.new(0, isMobile and 26 or 30, 0, isMobile and 26 or 30), BackgroundColor3 = THEME.Danger,
+        Parent = controlsContainer, Position = UDim2.new(0, UILayout.isMobile and 32 or 36, 0, 0),
+        Size = UDim2.new(0, UILayout.isMobile and 26 or 30, 0, UILayout.isMobile and 26 or 30), BackgroundColor3 = THEME.Danger,
         Text = "X",
-        TextColor3 = Color3.new(1, 1, 1),
-        Font = Enum.Font.GothamBold, TextSize = (isMobile and 12 or 14), BorderSizePixel = 0
+        TextColor3 = contrastText(THEME.Danger),
+        Font = Enum.Font.GothamBold, TextSize = (UILayout.isMobile and 12 or 14), BorderSizePixel = 0
     })
-    makeRound(closeBtn, 6)
+    makeRound(closeBtn, 10)
 
-    local leftPane = new("Frame", {Parent = uiRoot, Position = UDim2.new(0, isMobile and 6 or 10, 0, isMobile and 36 or 56), Size = UDim2.new(0, isMobile and 110 or 220, 1, isMobile and -42 or -66), BackgroundTransparency = 1})
-    local rightPane = new("Frame", {Parent = uiRoot, Position = UDim2.new(0, (isMobile and 120 or 240), 0, isMobile and 36 or 56), Size = UDim2.new(1, -(isMobile and 126 or 250), 1, isMobile and -42 or -66), BackgroundTransparency = 1})
+    local leftPane = new("Frame", {Parent = uiRoot, Position = UDim2.new(0, UILayout.isMobile and 6 or 10, 0, UILayout.isMobile and 36 or 56), Size = UDim2.new(0, UILayout.isMobile and 110 or 220, 1, UILayout.isMobile and -42 or -66), BackgroundTransparency = 1})
+    local rightPane = new("Frame", {Parent = uiRoot, Position = UDim2.new(0, (UILayout.isMobile and 120 or 240), 0, UILayout.isMobile and 36 or 56), Size = UDim2.new(1, -(UILayout.isMobile and 126 or 250), 1, UILayout.isMobile and -42 or -66), BackgroundTransparency = 1})
 
-    local leftBg = new("Frame", {Parent = leftPane, Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = THEME.Background, BorderSizePixel = 0, BackgroundTransparency = CurrentOpacity})
-    makeRound(leftBg, 8);
-    local leftStroke = makeStroke(leftBg, THEME.Border, 1)
+    local leftBg = new("Frame", {Parent = leftPane, Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = THEME.SurfaceContainer or THEME.Background, BorderSizePixel = 0, BackgroundTransparency = CurrentOpacity})
+    makeRound(leftBg, 16);
+    local leftStroke = makeStroke(leftBg, THEME.OutlineVariant or THEME.Border, 1)
 
     local topicsList = new("ScrollingFrame", {Parent = leftBg, Position = UDim2.new(0, 8, 0, 8), Size = UDim2.new(1, -16, 1, -16), BackgroundTransparency = 1, ScrollBarThickness = 0, CanvasSize = UDim2.new(0,0,0,0)})
-    local topicsLayout = new("UIListLayout", {Parent = topicsList, Padding = UDim.new(0, isMobile and 4 or 8), SortOrder = Enum.SortOrder.LayoutOrder})
+    local topicsLayout = new("UIListLayout", {Parent = topicsList, Padding = UDim.new(0, UILayout.isMobile and 4 or 8), SortOrder = Enum.SortOrder.LayoutOrder})
 
     local rightBg = new("Frame", {Parent = rightPane, Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = THEME.Background, BorderSizePixel = 0, BackgroundTransparency = CurrentOpacity})
-    makeRound(rightBg, 8);
-    local rightStroke = makeStroke(rightBg, THEME.Border, 1)
+    makeRound(rightBg, 16);
+    local rightStroke = makeStroke(rightBg, THEME.OutlineVariant or THEME.Border, 1)
 
     local scroll = new("ScrollingFrame", {Parent = rightBg, Position = UDim2.new(0, 8, 0, 8), Size = UDim2.new(1, -16, 1, -16), BackgroundTransparency = 1, ScrollBarThickness = 0, CanvasSize = UDim2.new(0,0,0,0)})
-    local buttonsLayout = new("UIListLayout", {Parent = scroll, Padding = UDim.new(0, isMobile and 5 or 10)})
+    local buttonsLayout = new("UIListLayout", {Parent = scroll, Padding = UDim.new(0, UILayout.isMobile and 5 or 10)})
     buttonsLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
-    -- Footer removido (pedido do usuário)
-
-    local resizer = new("Frame", {Parent = uiRoot, AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, isMobile and -8 or -10, 1, isMobile and -8 or -10), Size = UDim2.new(0, isMobile and 14 or 18, 0, isMobile and 14 or 18), BackgroundTransparency = 1})
+    local resizer = new("Frame", {Parent = uiRoot, AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, UILayout.isMobile and -8 or -10, 1, UILayout.isMobile and -8 or -10), Size = UDim2.new(0, UILayout.isMobile and 14 or 18, 0, UILayout.isMobile and 14 or 18), BackgroundTransparency = 1})
     local resDot = new("Frame", {Parent = resizer, Size = UDim2.new(1, 1, 1, 1), BackgroundColor3 = THEME.Hover, BorderSizePixel = 0});
-    makeRound(resDot, isMobile and 6 or 6)
+    makeRound(resDot, UILayout.isMobile and 6 or 6)
 
-    -- Drag da janela principal (MakeDraggable = delta puro)
     MakeDraggable(titleBar, uiRoot)
 
-    -- Drag do mini-button + click para restaurar
     do
         local miniDragging = false
         local miniStart = nil
@@ -2718,12 +4122,12 @@ function createHubUI()
     end
 
     local function createHamburger(parent)
-        local icon = new("Frame", {Parent = parent, Size = UDim2.new(0, isMobile and 24 or 28, 0, isMobile and 16 or 20), BackgroundTransparency = 1})
-        local barTop = new("Frame", {Parent = icon, Size = UDim2.new(1, 0, 0, 3), Position = UDim2.new(0, 0, 0, 2), BackgroundColor3 = THEME.SubText, BorderSizePixel = 0});
+        local icon = new("Frame", {Parent = parent, Size = UDim2.new(0, UILayout.isMobile and 24 or 28, 0, UILayout.isMobile and 16 or 20), BackgroundTransparency = 1})
+        local barTop = new("Frame", {Parent = icon, Size = UDim2.new(1, 0, 0, 3), Position = UDim2.new(0, 0, 0, 2), BackgroundColor3 = THEME.OnSurfaceVariant or THEME.SubText, BorderSizePixel = 0});
         makeRound(barTop, 2)
-        local barMid = new("Frame", {Parent = icon, Size = UDim2.new(1, 0, 0, 3), Position = UDim2.new(0, 0, 0, 8.5), BackgroundColor3 = THEME.SubText, BorderSizePixel = 0});
+        local barMid = new("Frame", {Parent = icon, Size = UDim2.new(1, 0, 0, 3), Position = UDim2.new(0, 0, 0, 8.5), BackgroundColor3 = THEME.OnSurfaceVariant or THEME.SubText, BorderSizePixel = 0});
         makeRound(barMid, 2)
-        local barBot = new("Frame", {Parent = icon, Size = UDim2.new(1, 0, 0, 3), Position = UDim2.new(0, 0, 0, 15), BackgroundColor3 = THEME.SubText, BorderSizePixel = 0});
+        local barBot = new("Frame", {Parent = icon, Size = UDim2.new(1, 0, 0, 3), Position = UDim2.new(0, 0, 0, 15), BackgroundColor3 = THEME.OnSurfaceVariant or THEME.SubText, BorderSizePixel = 0});
         makeRound(barBot, 2)
 
         local function setOpen(val)
@@ -2744,7 +4148,7 @@ function createHubUI()
         local hb = new("TextButton", {Parent = bg, BackgroundTransparency = 1, Text = "", AutoButtonColor = false, ZIndex = 1})
         hb.Size = UDim2.new(1, 0, 1, 0)
         table.insert(connections, hb.MouseEnter:Connect(function() if hubVisible then tween(bg, {BackgroundColor3 = THEME.Hover}, 0.12) end end))
-        table.insert(connections, hb.MouseLeave:Connect(function() tween(bg, {BackgroundColor3 = THEME.PanelBg}, 0.12) end))
+        table.insert(connections, hb.MouseLeave:Connect(function() tween(bg, {BackgroundColor3 = THEME.Surface or THEME.PanelBg}, 0.12) end))
         return hb
     end
 
@@ -2756,8 +4160,7 @@ function createHubUI()
 
     local function createEntry(params, parentFrame, depth, onChildrenChanged)
         depth = depth or 0
-        -- baseH aumentado no mobile para a descrição não ser cortada (antes 40 cortava o texto)
-        local baseH = isMobile and 50 or 60
+        local baseH = UILayout.isMobile and 54 or 66
         local barColor = params.Color or TYPE_COLORS[params.Type] or THEME.Accent
 
         local wrapper = new("Frame", {Parent = parentFrame, Name = "Entry", Size = UDim2.new(1, -12, 0, baseH), BackgroundTransparency = 1, ClipsDescendants = true})
@@ -2767,35 +4170,34 @@ function createHubUI()
             Parent = wrapper,
             Name = "ElementBackground",
             Size = UDim2.new(1, 0, 0, baseH),
-            BackgroundColor3 = THEME.PanelBg,
+            BackgroundColor3 = THEME.Surface or THEME.PanelBg,
             BorderSizePixel = 0,
             BackgroundTransparency = CurrentOpacity
         })
-        makeRound(bg, 8);
-        local accent = new("Frame", {Parent = bg, Position = UDim2.new(0, 8 + depth * 12, 0.5, isMobile and -18 or -18), Size = UDim2.new(0, 6, 0, isMobile and 36 or 36), BackgroundColor3 = barColor})
-        makeRound(accent, 6)
+        makeRound(bg, 14)
+        makeStroke(bg, THEME.OutlineVariant or THEME.Border, 1)
+        local accent = new("Frame", {Parent = bg, Position = UDim2.new(0, 10 + depth * 12, 0.5, UILayout.isMobile and -18 or -20), Size = UDim2.new(0, 4, 0, UILayout.isMobile and 36 or 40), BackgroundColor3 = barColor})
+        makeRound(accent, 4)
 
-        -- Tamanhos relativos ao RIGHT_AREA_SCALE para não invadir a área dos controles.
-        -- Sem TextTruncate: o nome só é cortado visualmente (pelo ClipsDescendants do botão) se realmente passar do layout — sem reticências censurando o texto.
-        local textRightPad = isMobile and 20 or 28
+        local textRightPad = UILayout.isMobile and 20 or 28
         local nameLabel = new("TextLabel", {
-            Parent = bg, Position = UDim2.new(0, 28 + depth * 12, 0, isMobile and 6 or 8),
-            Size = UDim2.new(1 - RIGHT_AREA_SCALE, -textRightPad - (depth * 12), 0, isMobile and 16 or 20),
+            Parent = bg, Position = UDim2.new(0, 28 + depth * 12, 0, UILayout.isMobile and 6 or 8),
+            Size = UDim2.new(1 - UILayout.RIGHT_AREA_SCALE, -textRightPad - (depth * 12), 0, UILayout.isMobile and 16 or 20),
             BackgroundTransparency = 1, Text = params.Name or "Unnamed", TextColor3 = THEME.Text,
-            Font = Enum.Font.GothamSemibold, TextSize = (isMobile and 12 or 15), TextXAlignment = Enum.TextXAlignment.Left,
+            Font = Enum.Font.GothamBold, TextSize = (UILayout.isMobile and 12 or 14), TextXAlignment = Enum.TextXAlignment.Left,
             TextTruncate = Enum.TextTruncate.None, ZIndex = 2
         })
         local descLabel = new("TextLabel", {
-            Parent = bg, Position = UDim2.new(0, 28 + depth * 12, 0, isMobile and 24 or 30),
-            Size = UDim2.new(1 - RIGHT_AREA_SCALE, -textRightPad - (depth * 12), 0, isMobile and 18 or 18),
+            Parent = bg, Position = UDim2.new(0, 28 + depth * 12, 0, UILayout.isMobile and 24 or 30),
+            Size = UDim2.new(1 - UILayout.RIGHT_AREA_SCALE, -textRightPad - (depth * 12), 0, UILayout.isMobile and 18 or 18),
             BackgroundTransparency = 1, Text = params.Description or "", TextColor3 = THEME.SubText,
-            Font = Enum.Font.Gotham, TextSize = (isMobile and 10 or 12), TextXAlignment = Enum.TextXAlignment.Left,
+            Font = Enum.Font.Gotham, TextSize = (UILayout.isMobile and 10 or 11), TextXAlignment = Enum.TextXAlignment.Left,
             TextTruncate = Enum.TextTruncate.None, ZIndex = 2
         })
 
         local rightArea = new("Frame", {
             Parent = bg, AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -8, 0.5, 0),
-            Size = UDim2.new(RIGHT_AREA_SCALE, -8, 0, isMobile and 42 or 44), BackgroundTransparency = 1, ZIndex = 5,
+            Size = UDim2.new(UILayout.RIGHT_AREA_SCALE, -8, 0, UILayout.isMobile and 42 or 44), BackgroundTransparency = 1, ZIndex = 5,
             ClipsDescendants = true
         })
 
@@ -2832,6 +4234,10 @@ function createHubUI()
         local function buildChildren(list)
             for _, c in pairs(childRefs) do if c and c.Frame then c.Frame:Destroy() end end
             childRefs = {}
+            if type(list) == "function" then
+                local ok, resolved = pcall(list)
+                list = ok and resolved or {}
+            end
             for _, childParam in ipairs(list or {}) do
                 local child = createEntry(childParam, childrenHolder, depth + 1, function()
                     if expanded then
@@ -2848,15 +4254,13 @@ function createHubUI()
         end
 
         if params.Type == "Label" then
-            -- nothing
-
         elseif params.Type == "Toggle" then
             local state = false
             if params.StateKey then state = globalEnv._HubStates[params.StateKey] or false end
-            local baseKnobW = isMobile and 40 or 46
-            local baseKnobH = isMobile and 22 or 26
-            local baseSub = isMobile and 16 or 18
-            local basePad = isMobile and 3 or 4
+            local baseKnobW = UILayout.isMobile and 40 or 46
+            local baseKnobH = UILayout.isMobile and 22 or 26
+            local baseSub = UILayout.isMobile and 16 or 18
+            local basePad = UILayout.isMobile and 3 or 4
 
             local knob = new("Frame", {
                 Parent = rightArea,
@@ -2866,12 +4270,13 @@ function createHubUI()
                 BackgroundColor3 = THEME.Off
             })
             makeRound(knob, 14)
+            makeStroke(knob, THEME.OutlineVariant or THEME.Border, 1)
             local subKnob = new("Frame", {
                 Parent = knob,
                 AnchorPoint = Vector2.new(0, 0.5),
                 Size = UDim2.new(0, baseSub, 0, baseSub),
                 Position = UDim2.new(0, basePad, 0.5, 0),
-                BackgroundColor3 = Color3.new(1, 1, 1)
+                BackgroundColor3 = THEME.KnobColor or Color3.new(1, 1, 1)
             })
             makeRound(subKnob, 999)
 
@@ -2880,7 +4285,6 @@ function createHubUI()
             local function layoutToggle()
                 local areaW = math.max(0, rightArea.AbsoluteSize.X)
                 local areaH = math.max(0, rightArea.AbsoluteSize.Y)
-                -- Nunca maior que o espaço disponível → nunca fica cortado
                 local maxW = math.max(24, areaW - 4)
                 local maxH = math.max(14, areaH - 4)
                 curKnobW = math.min(baseKnobW, maxW)
@@ -2907,12 +4311,14 @@ function createHubUI()
             local function applyVisual(s)
                 if s then
                     tween(knob, {BackgroundColor3 = THEME.On}, 0.15)
+                    tween(subKnob, {BackgroundColor3 = THEME.OnPrimary or THEME.KnobColor}, 0.15)
                     tween(subKnob, {Position = UDim2.new(1, -(curSub + curPad), 0.5, 0)}, 0.15)
                     tween(bg, {BackgroundColor3 = THEME.Hover}, 0.15)
                 else
                     tween(knob, {BackgroundColor3 = THEME.Off}, 0.15)
+                    tween(subKnob, {BackgroundColor3 = THEME.KnobColor or Color3.new(1, 1, 1)}, 0.15)
                     tween(subKnob, {Position = UDim2.new(0, curPad, 0.5, 0)}, 0.15)
-                    tween(bg, {BackgroundColor3 = THEME.PanelBg}, 0.15)
+                    tween(bg, {BackgroundColor3 = THEME.Surface or THEME.PanelBg}, 0.15)
                 end
             end
             local function applyState(s)
@@ -2934,40 +4340,43 @@ function createHubUI()
             table.insert(connections, hoverBox.MouseButton1Click:Connect(function()
                 if hubVisible then
                     tween(bg, {BackgroundColor3 = THEME.Hover}, 0.06);
-                    task.wait(0.06); tween(bg, {BackgroundColor3 = THEME.PanelBg}, 0.12)
+                    task.wait(0.06); tween(bg, {BackgroundColor3 = THEME.Surface or THEME.PanelBg}, 0.12)
                     if params.Callback then pcall(params.Callback) end
                 end
             end))
 
         elseif params.Type == "InputImmediate" then
-            local txtBox = new("TextBox", {Parent = rightArea, Size = UDim2.new(1, -76, 0, isMobile and 26 or 28), Position = UDim2.new(0, 0, 0.5, isMobile and -13 or -14), BackgroundColor3 = THEME.Background, Text = "", PlaceholderText = params.Placeholder or "...", TextColor3 = THEME.Text, Font = Enum.Font.Gotham, TextSize = (isMobile and 12 or 14), ClearTextOnFocus = false, ZIndex = 6});
-            makeRound(txtBox, 6)
+            local txtBox = new("TextBox", {Parent = rightArea, Size = UDim2.new(1, -76, 0, UILayout.isMobile and 30 or 32), Position = UDim2.new(0, 0, 0.5, UILayout.isMobile and -15 or -16), BackgroundColor3 = THEME.SurfaceVariant or THEME.Background, Text = "", PlaceholderText = params.Placeholder or "...", TextColor3 = THEME.Text, Font = Enum.Font.Gotham, TextSize = (UILayout.isMobile and 12 or 14), ClearTextOnFocus = false, ZIndex = 6});
+            makeRound(txtBox, 10)
+            makeStroke(txtBox, THEME.OutlineVariant or THEME.Border, 1)
 
             local okBtn = new("TextButton", {
                 Parent = rightArea,
                 AnchorPoint = Vector2.new(1, 0.5),
                 Position = UDim2.new(1, 0, 0.5, 0),
-                Size = UDim2.new(0, isMobile and 60 or 68, 0, isMobile and 26 or 28),
-                BackgroundColor3 = THEME.Accent,
+                Size = UDim2.new(0, UILayout.isMobile and 60 or 68, 0, UILayout.isMobile and 30 or 32),
+                BackgroundColor3 = THEME.Primary or THEME.Accent,
                 Text = "OK",
-                TextColor3 = Color3.new(1, 1, 1),
+                TextColor3 = THEME.OnPrimary or Color3.new(1, 1, 1),
                 Font = Enum.Font.GothamBold,
-                TextSize = (isMobile and 12 or 14),
+                TextSize = (UILayout.isMobile and 12 or 14),
                 ZIndex = 6
             })
-            makeRound(okBtn, 6)
+            makeRound(okBtn, 10)
+            makeStroke(okBtn, THEME.Primary, 1)
 
             table.insert(connections, okBtn.MouseButton1Click:Connect(function() if hubVisible and params.Callback then params.Callback(txtBox.Text) end end))
             table.insert(connections, txtBox.FocusLost:Connect(function(enter) if enter and hubVisible and params.Callback then params.Callback(txtBox.Text) end end))
 
         elseif params.Type == "InputSelect" then
-            local txtBox = new("TextBox", {Parent = rightArea, Size = UDim2.new(1, 0, 0, isMobile and 26 or 28), Position = UDim2.new(0, 0, 0.5, isMobile and -13 or -14), BackgroundColor3 = THEME.Background, Text = params.Default or "", PlaceholderText = params.Placeholder or "...", TextColor3 = THEME.Text, Font = Enum.Font.Gotham, TextSize = (isMobile and 12 or 14), ClearTextOnFocus = true, ZIndex = 6});
-            makeRound(txtBox, 6)
+            local txtBox = new("TextBox", {Parent = rightArea, Size = UDim2.new(1, 0, 0, UILayout.isMobile and 30 or 32), Position = UDim2.new(0, 0, 0.5, UILayout.isMobile and -15 or -16), BackgroundColor3 = THEME.SurfaceVariant or THEME.Background, Text = params.Default or "", PlaceholderText = params.Placeholder or "...", TextColor3 = THEME.Text, Font = Enum.Font.Gotham, TextSize = (UILayout.isMobile and 12 or 14), ClearTextOnFocus = true, ZIndex = 6});
+            makeRound(txtBox, 10)
+            makeStroke(txtBox, THEME.OutlineVariant or THEME.Border, 1)
             table.insert(connections, txtBox.FocusLost:Connect(function() if params.StateKey then globalEnv._HubSelections[params.StateKey] = txtBox.Text end end))
 
         elseif params.Type == "ListAuto" or params.Type == "Container" then
             local ham = createHamburger(rightArea)
-            ham.Frame.Position = UDim2.new(1, isMobile and -24 or -28, 0, isMobile and 6 or 8)
+            ham.Frame.Position = UDim2.new(1, UILayout.isMobile and -24 or -28, 0, UILayout.isMobile and 6 or 8)
             table.insert(connections, hoverBox.MouseButton1Click:Connect(function()
                 if not hubVisible then return end
                 if not expanded then
@@ -2981,13 +4390,13 @@ function createHubUI()
 
         elseif params.Type == "ListPersistent" then
             local ham = createHamburger(rightArea)
-            ham.Frame.Position = UDim2.new(1, isMobile and -24 or -28, 0, isMobile and 6 or 8)
-            local selectedValLabel = new("TextLabel", {Parent = bg, BackgroundTransparency = 1, TextColor3 = THEME.Text, Font = Enum.Font.GothamSemibold, TextSize = (isMobile and 13 or 15), TextXAlignment = Enum.TextXAlignment.Left, Text = "", ZIndex = 2})
+            ham.Frame.Position = UDim2.new(1, UILayout.isMobile and -24 or -28, 0, UILayout.isMobile and 6 or 8)
+            local selectedValLabel = new("TextLabel", {Parent = bg, BackgroundTransparency = 1, TextColor3 = THEME.Text, Font = Enum.Font.GothamSemibold, TextSize = (UILayout.isMobile and 13 or 15), TextXAlignment = Enum.TextXAlignment.Left, Text = "", ZIndex = 2})
 
             local function updateSelectedLabelPos()
                 local bounds = nameLabel.TextBounds
-                selectedValLabel.Position = UDim2.new(0, 28 + depth * 12 + bounds.X + 4, 0, isMobile and 6 or 8)
-                selectedValLabel.Size = UDim2.new(0, isMobile and 100 or 200, 0, isMobile and 16 or 20)
+                selectedValLabel.Position = UDim2.new(0, 28 + depth * 12 + bounds.X + 4, 0, UILayout.isMobile and 6 or 8)
+                selectedValLabel.Size = UDim2.new(0, UILayout.isMobile and 100 or 200, 0, UILayout.isMobile and 16 or 20)
             end
             updateSelectedLabelPos()
             nameLabel:GetPropertyChangedSignal("TextBounds"):Connect(updateSelectedLabelPos)
@@ -3037,31 +4446,29 @@ function createHubUI()
 
             local cur = globalEnv._ScriptHubStates[key] ~= nil and globalEnv._ScriptHubStates[key] or (params.Default ~= nil and tonumber(params.Default) or minV)
             cur = clamp(math.floor(cur + 0.5), minV, maxV)
-            -- Soft min da track (só usado quando há espaço). NUNCA força track maior que rightArea.
-            local SOFT_MIN_TRACK = isMobile and 36 or 52
-            local valWFull = isMobile and 32 or 52
-            local trackPad = isMobile and 3 or 6
-            local knobSize = isMobile and 12 or 16
-            local trackH = isMobile and 6 or 8
-            local knobYOff = isMobile and -6 or -8
-            local valLabelH = isMobile and 14 or 18
+            local SOFT_MIN_TRACK = UILayout.isMobile and 36 or 52
+            local valWFull = UILayout.isMobile and 32 or 52
+            local trackPad = UILayout.isMobile and 3 or 6
+            local knobSize = UILayout.isMobile and 12 or 16
+            local trackH = UILayout.isMobile and 6 or 8
+            local knobYOff = UILayout.isMobile and -6 or -8
+            local valLabelH = UILayout.isMobile and 14 or 18
 
-            local track = new("Frame", {Parent = rightArea, Size = UDim2.new(1, -(valWFull + trackPad + 4), 0, trackH), Position = UDim2.new(0, trackPad, 0.5, -trackH/2), BackgroundColor3 = THEME.Off, BorderSizePixel = 0})
+            local track = new("Frame", {Parent = rightArea, Size = UDim2.new(1, -(valWFull + trackPad + 4), 0, trackH), Position = UDim2.new(0, trackPad, 0.5, -trackH/2), BackgroundColor3 = THEME.SurfaceVariant or THEME.Off, BorderSizePixel = 0})
             makeRound(track, 6)
-            local fill = new("Frame", {Parent = track, Size = UDim2.new(0,0,1,0), Position = UDim2.new(0,0,0,0), BackgroundColor3 = THEME.Accent, BorderSizePixel = 0})
+            local fill = new("Frame", {Parent = track, Size = UDim2.new(0,0,1,0), Position = UDim2.new(0,0,0,0), BackgroundColor3 = THEME.Primary or THEME.Accent, BorderSizePixel = 0})
             makeRound(fill, 6)
-            -- Knob no rightArea (não na track) para não ser cortado verticalmente; X sempre clampado dentro do botão
             local knob = new("Frame", {Parent = rightArea, Size = UDim2.new(0, knobSize, 0, knobSize), AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0, trackPad, 0.5, 0), BackgroundColor3 = (THEME.KnobColor or Color3.fromRGB(245,245,245)), BorderSizePixel = 0})
             makeRound(knob, 999)
+            makeStroke(knob, THEME.Primary or THEME.Accent, 1)
             knob.Active = true
-            local valLabel = new("TextLabel", {Parent = rightArea, AnchorPoint = Vector2.new(1,0.5), Position = UDim2.new(1, -1, 0.5, 0), Size = UDim2.new(0, valWFull, 0, valLabelH), BackgroundTransparency = 1, Text = tostring(cur), TextColor3 = THEME.SubText, Font = Enum.Font.GothamBold, TextSize = (isMobile and 10 or 12), TextXAlignment = Enum.TextXAlignment.Right})
+            local valLabel = new("TextLabel", {Parent = rightArea, AnchorPoint = Vector2.new(1,0.5), Position = UDim2.new(1, -1, 0.5, 0), Size = UDim2.new(0, valWFull, 0, valLabelH), BackgroundTransparency = 1, Text = tostring(cur), TextColor3 = THEME.SubText, Font = Enum.Font.GothamBold, TextSize = (UILayout.isMobile and 10 or 12), TextXAlignment = Enum.TextXAlignment.Right})
             track.Active = true
             fill.Active = true
 
             local function layoutTrack()
                 local areaW = math.max(0, rightArea.AbsoluteSize.X)
-                -- Margem extra (PC maior) para a bolinha não encostar/sair da borda do botão
-                local edgePad = isMobile and 2 or 6
+                local edgePad = UILayout.isMobile and 2 or 6
                 local maxTrackPossible = math.max(0, areaW - trackPad - edgePad)
 
                 local useValW = valWFull
@@ -3095,7 +4502,6 @@ function createHubUI()
                 local fillW = math.floor(trackW * pct + 0.5)
                 fillW = clamp(fillW, 0, trackW)
 
-                -- Encolhe a bolinha se o espaço for apertado (PC pequeno)
                 local kSize = knobSize
                 local availForKnob = math.max(8, areaW - 4)
                 if availForKnob < knobSize then
@@ -3106,9 +4512,7 @@ function createHubUI()
                 end
 
                 local half = kSize / 2
-                -- Posição do centro na coordenada do rightArea (trackPad + fillW)
                 local desired = trackPad + fillW
-                -- Bolinha inteira sempre dentro do rightArea: [half .. areaW-half]
                 local knobX = clamp(desired, half, math.max(half, areaW - half))
 
                 if instant then
@@ -3211,15 +4615,13 @@ function createHubUI()
 
     local function setTopicSelected(key)
         selectedTopicKey = key
-        local a = THEME.Accent
-        local lum = (a.R * 0.299 + a.G * 0.587 + a.B * 0.114)
-        local onAccentText = (lum > 0.55) and Color3.fromRGB(20, 20, 20) or Color3.new(1, 1, 1)
+        -- Texto permanece THEME.Text (não inverte contraste no selecionado)
         for k, b in pairs(topicButtons) do
             if k == key then
-                tween(b, {BackgroundColor3 = THEME.Accent}, 0.12)
-                b.TextColor3 = onAccentText
+                tween(b, {BackgroundColor3 = THEME.Primary or THEME.Accent}, 0.12)
+                b.TextColor3 = THEME.Text
             else
-                tween(b, {BackgroundColor3 = THEME.PanelBg}, 0.12)
+                tween(b, {BackgroundColor3 = THEME.Surface or THEME.PanelBg}, 0.12)
                 b.TextColor3 = THEME.Text
             end
         end
@@ -3243,16 +4645,17 @@ function createHubUI()
     local function addTopic(key, label, items)
         local btn = new("TextButton", {
             Parent = topicsList,
-            Size = UDim2.new(1, 0, 0, isMobile and 36 or 42),
-            BackgroundColor3 = THEME.PanelBg,
+            Size = UDim2.new(1, 0, 0, UILayout.isMobile and 36 or 42),
+            BackgroundColor3 = THEME.Surface or THEME.PanelBg,
             BorderSizePixel = 0,
             Text = label,
             TextColor3 = THEME.Text,
-            Font = Enum.Font.Gotham,
-            TextSize = (isMobile and 12 or 14),
+            Font = Enum.Font.GothamSemibold,
+            TextSize = (UILayout.isMobile and 12 or 14),
             BackgroundTransparency = CurrentOpacity
         })
-        makeRound(btn, 8)
+        makeRound(btn, 12)
+        makeStroke(btn, THEME.OutlineVariant or THEME.Border, 1)
         topicButtons[key] = btn
         topicItemsMap[key] = items
 
@@ -3263,7 +4666,7 @@ function createHubUI()
         end))
         table.insert(connections, btn.MouseLeave:Connect(function()
             if selectedTopicKey ~= key then
-                tween(btn, {BackgroundColor3 = THEME.PanelBg}, 0.12)
+                tween(btn, {BackgroundColor3 = THEME.Surface or THEME.PanelBg}, 0.12)
             end
         end))
 
@@ -3274,12 +4677,12 @@ function createHubUI()
 
     local function updateLayout()
         local totalW = uiRoot.AbsoluteSize.X
-        local leftWidth = math.clamp(math.floor(totalW * (isMobile and 0.28 or 0.26)), 120, 320)
+        local leftWidth = math.clamp(math.floor(totalW * (UILayout.isMobile and 0.28 or 0.26)), 120, 320)
         leftWidth = math.min(leftWidth, math.max(100, totalW - 160))
-        leftPane.Size = UDim2.new(0, leftWidth, 1, isMobile and -48 or -66)
+        leftPane.Size = UDim2.new(0, leftWidth, 1, UILayout.isMobile and -48 or -66)
         local rightX = leftWidth + 20
-        rightPane.Position = UDim2.new(0, rightX, 0, isMobile and 42 or 56)
-        rightPane.Size = UDim2.new(0, totalW - rightX - 10, 1, isMobile and -48 or -66)
+        rightPane.Position = UDim2.new(0, rightX, 0, UILayout.isMobile and 42 or 56)
+        rightPane.Size = UDim2.new(0, totalW - rightX - 10, 1, UILayout.isMobile and -48 or -66)
         refreshMainScroll()
     end
 
@@ -3309,7 +4712,6 @@ function createHubUI()
         end
     end))
 
-    -- Resizer
     local resizing, startSize, startMouse = false, nil, nil
     table.insert(connections, resizer.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -3324,7 +4726,7 @@ function createHubUI()
         if resizing and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
             local m = input.Position or UserInputService:GetMouseLocation()
             local d = Vector2.new(m.X, m.Y) - startMouse
-            uiRoot.Size = UDim2.new(0, math.max(MIN_WIDTH, startSize.X.Offset + d.X), 0, math.max(MIN_HEIGHT, startSize.Y.Offset + d.Y))
+            uiRoot.Size = UDim2.new(0, math.max(UILayout.MIN_WIDTH, startSize.X.Offset + d.X), 0, math.max(UILayout.MIN_HEIGHT, startSize.Y.Offset + d.Y))
         end
     end))
     table.insert(connections, UserInputService.InputEnded:Connect(function(input)
@@ -3347,16 +4749,21 @@ function createHubUI()
         topicItemsMap = {}
 
         uiRoot.BackgroundColor3 = THEME.Background
-        leftBg.BackgroundColor3 = THEME.Background
+        leftBg.BackgroundColor3 = THEME.SurfaceContainer or THEME.Background
         rightBg.BackgroundColor3 = THEME.Background
-        miniButton.BackgroundColor3 = THEME.Background
+        miniButton.BackgroundColor3 = THEME.Primary or THEME.Background
         miniButton.BackgroundTransparency = CurrentOpacity
-        miniButton.TextColor3 = THEME.Accent
-        miniStroke.Color = THEME.Accent
+        miniButton.TextColor3 = THEME.OnPrimary or THEME.Accent
+        miniStroke.Color = THEME.Primary or THEME.Accent
+        minBtn.BackgroundColor3 = THEME.SurfaceVariant or THEME.Off
+        minBtn.TextColor3 = THEME.Text
+        closeBtn.BackgroundColor3 = THEME.Danger
+        closeBtn.TextColor3 = contrastText(THEME.Danger)
         titleLabel.TextColor3 = THEME.Text
-        uiRootStroke.Color = THEME.Border
-        leftStroke.Color = THEME.Border
-        rightStroke.Color = THEME.Border
+        titleAccent.BackgroundColor3 = THEME.Primary or THEME.Accent
+        uiRootStroke.Color = THEME.Outline or THEME.Border
+        leftStroke.Color = THEME.OutlineVariant or THEME.Border
+        rightStroke.Color = THEME.OutlineVariant or THEME.Border
 
         titleLabel.Text = T("TITLE_MAIN")
 
@@ -3376,7 +4783,7 @@ function createHubUI()
                 { Type = "Toggle", StateKey = "InfiniteStamina", Name = T("INFINITE_STAMINA"), Description = T("INFINITE_STAMINA_DESC"), OnEnable = function() toggleInfiniteStamina(true) end, OnDisable = function() toggleInfiniteStamina(false) end },
                 { Type = "Toggle", StateKey = "AntiCombat", Name = T("ANTI_COMBAT"), Description = T("ANTI_COMBAT_DESC"), OnEnable = function() toggleAntiCombat(true) end, OnDisable = function() toggleAntiCombat(false) end },
                 { Type = "Toggle", StateKey = "IceSlide", Name = T("ICE_SLIDE"), Description = T("ICE_SLIDE_DESC"), OnEnable = function() toggleDevIceSlide(true) end, OnDisable = function() toggleDevIceSlide(false) end },
-                { Type = "Slider", StateKey = "IceSlideIntensity", Name = T("ICE_INTENSITY"), Description = T("ICE_INTENSITY_DESC"), Min = 1, Max = 100, Default = iceSlideIntensity or 50, OnChange = function(v) iceSlideIntensity = v globalEnv.iceSlideIntensity = v end }
+                { Type = "Slider", StateKey = "IceSlideIntensity", Name = T("ICE_INTENSITY"), Description = T("ICE_INTENSITY_DESC"), Min = 1, Max = 100, Default = DevFX.iceSlideIntensity or 50, OnChange = function(v) DevFX.iceSlideIntensity = v; globalEnv.iceSlideIntensity = v end }
             }}
         })
 
@@ -3450,6 +4857,7 @@ function createHubUI()
                     teleportMode = mapped
                     globalEnv.teleportMode = mapped
                 end },
+                { Type = "Toggle", StateKey = "AntiExecute", Name = T("ANTI_EXECUTE"), Description = T("ANTI_EXECUTE_DESC"), OnEnable = function() antiExecute = true globalEnv.antiExecute = true end, OnDisable = function() antiExecute = false globalEnv.antiExecute = false end },
                 { Type = "Slider", StateKey = "FarmDistance", Name = T("DISTANCE"), Description = T("DISTANCE_DESC"), Min = 0, Max = 50, Default = 4, OnChange = function(v) FARM_DISTANCE = v globalEnv.FARM_DISTANCE = v end },
                 { Type = "Slider", StateKey = "ExecuteDistance", Name = T("EXECUTE_DISTANCE"), Description = T("EXECUTE_DISTANCE_DESC"), Min = 0, Max = 100, Default = 20, OnChange = function(v) EXECUTE_DISTANCE = v globalEnv.EXECUTE_DISTANCE = v end }
             }},
@@ -3462,6 +4870,20 @@ function createHubUI()
                 { Type = "Toggle", StateKey = "FarmEnemyRaid", Name = T("FARM") .. " Enemy Raid", Description = "Foca no inimigo 'Enemy'", OnEnable = function() toggleTeleport(true, "Enemy") end, OnDisable = function() toggleTeleport(false) end },
                 { Type = "Toggle", StateKey = "FarmYoriichi", Name = T("FARM") .. " Yoriichi", Description = T("FARM_DESC"), OnEnable = function() toggleTeleport(true, "Yoriichi") end, OnDisable = function() toggleTeleport(false) end }
             }}
+        })
+
+        addTopic("AUTOSKILLS", T("TOPIC_AUTOSKILLS"), {
+            { Type = "Label", Name = T("AUTOSKILLS_DESC") },
+            { Type = "Toggle", StateKey = "AutoSkill1", Name = T("AUTO_SKILL_1"), Description = T("AUTO_SKILL_DESC"), OnEnable = function() AutoSkillSystem.toggleSkill("1", true) end, OnDisable = function() AutoSkillSystem.toggleSkill("1", false) end },
+            { Type = "Toggle", StateKey = "AutoSkill2", Name = T("AUTO_SKILL_2"), Description = T("AUTO_SKILL_DESC"), OnEnable = function() AutoSkillSystem.toggleSkill("2", true) end, OnDisable = function() AutoSkillSystem.toggleSkill("2", false) end },
+            { Type = "Toggle", StateKey = "AutoSkill3", Name = T("AUTO_SKILL_3"), Description = T("AUTO_SKILL_DESC"), OnEnable = function() AutoSkillSystem.toggleSkill("3", true) end, OnDisable = function() AutoSkillSystem.toggleSkill("3", false) end },
+            { Type = "Toggle", StateKey = "AutoSkill4", Name = T("AUTO_SKILL_4"), Description = T("AUTO_SKILL_DESC"), OnEnable = function() AutoSkillSystem.toggleSkill("4", true) end, OnDisable = function() AutoSkillSystem.toggleSkill("4", false) end },
+            { Type = "Toggle", StateKey = "AutoSkill5", Name = T("AUTO_SKILL_5"), Description = T("AUTO_SKILL_DESC"), OnEnable = function() AutoSkillSystem.toggleSkill("5", true) end, OnDisable = function() AutoSkillSystem.toggleSkill("5", false) end },
+            { Type = "Toggle", StateKey = "AutoSkill6", Name = T("AUTO_SKILL_6"), Description = T("AUTO_SKILL_DESC"), OnEnable = function() AutoSkillSystem.toggleSkill("6", true) end, OnDisable = function() AutoSkillSystem.toggleSkill("6", false) end },
+            { Type = "Toggle", StateKey = "AutoSkill7", Name = T("AUTO_SKILL_7"), Description = T("AUTO_SKILL_DESC"), OnEnable = function() AutoSkillSystem.toggleSkill("7", true) end, OnDisable = function() AutoSkillSystem.toggleSkill("7", false) end },
+            { Type = "Toggle", StateKey = "AutoSkillT", Name = T("AUTO_SKILL_T"), Description = T("AUTO_SKILL_DESC"), OnEnable = function() AutoSkillSystem.toggleSkill("T", true) end, OnDisable = function() AutoSkillSystem.toggleSkill("T", false) end },
+            { Type = "Toggle", StateKey = "AutoSkillY", Name = T("AUTO_SKILL_Y"), Description = T("AUTO_SKILL_DESC"), OnEnable = function() AutoSkillSystem.toggleSkill("Y", true) end, OnDisable = function() AutoSkillSystem.toggleSkill("Y", false) end },
+            { Type = "Toggle", StateKey = "AutoBreath", Name = T("AUTO_BREATH"), Description = T("AUTO_BREATH_DESC"), OnEnable = function() AutoSkillSystem.toggleBreath(true) end, OnDisable = function() AutoSkillSystem.toggleBreath(false) end }
         })
 
         addTopic("PLAYERS", T("TOPIC_PLAYERS"), {
@@ -3481,8 +4903,19 @@ function createHubUI()
         })
 
         addTopic("TELEPORTS", T("TOPIC_TELEPORTS"), {
-            { Type = "Single", Name = T("LOAD_MOBS"), Description = T("LOAD_MOBS_DESC"), Callback = loadAllMobs },
+            { Type = "Single", Name = T("LOAD_MOBS"), Description = T("LOAD_MOBS_DESC"), Callback = detectLoadedMobs },
             { Type = "Single", Name = T("LOAD_MAP"), Description = T("LOAD_MAP_DESC"), Callback = loadAllMap },
+            { Type = "ListAuto", Name = T("EVENTS"), Description = T("EVENTS_DESC"), Options = {
+                { Type = "Single", Name = T("EVENT_RAID"), Description = T("EVENT_RAID_DESC"), Callback = function() teleportToEvent(EVENT_LOCATIONS.Raid) end },
+                { Type = "Single", Name = T("EVENT_DOUMA"), Description = T("EVENT_TP_DESC"), Callback = function() teleportToEvent(EVENT_LOCATIONS.Douma) end },
+                { Type = "Single", Name = T("EVENT_AKAZA"), Description = T("EVENT_TP_DESC"), Callback = function() teleportToEvent(EVENT_LOCATIONS.Akaza) end },
+                { Type = "Single", Name = T("EVENT_KOKUSHIBO"), Description = T("EVENT_TP_DESC"), Callback = function() teleportToEvent(EVENT_LOCATIONS.Kokushibo) end },
+                { Type = "Single", Name = T("EVENT_SLAYER_CASTLE"), Description = T("EVENT_TP_DESC"), Callback = function() teleportToEvent(EVENT_LOCATIONS.SlayerCastle) end },
+                { Type = "Single", Name = T("EVENT_SOUP"), Description = T("EVENT_TP_DESC"), Callback = function() teleportToEvent(EVENT_LOCATIONS.SoupVendor) end },
+                { Type = "Single", Name = T("EVENT_MEAT"), Description = T("EVENT_TP_DESC"), Callback = function() teleportToEvent(EVENT_LOCATIONS.MeatVendor) end },
+                { Type = "Single", Name = T("EVENT_JEWEL_SELLER"), Description = T("EVENT_TP_DESC"), Callback = function() teleportToEvent(EVENT_LOCATIONS.JewelVendor) end },
+                { Type = "Single", Name = T("EVENT_NICHIRIN_HORN"), Description = T("EVENT_TP_DESC"), Callback = function() teleportToEvent(EVENT_LOCATIONS.NichirinHornVendor) end }
+            }},
             { Type = "ListAuto", Name = T("VILLAGES"), Description = T("VILLAGES_DESC"), Options = {
                 { Type = "Single", Name = T("TP_HAYAKAWA"), Description = T("TP_HAYAKAWA_DESC"), Callback = function() if root then root.CFrame = LOCATIONS.Hayakawa end end },
                 { Type = "Single", Name = T("TP_OKUYA"), Description = T("TP_OKUYA_DESC"), Callback = function() if root then root.CFrame = LOCATIONS.Okuya end end },
@@ -3510,6 +4943,8 @@ function createHubUI()
 
         addTopic("DEV", T("TOPIC_DEV"), {
             { Type = "ListAuto", Name = T("DEV_TOOLS"), Description = T("DEV_TOOLS_DESC"), Options = {
+                { Type = "Single", Name = T("DEV_LOAD_MOBS"), Description = T("DEV_LOAD_MOBS_DESC"), Callback = detectLoadedMobs },
+                { Type = "ListAuto", Name = T("DEV_LOADED_MOBS"), Description = T("DEV_LOADED_MOBS_DESC"), Options = getLoadedMobNameOptions },
                 { Type = "Single", Name = T("DEV_COORDS"), Description = T("DEV_COORDS_DESC"), Callback = copyCoordinates },
             }},
             { Type = "ListAuto", Name = T("DEV_FUNNY"), Description = T("DEV_FUNNY_DESC"), Options = {
@@ -3530,7 +4965,7 @@ function createHubUI()
 
         addTopic("CONFIG", T("TOPIC_CONFIG"), {
             { Type = "ListPersistent", Name = T("LANGUAGE"), Description = T("LANGUAGE_DESC"), Options = {"Português", "English"}, Callback = function(val) CurrentLang = (val == "English") and "EN" or "PT" globalEnv.CurrentLang = CurrentLang initTopics() end },
-            { Type = "ListPersistent", Name = T("THEME"), Description = T("THEME_DESC"), Options = {"Carbon", "Arctic", "Nebula", "Neon", "Carmesim", "Galaxy", "Blush", "Branco"}, Callback = function(val) if THEME_PRESETS[val] then CurrentThemeName = val globalEnv.CurrentThemeName = val for k,v in pairs(THEME_PRESETS[val]) do THEME[k] = v end initTopics() end end },
+            { Type = "ListPersistent", Name = T("THEME"), Description = T("THEME_DESC"), Options = {"Material You", "Carbon", "Arctic", "Nebula", "Neon", "Carmesim", "Galaxy", "Blush", "Branco"}, Callback = function(val) if THEME_PRESETS[val] then CurrentThemeName = val globalEnv.CurrentThemeName = val for k,v in pairs(THEME_PRESETS[val]) do THEME[k] = v end initTopics() end end },
             { Type = "Slider", Name = T("OPACITY"), Description = T("OPACITY_DESC"), Min = 0, Max = 100, Default = (1 - CurrentOpacity) * 100, OnChange = function(val)
                 local transp = 1 - (val / 100)
                 CurrentOpacity = transp
@@ -3551,3 +4986,5 @@ function createHubUI()
 
     initTopics()
 end
+
+showPlatformPopup()
