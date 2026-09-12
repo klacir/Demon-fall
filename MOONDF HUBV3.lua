@@ -36,6 +36,9 @@ local CurrentLang = globalEnv.CurrentLang -- Padrão: Português
 local TRANSLATIONS = {
     PT = {
         TITLE_MAIN = "MOONDF HUB",
+        EMERGENCY = "Emergência",
+        EMERGENCY_DESC = "Para farms, ataques, voo e movimentos imediatamente",
+        EMERGENCY_DONE = "Emergência: sistemas parados",
         TOPIC_TEST = "Teste",
         TOPIC_CONFIG = "Configuração",
         TOPIC_GENERAL = "Geral",
@@ -199,6 +202,12 @@ local TRANSLATIONS = {
         FARM_MOBS_LIST_DESC = "Selecione o Mob para farmar",
         FARM = "Farm",
         FARM_DESC = "Auto TP",
+        FARM_GENERAL_RAID = "Farm Raid Geral",
+        FARM_GENERAL_RAID_DESC = "Prioriza bosses e troca instantaneamente para outro alvo morto",
+        FARM_CASTLE = "Farm Castelo",
+        FARM_CASTLE_DESC = "Farm de Akaza, Doma e Kokushibo",
+        FARM_CASTLE_GENERAL = "Farm Castelo Geral",
+        FARM_CASTLE_GENERAL_DESC = "Ativa GenericOni e prioriza Akaza, Doma e Kokushibo",
 
 
         RAIDS = "Raids (Locais)",
@@ -310,6 +319,9 @@ local TRANSLATIONS = {
     },
     EN = {
         TITLE_MAIN = "MOONDF HUB",
+        EMERGENCY = "Emergency",
+        EMERGENCY_DESC = "Immediately stops farms, attacks, flight and movement",
+        EMERGENCY_DONE = "Emergency: systems stopped",
         TOPIC_TEST = "Test",
         TOPIC_CONFIG = "Settings",
         TOPIC_GENERAL = "General",
@@ -457,6 +469,12 @@ local TRANSLATIONS = {
         FARM_MOBS_LIST_DESC = "Select Mob to farm",
         FARM = "Farm",
         FARM_DESC = "Auto TP",
+        FARM_GENERAL_RAID = "General Raid Farm",
+        FARM_GENERAL_RAID_DESC = "Prioritizes bosses and instantly switches when a target dies",
+        FARM_CASTLE = "Castle Farm",
+        FARM_CASTLE_DESC = "Farm Akaza, Doma and Kokushibo",
+        FARM_CASTLE_GENERAL = "General Castle Farm",
+        FARM_CASTLE_GENERAL_DESC = "Activates GenericOni and prioritizes Akaza, Doma and Kokushibo",
 
         RAIDS = "Raids (Locations)",
         RAIDS_DESC = "Raid Farm",
@@ -932,11 +950,25 @@ globalEnv.autoAttack = globalEnv.autoAttack or false
 local autoAttack = globalEnv.autoAttack
 local currentMob = nil
 local isEnabled = false
+local raidFarmActive = false
+local farmIsRaid = false
+local farmScope = nil
+local farmCanFinalize = false
+local raidFarmTarget = nil
+local raidFarmLastScan = 0
+local raidFarmScanInterval = 0.35
+local RAID_GENERAL_TARGET = "__MOONDF_GENERAL_RAID__"
+local castleFarmActive = false
+local castleFarmTarget = nil
+local castleFarmLastScan = 0
+local CASTLE_GENERAL_TARGET = "__MOONDF_GENERAL_CASTLE__"
 local connection = nil
 local loadingAllMobs = false
 local notifyDev
 local teleportAndLookLooping = false
 local farmNoclipWasEnabled = false
+local oreFarmNoclipWasEnabled = false
+local autoAttackLoopToken = 0
 globalEnv.selectedPlayerName = globalEnv.selectedPlayerName or nil
 local selectedPlayerName = globalEnv.selectedPlayerName
 globalEnv.teleportMode = globalEnv.teleportMode or "Behind"
@@ -953,6 +985,47 @@ local EXECUTE_DISTANCE = globalEnv.EXECUTE_DISTANCE
 local PLAYER_EXECUTE_DISTANCE = 20
 globalEnv.antiExecute = globalEnv.antiExecute ~= false
 local antiExecute = globalEnv.antiExecute
+
+-- Equipamento legítimo da Katana:
+-- a Tool precisa estar no Backpack (ou já no Character) do jogador.
+-- Não força estado por RemoteEvent; Humanoid:EquipTool replica a ação
+-- normalmente para o servidor da experiência.
+local KATANA_NAME = "Katana"
+
+local function equipKatana()
+    local currentCharacter = player and player.Character
+    local currentHumanoid = currentCharacter
+        and currentCharacter:FindFirstChildOfClass("Humanoid")
+    if not currentCharacter or not currentHumanoid then
+        return false
+    end
+
+    local equipped = currentCharacter:FindFirstChild(KATANA_NAME)
+    if equipped and equipped:IsA("Tool") then
+        return true
+    end
+
+    local backpack = player:FindFirstChildOfClass("Backpack")
+    local katana = backpack and backpack:FindFirstChild(KATANA_NAME)
+    if not katana or not katana:IsA("Tool") then
+        return false
+    end
+
+    currentHumanoid:EquipTool(katana)
+    return true
+end
+
+if globalEnv._MoonDFKatanaKeyConnection then
+    pcall(function()
+        globalEnv._MoonDFKatanaKeyConnection:Disconnect()
+    end)
+end
+globalEnv._MoonDFKatanaKeyConnection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed or input.KeyCode ~= Enum.KeyCode.R then
+        return
+    end
+    equipKatana()
+end)
 
 -- Sistema de AutoSkills mantido em uma tabela global para não estourar
 -- o limite de registradores locais do Luau neste script grande.
@@ -1301,9 +1374,12 @@ end
 globalEnv.clickTPToggle = globalEnv.clickTPToggle or false
 local clickTPToggle = globalEnv.clickTPToggle
 local clickTPConn = nil
+local hubInteracting = false
+local isPointerOverHub
 globalEnv.noclipToggle = globalEnv.noclipToggle or false
 local noclipToggle = globalEnv.noclipToggle
 local noclipConn = nil
+local noclipOriginalCollision = {}
 globalEnv.spectateToggle = globalEnv.spectateToggle or false
 local spectateToggle = globalEnv.spectateToggle
 local spectatePlayer = nil
@@ -1515,19 +1591,38 @@ function setupOreFly()
 end
 
 function toggleNoclip(state)
+    local wasEnabled = noclipToggle
     noclipToggle = state
     globalEnv.noclipToggle = state
     if state then
+        if not wasEnabled then
+            noclipOriginalCollision = {}
+        end
         if noclipConn then noclipConn:Disconnect() end
         noclipConn = RunService.Stepped:Connect(function()
             if character then
                 for _, part in pairs(character:GetDescendants()) do
-                    if part:IsA("BasePart") and part.CanCollide then part.CanCollide = false end
+                    if part:IsA("BasePart") then
+                        if noclipOriginalCollision[part] == nil then
+                            noclipOriginalCollision[part] = part.CanCollide
+                        end
+                        if part.CanCollide then
+                            part.CanCollide = false
+                        end
+                    end
                 end
             end
         end)
     else
         if noclipConn then noclipConn:Disconnect() end
+        for part, originalCanCollide in pairs(noclipOriginalCollision) do
+            if part and part.Parent then
+                pcall(function()
+                    part.CanCollide = originalCanCollide
+                end)
+            end
+        end
+        noclipOriginalCollision = {}
     end
 end
 
@@ -1632,15 +1727,56 @@ end
 
 -- Cache + throttle: evita GetDescendants a cada RenderStepped quando o mob morreu
 -- (causa principal de freeze ao farmar alvos inexistentes).
-local enemyCache = { name = nil, model = nil, lastScan = 0, interval = 0.40 }
+local enemyCache = { name = nil, model = nil, lastScan = 0, interval = 0.75 }
+
+local function modelHasZeroHP(model)
+    if not model or not model.Parent then return false end
+    if model:FindFirstChild("Dead") or model:FindFirstChild("Executed") then return true end
+    local hpVal = model:FindFirstChild("Health")
+    if hpVal and hpVal:IsA("ValueBase") and tonumber(hpVal.Value) <= 0 then
+        return true
+    end
+    local hum = model:FindFirstChildOfClass("Humanoid")
+    return hum ~= nil and hum.Health <= 0
+end
 
 function isValidEnemyModel(model)
     if not model or not model.Parent then return false end
     if not model:IsA("Model") then return false end
     if not model:FindFirstChildOfClass("Humanoid") then return false end
-    return model:FindFirstChild("HumanoidRootPart")
+    local modelRoot = model:FindFirstChild("HumanoidRootPart")
         or model:FindFirstChild("Torso")
         or model:FindFirstChild("Head")
+    return modelRoot ~= nil and not modelHasZeroHP(model)
+end
+
+-- Procura apenas nos containers onde personagens/mobs costumam ficar.
+-- Evita GetDescendants no RenderStepped, que travava quando o alvo não existia.
+local function forEachPotentialEnemyModel(callback)
+    local seen = {}
+    local function visit(instance)
+        if instance:IsA("Model") and not seen[instance] then
+            seen[instance] = true
+            callback(instance)
+        end
+    end
+
+    for _, child in ipairs(workspace:GetChildren()) do
+        visit(child)
+        if child:IsA("Folder") or child:IsA("Model") then
+            local name = string.lower(tostring(child.Name or ""))
+            local likelyContainer = string.find(name, "live", 1, true)
+                or string.find(name, "npc", 1, true)
+                or string.find(name, "mob", 1, true)
+                or string.find(name, "enemy", 1, true)
+                or string.find(name, "character", 1, true)
+            if likelyContainer then
+                for _, nested in ipairs(child:GetChildren()) do
+                    visit(nested)
+                end
+            end
+        end
+    end
 end
 
 function findEnemy(mobName)
@@ -1648,6 +1784,16 @@ function findEnemy(mobName)
 
     -- Fast path: cache ainda válido
     if enemyCache.name == mobName and isValidEnemyModel(enemyCache.model) then
+        return enemyCache.model
+    end
+
+    -- Farm de mob comum precisa continuar no alvo morto para conseguir
+    -- aproximar e enviar B. Farms de raid/player não usam esse caminho.
+    if farmCanFinalize
+        and enemyCache.name == mobName
+        and enemyCache.model
+        and enemyCache.model.Parent
+        and modelHasZeroHP(enemyCache.model) then
         return enemyCache.model
     end
 
@@ -1667,7 +1813,7 @@ function findEnemy(mobName)
         return direct
     end
 
-    -- Scan completo throttled — não trava o frame quando não há mob
+    -- Scan leve e throttled — não percorre a árvore inteira quando não há mob
     local now = os.clock()
     if (now - (enemyCache.lastScan or 0)) < (enemyCache.interval or 0.40) then
         return nil
@@ -1675,12 +1821,11 @@ function findEnemy(mobName)
     enemyCache.lastScan = now
 
     local found = nil
-    for _, descendant in ipairs(workspace:GetDescendants()) do
-        if descendant:IsA("Model") and descendant.Name == mobName and isValidEnemyModel(descendant) then
+    forEachPotentialEnemyModel(function(descendant)
+        if not found and descendant.Name == mobName and isValidEnemyModel(descendant) then
             found = descendant
-            break
         end
-    end
+    end)
     enemyCache.name = mobName
     enemyCache.model = found
     return found
@@ -1691,8 +1836,10 @@ local FS = {
     ragdollWait = 0.55,
     lungeCd = 1.0,
     lungeRunHold = 0.51,
+    lungeExtraDelay = 0.20,
     stunRecoilHold = 1.5,
     stunHoldUntil = 0,
+    returnLungePending = false,
     execInterval = 5,
     execLockTime = 60,
     wasRagdoll = false,
@@ -1732,6 +1879,201 @@ FS.zeroHP = function(enemy)
     local hum = enemy:FindFirstChildOfClass("Humanoid")
     if hum and hum.Health <= 0 then return true end
     return false
+end
+
+local raidEnemyNames = {}
+for _, name in ipairs(FARM) do
+    raidEnemyNames[string.lower(tostring(name))] = true
+end
+raidEnemyNames["enemy"] = true
+
+local raidFarmNames = {
+    [string.lower(RAID_GENERAL_TARGET)] = true,
+    ["enemy"] = true,
+    ["kokushiboraid"] = true,
+    ["rengokuraid"] = true,
+    ["shinoburaid"] = true,
+    ["shinouburaid"] = true,
+    ["yoriichi"] = true,
+    ["yoriichiraid"] = true,
+}
+
+local function isRaidFarmName(name)
+    return raidFarmNames[string.lower(tostring(name or ""))] == true
+end
+
+local function isRaidBossModel(model)
+    if not model or not model.Parent then return false end
+    local name = string.lower(tostring(model.Name or ""))
+    return string.find(name, "rengoku", 1, true) ~= nil
+        or string.find(name, "shinobu", 1, true) ~= nil
+        or string.find(name, "shinoubu", 1, true) ~= nil
+        or string.find(name, "kokushibo", 1, true) ~= nil
+        or string.find(name, "yoriichi", 1, true) ~= nil
+        or string.find(name, "douma", 1, true) ~= nil
+        or string.find(name, "doma", 1, true) ~= nil
+        or string.find(name, "akaza", 1, true) ~= nil
+end
+
+local function isRaidEnemyModel(model)
+    if not model or not model.Parent then return false end
+    local name = string.lower(tostring(model.Name or ""))
+    if raidEnemyNames[name] then return true end
+    return name:match("^enemy[%s_%-]?%d*$") ~= nil
+end
+
+local function raidModelDistance(model)
+    local modelRoot = model and (model:FindFirstChild("HumanoidRootPart")
+        or model:FindFirstChild("Torso")
+        or model:FindFirstChild("Head"))
+    if not modelRoot or not root then return math.huge end
+    return (modelRoot.Position - root.Position).Magnitude
+end
+
+local function collectRaidTargets()
+    local bosses, enemies = {}, {}
+    forEachPotentialEnemyModel(function(model)
+        if model:IsA("Model")
+            and model ~= character
+            and not Players:GetPlayerFromCharacter(model)
+            and isValidEnemyModel(model)
+            and not FS.zeroHP(model) then
+            if isRaidBossModel(model) then
+                table.insert(bosses, model)
+            elseif isRaidEnemyModel(model) then
+                table.insert(enemies, model)
+            end
+        end
+    end)
+
+    local byDistance = function(a, b)
+        return raidModelDistance(a) < raidModelDistance(b)
+    end
+    table.sort(bosses, byDistance)
+    table.sort(enemies, byDistance)
+    return bosses, enemies
+end
+
+local function selectRaidFarmTarget()
+    local current = raidFarmTarget
+    local currentAlive = isValidEnemyModel(current) and not FS.zeroHP(current)
+    local now = os.clock()
+
+    -- Um alvo morto força uma nova varredura imediatamente; não espera o throttle.
+    local forceScan = current ~= nil and not currentAlive
+    if not forceScan and (now - (raidFarmLastScan or 0)) < raidFarmScanInterval then
+        return current
+    end
+
+    local bosses, enemies = collectRaidTargets()
+    raidFarmLastScan = now
+    local nextTarget = nil
+
+    -- Boss sempre tem prioridade, mesmo que o alvo atual seja um enemy normal.
+    if #bosses > 0 then
+        if currentAlive and isRaidBossModel(current) then
+            nextTarget = current
+        else
+            nextTarget = bosses[1]
+        end
+    elseif currentAlive and isRaidEnemyModel(current) then
+        nextTarget = current
+    else
+        nextTarget = enemies[1]
+    end
+
+    if nextTarget ~= raidFarmTarget then
+        raidFarmTarget = nextTarget
+        -- Estado abaixo é específico do alvo anterior e não pode bloquear o novo.
+        FS.wasRagdoll = false
+        FS.didLunge = false
+        FS.execTarget = nil
+        FS.execUntil = 0
+    end
+    return raidFarmTarget
+end
+
+-- Farm específico do Castelo Infinito:
+-- usa os nomes exatos dos mobs e mantém a mesma prioridade otimizada do
+-- Farm Raid Geral: boss vivo primeiro; GenericOni como fallback.
+local castleBossNames = {
+    ["akaza"] = true,
+    ["doma"] = true,
+    ["kokushibo"] = true,
+}
+
+local castleEnemyNames = {
+    ["genericoni"] = true,
+}
+
+local function isCastleBossModel(model)
+    if not model or not model.Parent then return false end
+    return castleBossNames[string.lower(tostring(model.Name or ""))] == true
+end
+
+local function isCastleEnemyModel(model)
+    if not model or not model.Parent then return false end
+    return castleEnemyNames[string.lower(tostring(model.Name or ""))] == true
+end
+
+local function collectCastleTargets()
+    local bosses, enemies = {}, {}
+    forEachPotentialEnemyModel(function(model)
+        if model:IsA("Model")
+            and model ~= character
+            and not Players:GetPlayerFromCharacter(model)
+            and isValidEnemyModel(model)
+            and not FS.zeroHP(model) then
+            if isCastleBossModel(model) then
+                table.insert(bosses, model)
+            elseif isCastleEnemyModel(model) then
+                table.insert(enemies, model)
+            end
+        end
+    end)
+
+    local byDistance = function(a, b)
+        return raidModelDistance(a) < raidModelDistance(b)
+    end
+    table.sort(bosses, byDistance)
+    table.sort(enemies, byDistance)
+    return bosses, enemies
+end
+
+local function selectCastleFarmTarget()
+    local current = castleFarmTarget
+    local currentAlive = isValidEnemyModel(current) and not FS.zeroHP(current)
+    local now = os.clock()
+    local forceScan = current ~= nil and not currentAlive
+
+    if not forceScan and (now - (castleFarmLastScan or 0)) < raidFarmScanInterval then
+        return current
+    end
+
+    local bosses, enemies = collectCastleTargets()
+    castleFarmLastScan = now
+    local nextTarget = nil
+
+    if #bosses > 0 then
+        if currentAlive and isCastleBossModel(current) then
+            nextTarget = current
+        else
+            nextTarget = bosses[1]
+        end
+    elseif currentAlive and isCastleEnemyModel(current) then
+        nextTarget = current
+    else
+        nextTarget = enemies[1]
+    end
+
+    if nextTarget ~= castleFarmTarget then
+        castleFarmTarget = nextTarget
+        FS.wasRagdoll = false
+        FS.didLunge = false
+        FS.execTarget = nil
+        FS.execUntil = 0
+    end
+    return castleFarmTarget
 end
 
 FS.ragdolled = function(enemy)
@@ -1851,40 +2193,74 @@ end
 -- Estabilizador de câmera durante farm (tabela única = 1 registrador local).
 FarmCam = FarmCam or {
     active = false,
+    locked = false, -- Scriptable só após achar o primeiro mob válido
     savedType = nil,
     savedSubject = nil,
 }
 function FarmCam.start()
-    local cam = workspace.CurrentCamera
-    if not cam then return end
+    -- NÃO trava a câmera aqui. Apenas marca intenção de farm.
+    -- A câmera só vira Scriptable quando FarmCam.update receber um focus real.
     if not FarmCam.active then
-        FarmCam.savedType = cam.CameraType
-        FarmCam.savedSubject = cam.CameraSubject
         FarmCam.active = true
+        FarmCam.locked = false
+        FarmCam.savedType = nil
+        FarmCam.savedSubject = nil
     end
-    cam.CameraType = Enum.CameraType.Scriptable
 end
 function FarmCam.stop()
     local cam = workspace.CurrentCamera
-    if cam and FarmCam.active then
+    if cam and FarmCam.locked then
         pcall(function()
             cam.CameraType = FarmCam.savedType or Enum.CameraType.Custom
             if FarmCam.savedSubject and FarmCam.savedSubject.Parent then
                 cam.CameraSubject = FarmCam.savedSubject
             elseif humanoid and humanoid.Parent then
                 cam.CameraSubject = humanoid
+            else
+                local char = player and player.Character
+                local hum = char and char:FindFirstChildOfClass("Humanoid")
+                if hum then cam.CameraSubject = hum end
             end
         end)
     end
     FarmCam.active = false
+    FarmCam.locked = false
+    FarmCam.savedType = nil
+    FarmCam.savedSubject = nil
+end
+function FarmCam.unlockIfIdle()
+    -- Restaura câmera se farm está ativo mas nenhum mob foi encontrado (evita freeze no canto)
+    if not FarmCam.active or not FarmCam.locked then return end
+    local cam = workspace.CurrentCamera
+    if not cam then return end
+    pcall(function()
+        cam.CameraType = FarmCam.savedType or Enum.CameraType.Custom
+        if FarmCam.savedSubject and FarmCam.savedSubject.Parent then
+            cam.CameraSubject = FarmCam.savedSubject
+        elseif humanoid and humanoid.Parent then
+            cam.CameraSubject = humanoid
+        end
+    end)
+    FarmCam.locked = false
     FarmCam.savedType = nil
     FarmCam.savedSubject = nil
 end
 function FarmCam.update(focusPos)
     if not FarmCam.active or not root or not root.Parent then return end
+    if not focusPos then
+        FarmCam.unlockIfIdle()
+        return
+    end
     local cam = workspace.CurrentCamera
     if not cam then return end
-    local focus = focusPos or root.Position
+    -- Primeiro frame com mob válido: salva estado e trava Scriptable
+    if not FarmCam.locked then
+        FarmCam.savedType = cam.CameraType
+        FarmCam.savedSubject = cam.CameraSubject
+        FarmCam.locked = true
+        cam.CameraType = Enum.CameraType.Scriptable
+    end
+    local focus = focusPos
     local back = root.Position - focus
     local flat = Vector3.new(back.X, 0, back.Z)
     if flat.Magnitude < 0.15 then
@@ -1897,7 +2273,9 @@ function FarmCam.update(focusPos)
 end
 
 function teleportAndLook()
-    local enemy = currentMob and findEnemy(currentMob)
+    local enemy = (castleFarmActive and selectCastleFarmTarget())
+        or (raidFarmActive and selectRaidFarmTarget())
+        or (currentMob and findEnemy(currentMob))
     local currentCharacter = player and player.Character
     local currentRoot = currentCharacter and currentCharacter:FindFirstChild("HumanoidRootPart")
     if currentCharacter and currentRoot then
@@ -1905,13 +2283,19 @@ function teleportAndLook()
         root = currentRoot
         humanoid = currentCharacter:FindFirstChildOfClass("Humanoid") or humanoid
     end
-    -- Sem inimigo: não faz scan pesado nem teleporta — evita freeze
-    if not enemy or not root or not root.Parent then return end
+    -- Sem inimigo: NÃO teleporta, NÃO trava câmera, libera Scriptable se estava preso
+    if not enemy or not root or not root.Parent then
+        FarmCam.unlockIfIdle()
+        return false
+    end
     local enemyRoot = enemy:FindFirstChild("HumanoidRootPart") or enemy:FindFirstChild("Torso")
     if not enemyRoot then
         local success, pivot = pcall(function() return enemy:GetPivot() end)
         if success and pivot then enemyRoot = { Position = pivot.Position, CFrame = pivot } end
-        if not enemyRoot then return end
+        if not enemyRoot then
+            FarmCam.unlockIfIdle()
+            return false
+        end
     end
 
     if FS.execTarget and FS.execTarget ~= enemy then
@@ -1970,18 +2354,22 @@ function teleportAndLook()
         offset = -lookVec * currentDistance
     end
 
-    root.CFrame = CFrame.new(targetPos + offset, targetPos)
+    local desired = targetPos + offset
+    root.CFrame = CFrame.new(desired, targetPos)
     pcall(function()
         root.Velocity = Vector3.new(0, 0, 0)
         root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
     end)
     FarmCam.update(targetPos)
+    return true
 end
 
 function teleportAndLookWithKeys()
     while teleportAndLookLooping do
-        teleportAndLook()
-        if not AutoSkillSystem.breathPreparing and not AutoSkillSystem.breathHolding then
+        local hasTarget = teleportAndLook()
+        if hasTarget
+            and not AutoSkillSystem.breathPreparing
+            and not AutoSkillSystem.breathHolding then
             VIM:SendKeyEvent(true, Enum.KeyCode.E, false, game)
             VIM:SendKeyEvent(false, Enum.KeyCode.E, false, game)
         end
@@ -2061,24 +2449,52 @@ local function isTargetBlocking(char)
 end
 
 local function getCurrentFarmCharacter()
+    if castleFarmActive then
+        return selectCastleFarmTarget()
+    end
+    if raidFarmActive then
+        return selectRaidFarmTarget()
+    end
     if not currentMob then return nil end
     return findEnemy(currentMob)
 end
 
-local hubInteracting = false
+local function isGuiVisibleAtPosition(gui, pos)
+    if not gui or not gui:IsA("GuiObject") or not gui.Visible then
+        return false
+    end
 
-local function isPointerOverHub()
+    local ancestor = gui
+    while ancestor do
+        if ancestor:IsA("GuiObject") and not ancestor.Visible then
+            return false
+        end
+        if ancestor:IsA("LayerCollector") and not ancestor.Enabled then
+            return false
+        end
+        ancestor = ancestor.Parent
+    end
+
+    local absolutePosition = gui.AbsolutePosition
+    local absoluteSize = gui.AbsoluteSize
+    return absoluteSize.X > 0
+        and absoluteSize.Y > 0
+        and pos.X >= absolutePosition.X
+        and pos.X <= absolutePosition.X + absoluteSize.X
+        and pos.Y >= absolutePosition.Y
+        and pos.Y <= absolutePosition.Y + absoluteSize.Y
+end
+
+isPointerOverHub = function(pos)
     local ok, over = pcall(function()
-        if not screenGui or not screenGui.Parent then return false end
-        local pos = UserInputService:GetMouseLocation()
+        if not screenGui or not screenGui.Parent or not screenGui.Enabled then
+            return false
+        end
+
+        pos = pos or UserInputService:GetMouseLocation()
         for _, gui in ipairs(screenGui:GetDescendants()) do
-            if gui:IsA("GuiObject") and gui.Visible then
-                local ap, as = gui.AbsolutePosition, gui.AbsoluteSize
-                if as.X > 0 and as.Y > 0
-                    and pos.X >= ap.X and pos.X <= ap.X + as.X
-                    and pos.Y >= ap.Y and pos.Y <= ap.Y + as.Y then
-                    return true
-                end
+            if isGuiVisibleAtPosition(gui, pos) then
+                return true
             end
         end
         return false
@@ -2086,16 +2502,77 @@ local function isPointerOverHub()
     return ok and over
 end
 
-local function shouldSkipVisualClick()
-    if hubInteracting then return true end
-    if isPointerOverHub() then return true end
+-- O clique visual automático nunca é enviado diretamente sobre uma
+-- interface. Quando necessário, ele é redirecionado para um ponto livre.
+-- O input real do usuário continua chegando à GUI, então botões, TextBox,
+-- sliders e arraste não são desativados.
+local function isPointerOverInterface(pos)
+    pos = pos or UserInputService:GetMouseLocation()
+
+    if isPointerOverHub(pos) then
+        return true
+    end
+
+    local ok, guiObjects = pcall(function()
+        return GuiService:GetGuiObjectsAtPosition(pos.X, pos.Y)
+    end)
+    if not ok or not guiObjects then
+        return false
+    end
+
+    for _, gui in ipairs(guiObjects) do
+        if isGuiVisibleAtPosition(gui, pos) then
+            return true
+        end
+    end
     return false
+end
+
+-- Retorna a posição original quando ela está livre. Se o cursor estiver
+-- sobre uma interface, procura um ponto livre para que o clique automático
+-- continue acionando a espada/lunge sem clicar em nenhum elemento da UI.
+local function getSafeVisualClickPosition(preferredPos)
+    local viewport = Camera and Camera.ViewportSize
+    if not viewport or viewport.X <= 2 or viewport.Y <= 2 then
+        return nil
+    end
+
+    local candidates = {
+        preferredPos,
+        Vector2.new(viewport.X * 0.50, viewport.Y * 0.50),
+        Vector2.new(viewport.X * 0.08, viewport.Y * 0.50),
+        Vector2.new(viewport.X * 0.92, viewport.Y * 0.50),
+        Vector2.new(viewport.X * 0.50, viewport.Y * 0.12),
+        Vector2.new(viewport.X * 0.50, viewport.Y * 0.88),
+        Vector2.new(8, 8),
+        Vector2.new(viewport.X - 8, 8),
+        Vector2.new(8, viewport.Y - 8),
+        Vector2.new(viewport.X - 8, viewport.Y - 8),
+    }
+
+    for _, rawPos in ipairs(candidates) do
+        if rawPos and rawPos.X >= 1 and rawPos.Y >= 1
+            and rawPos.X <= viewport.X - 1
+            and rawPos.Y <= viewport.Y - 1 then
+            local pos = Vector2.new(rawPos.X, rawPos.Y)
+            if not isPointerOverInterface(pos) then
+                return pos
+            end
+        end
+    end
+
+    return nil
+end
+
+local function shouldSkipVisualClick(pos)
+    if hubInteracting then return true end
+    return isPointerOverInterface(pos)
 end
 
 UserInputService.InputBegan:Connect(function(input, _gp)
     if input.UserInputType == Enum.UserInputType.MouseButton1
         or input.UserInputType == Enum.UserInputType.Touch then
-        if isPointerOverHub() then
+        if isPointerOverHub(input.Position) then
             hubInteracting = true
         end
     end
@@ -2107,30 +2584,31 @@ UserInputService.InputEnded:Connect(function(input, _gp)
     end
 end)
 
-local function sendMouseM1(forceMouseClick)
-    if not forceMouseClick and shouldSkipVisualClick() then return end
+local function sendMouseM1()
     pcall(function()
         local mousePos = UserInputService:GetMouseLocation()
-        local x, y = mousePos.X, mousePos.Y
-        if x <= 0 or y <= 0 then
-            local viewport = Camera and Camera.ViewportSize
-            x = viewport and viewport.X * 0.5 or 0
-            y = viewport and viewport.Y * 0.5 or 0
-        end
+        local clickPos = getSafeVisualClickPosition(mousePos)
+        if not clickPos then return end
+
+        local x, y = clickPos.X, clickPos.Y
         VIM:SendMouseButtonEvent(x, y, 0, true, game, 1)
         task.wait(0.04)
         VIM:SendMouseButtonEvent(x, y, 0, false, game, 1)
     end)
 end
 
-local function sendM1(allowDuringLunge)
-    if AutoSkillSystem.breathPreparing or AutoSkillSystem.breathHolding then return end
-    if FS.lunging and not allowDuringLunge then return end
+local function sendRemoteM1()
     pcall(function()
         local remote = getCombatRemote()
         if remote then remote:FireServer("Combat", "Server") end
     end)
-    sendMouseM1(false)
+end
+
+local function sendM1(allowDuringLunge)
+    if AutoSkillSystem.breathPreparing or AutoSkillSystem.breathHolding then return end
+    if FS.lunging and not allowDuringLunge then return end
+    sendRemoteM1()
+    sendMouseM1()
 end
 
 local function sendM2()
@@ -2167,7 +2645,9 @@ FS.doLunge = function()
         task.wait(0.11) -- +10ms vs 0.10: primeiro clique do lunge 10ms depois
 
         for _ = 1, 5 do
-            sendMouseM1(true)
+            -- Nunca força um clique sobre uma interface; o cursor continua
+            -- livre para usar o hub enquanto a sequência de lunge roda.
+            sendMouseM1()
             task.wait(0.08)
         end
 
@@ -2217,13 +2697,22 @@ local function smartAttackOnce()
         return
     end
 
-    if FS.zeroHP(enemy) then FS.markExec(enemy) end
-    if FS.execLocked(enemy) then
+    local enemyIsDead = FS.zeroHP(enemy)
+    if enemyIsDead and farmCanFinalize then
+        FS.markExec(enemy)
+    end
+    if farmCanFinalize and FS.execLocked(enemy) then
         FS.doExec()
         return
     end
+    if enemyIsDead then
+        return
+    end
 
-    if FS.playerStunned and not demonMode then
+    -- Slayers não atacam durante o stun nem durante o recuo calculado.
+    -- O relógio é o mesmo usado pelo farm para voltar à distância normal,
+    -- então nenhum M1 é enviado antes do instante exato de retorno.
+    if not demonMode and (FS.playerStunned or tick() < (FS.stunHoldUntil or 0)) then
         return
     end
 
@@ -2247,7 +2736,7 @@ local function smartAttackOnce()
 
     if isTargetBlocking(enemy) and not demonMode then
         local safety = 0
-        while (autoAttack or isEnabled) and safety < 40 do
+        while isEnabled and safety < 40 do
             enemy = getCurrentFarmCharacter()
             if not enemy or not enemy.Parent or not isTargetBlocking(enemy) then break end
             sendM2()
@@ -2259,11 +2748,19 @@ local function smartAttackOnce()
     end
 end
 
-local function autoAttackLoop()
-    while autoAttack do
-        if not AutoSkillSystem.breathPreparing and not AutoSkillSystem.breathHolding then
-            smartAttackOnce()
-        end
+local function autoAttackOnce()
+    if AutoSkillSystem.breathPreparing or AutoSkillSystem.breathHolding then
+        return
+    end
+
+    -- Auto Attack é independente do farm: usa somente o remote de M1
+    -- e não chama smartAttackOnce, não usa alvo do farm e não injeta clique.
+    sendRemoteM1()
+end
+
+local function autoAttackLoop(loopToken)
+    while autoAttack and loopToken == autoAttackLoopToken do
+        autoAttackOnce()
         task.wait(0.14)
     end
 end
@@ -2281,16 +2778,35 @@ local function farmAttackLoop()
             if not demonMode then
                 FS.curDist = FS.safeDist
                 FS.stunHoldUntil = 0
+                FS.returnLungePending = false
             end
         elseif not stunnedNow and FS.playerStunned then
-            -- Stun acabou: mantém recuo por stunRecoilHold (1.5s) antes de voltar
+            -- Stun acabou: calcula agora o instante exato de retorno.
+            -- Até esse horário o Slayer fica afastado e não pode atacar.
             FS.playerStunned = false
-            FS.stunHoldUntil = tick() + (FS.stunRecoilHold or 1.5)
-            if not demonMode and not FS.curDist then
+            if not demonMode then
+                FS.stunHoldUntil = tick() + (FS.stunRecoilHold or 1.5)
                 FS.curDist = FS.safeDist
+                FS.returnLungePending = true
+            else
+                -- Oni não espera o recuo: mantém os ataques imediatamente.
+                FS.stunHoldUntil = 0
+                FS.returnLungePending = false
             end
         elseif not FS.playerStunned and FS.curDist and (FS.stunHoldUntil or 0) > 0 then
-            if tick() >= FS.stunHoldUntil then
+            local now = tick()
+            -- Mantém o comportamento original: o lunge começa no fim do recuo,
+            -- imediatamente antes de voltar para a distância de ataque.
+            -- O atraso extra de 0,20 s deixa a sequência um pouco mais lenta que a anterior.
+            local lead = math.max(0.05,
+                (FS.lungeRunHold or 0.51) + 0.08 - (FS.lungeExtraDelay or 0.30))
+            if not demonMode and FS.returnLungePending and now >= (FS.stunHoldUntil - lead) then
+                FS.returnLungePending = false
+                spawn(function()
+                    FS.doLunge()
+                end)
+            end
+            if now >= FS.stunHoldUntil then
                 FS.curDist = nil
                 FS.stunHoldUntil = 0
             end
@@ -2305,8 +2821,34 @@ local function farmAttackLoop()
     end
 end
 
-function toggleTeleport(enable, mobName)
+local function teleportFarmPlayerUp()
+    local currentCharacter = player and player.Character
+    local currentRoot = currentCharacter and currentCharacter:FindFirstChild("HumanoidRootPart")
+    if not currentRoot then
+        currentRoot = root
+    end
+    if currentRoot and currentRoot.Parent then
+        pcall(function()
+            currentRoot.CFrame = currentRoot.CFrame + Vector3.new(0, 12, 0)
+            currentRoot.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+            currentRoot.Velocity = Vector3.new(0, 0, 0)
+        end)
+    end
+end
+
+function toggleTeleport(enable, mobName, scope)
     if enable then
+        castleFarmActive = mobName == CASTLE_GENERAL_TARGET
+        raidFarmActive = mobName == RAID_GENERAL_TARGET
+        farmIsRaid = castleFarmActive or raidFarmActive or isRaidFarmName(mobName)
+        farmScope = scope or "FARM"
+        farmCanFinalize = farmScope == "FARM"
+            and not farmIsRaid
+            and Players:FindFirstChild(tostring(mobName or "")) == nil
+        raidFarmTarget = nil
+        raidFarmLastScan = 0
+        castleFarmTarget = nil
+        castleFarmLastScan = 0
         if not isEnabled then
             farmNoclipWasEnabled = noclipToggle
         end
@@ -2319,7 +2861,10 @@ function toggleTeleport(enable, mobName)
         FarmCam.start()
         connection = RunService.RenderStepped:Connect(teleportAndLook)
         spawn(teleportAndLookWithKeys)
-        currentMob = mobName
+        -- O alvo de fallback do modo geral do castelo é o mob exato
+        -- "GenericOni"; bosses têm prioridade dentro de selectCastleFarmTarget.
+        currentMob = castleFarmActive and "GenericOni" or mobName
+        equipKatana()
         isEnabled = true
         farmAttackLooping = true
         FS.wasRagdoll = false
@@ -2327,6 +2872,7 @@ function toggleTeleport(enable, mobName)
         FS.playerStunned = false
         FS.curDist = nil
         FS.stunHoldUntil = 0
+        FS.returnLungePending = false
         FS.lastExec = 0
         FS.execUntil = 0
         FS.execTarget = nil
@@ -2334,6 +2880,16 @@ function toggleTeleport(enable, mobName)
         spawn(farmAttackLoop)
     else
         local hadFarmEnabled = isEnabled
+        local wasRaidFarm = farmIsRaid
+        raidFarmActive = false
+        castleFarmActive = false
+        farmIsRaid = false
+        farmScope = nil
+        farmCanFinalize = false
+        raidFarmTarget = nil
+        raidFarmLastScan = 0
+        castleFarmTarget = nil
+        castleFarmLastScan = 0
         if connection then connection:Disconnect() connection = nil end
         teleportAndLookLooping = false
         farmAttackLooping = false
@@ -2347,6 +2903,7 @@ function toggleTeleport(enable, mobName)
         FS.playerStunned = false
         FS.curDist = nil
         FS.stunHoldUntil = 0
+        FS.returnLungePending = false
         FS.execUntil = 0
         FS.execTarget = nil
         FS.lunging = false
@@ -2354,7 +2911,54 @@ function toggleTeleport(enable, mobName)
         if hadFarmEnabled then
             toggleNoclip(farmNoclipWasEnabled)
             farmNoclipWasEnabled = false
+            if not wasRaidFarm then
+                teleportFarmPlayerUp()
+            end
         end
+    end
+end
+
+function emergencyStop()
+    local hadMobFarm = isEnabled
+    local hadRaidFarm = farmIsRaid
+    local hadOreFarm = oreFarm
+    local hadTrinketFarm = trinketFarm
+
+    autoAttack = false
+    globalEnv.autoAttack = false
+    autoAttackLoopToken = autoAttackLoopToken + 1
+
+    if hadMobFarm then
+        toggleTeleport(false)
+    end
+
+    oreFarm = false
+    globalEnv.oreFarm = false
+    trinketFarm = false
+    globalEnv.trinketFarm = false
+    flyToggle = false
+    globalEnv.flyToggle = false
+    if bg then bg:Destroy(); bg = nil end
+    if bv then bv:Destroy(); bv = nil end
+    if flyConn then flyConn:Disconnect(); flyConn = nil end
+    if humanoid then humanoid.PlatformStand = false end
+
+    -- Ore/trinket não passam por toggleTeleport, então recebem a mesma
+    -- saída segura dos farms comuns. Farm de raid nunca teleporta ao parar.
+    if not (hadMobFarm and hadRaidFarm) and (hadOreFarm or hadTrinketFarm) then
+        teleportFarmPlayerUp()
+    end
+
+    toggleNoclip(false)
+    pcall(function()
+        VIM:SendKeyEvent(false, Enum.KeyCode.W, false, game)
+        VIM:SendKeyEvent(false, Enum.KeyCode.B, false, game)
+        VIM:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+        VIM:SendKeyEvent(false, Enum.KeyCode.Z, false, game)
+    end)
+
+    if notifyDev then
+        notifyDev(T("EMERGENCY_DONE"))
     end
 end
 
@@ -3340,7 +3944,7 @@ function getLoadedMobNameOptions()
                     Description = T("DEV_FARM_MOB_DESC"),
                     OnEnable = function()
                         if findLoadedMobModel(exactName) then
-                            toggleTeleport(true, exactName)
+                            toggleTeleport(true, exactName, "DEV")
                         else
                             notifyDev("Mob não está carregado: " .. exactName)
                         end
@@ -3784,6 +4388,9 @@ player.CharacterAdded:Connect(function(newChar)
     character = newChar
     root = character:WaitForChild("HumanoidRootPart")
     humanoid = character:WaitForChild("Humanoid")
+    if isEnabled then
+        task.defer(equipKatana)
+    end
     if not flyToggle and humanoid then
         humanoid.PlatformStand = false
     end
@@ -4768,6 +5375,7 @@ function createHubUI()
         titleLabel.Text = T("TITLE_MAIN")
 
         addTopic("GENERAL", T("TOPIC_GENERAL"), {
+            { Type = "Single", Name = T("EMERGENCY"), Description = T("EMERGENCY_DESC"), Callback = emergencyStop },
             { Type = "ListAuto", Name = T("FLY_SPEED"), Description = T("FLY_SPEED_DESC"), Options = {
                 { Type = "Toggle", StateKey = "EnableFly", Name = T("ENABLE_FLY"), Description = T("ENABLE_FLY_DESC"), OnEnable = function() flyToggle = true globalEnv.flyToggle = true setupFly() end, OnDisable = function() flyToggle = false globalEnv.flyToggle = false if bg then bg:Destroy() end if bv then bv:Destroy() end if flyConn then flyConn:Disconnect() end humanoid.PlatformStand = false end },
                 { Type = "Slider", StateKey = "FlySpeedValue", Name = T("FLY_SPEED_SLIDER"), Description = T("FLY_SPEED_SLIDER_DESC"), Min = 0, Max = 10000, Default = 150, OnChange = function(v) flySpeedValue = v globalEnv.flySpeedValue = v end },
@@ -4789,8 +5397,31 @@ function createHubUI()
 
         local mobFarmOptions = {}
         for _, mob in ipairs(FARM) do
-            table.insert(mobFarmOptions, { Type = "Toggle", StateKey = "Farm" .. mob, Name = T("FARM") .. " " .. mob, Description = T("FARM_DESC"), OnEnable = function() toggleTeleport(true, mob) end, OnDisable = function() toggleTeleport(false) end })
+            table.insert(mobFarmOptions, { Type = "Toggle", StateKey = "Farm" .. mob, Name = T("FARM") .. " " .. mob, Description = T("FARM_DESC"), OnEnable = function() toggleTeleport(true, mob, "FARM") end, OnDisable = function() toggleTeleport(false) end })
         end
+
+        local castleFarmOptions = {
+            { Type = "Toggle", StateKey = "FarmCastleGeneral", Name = T("FARM_CASTLE_GENERAL"), Description = T("FARM_CASTLE_GENERAL_DESC"), OnEnable = function()
+                toggleTeleport(true, CASTLE_GENERAL_TARGET, "FARM")
+            end, OnDisable = function()
+                toggleTeleport(false)
+            end },
+            { Type = "Toggle", StateKey = "FarmCastleAkaza", Name = T("FARM") .. " Akaza", Description = T("FARM_DESC"), OnEnable = function()
+                toggleTeleport(true, "Akaza", "FARM")
+            end, OnDisable = function()
+                toggleTeleport(false)
+            end },
+            { Type = "Toggle", StateKey = "FarmCastleDoma", Name = T("FARM") .. " Doma", Description = T("FARM_DESC"), OnEnable = function()
+                toggleTeleport(true, "Doma", "FARM")
+            end, OnDisable = function()
+                toggleTeleport(false)
+            end },
+            { Type = "Toggle", StateKey = "FarmCastleKokushibo", Name = T("FARM") .. " Kokushibo", Description = T("FARM_DESC"), OnEnable = function()
+                toggleTeleport(true, "Kokushibo", "FARM")
+            end, OnDisable = function()
+                toggleTeleport(false)
+            end }
+        }
 
         local tp_mode_options = (CurrentLang == "EN") and {"Behind", "Above", "Below"} or {"Atrás", "Acima", "Abaixo"}
         local tp_mode_map = {
@@ -4829,18 +5460,35 @@ function createHubUI()
                         end
                     end)
                 end, OnDisable = function()
+                    local hadTrinketFarm = trinketFarm
                     trinketFarm = false
                     globalEnv.trinketFarm = false
+                    if hadTrinketFarm and not (isEnabled and farmIsRaid) then
+                        teleportFarmPlayerUp()
+                    end
                 end },
-                { Type = "Toggle", StateKey = "AutoAttack", Name = T("AUTO_ATTACK"), Description = T("AUTO_ATTACK_DESC"), OnEnable = function() autoAttack = true globalEnv.autoAttack = true spawn(autoAttackLoop) end, OnDisable = function() autoAttack = false globalEnv.autoAttack = false end },
+                { Type = "Toggle", StateKey = "AutoAttack", Name = T("AUTO_ATTACK"), Description = T("AUTO_ATTACK_DESC"), OnEnable = function()
+                    autoAttack = true
+                    globalEnv.autoAttack = true
+                    autoAttackLoopToken = autoAttackLoopToken + 1
+                    local loopToken = autoAttackLoopToken
+                    spawn(function() autoAttackLoop(loopToken) end)
+                end, OnDisable = function()
+                    autoAttack = false
+                    globalEnv.autoAttack = false
+                    autoAttackLoopToken = autoAttackLoopToken + 1
+                end },
                 { Type = "Toggle", StateKey = "OreFarm", Name = T("ORE_FARM"), Description = T("ORE_FARM_DESC"), OnEnable = function()
                     oreFarm = true
                     globalEnv.oreFarm = true
+                    oreFarmNoclipWasEnabled = noclipToggle
+                    toggleNoclip(true)
                     flyToggle = true
                     globalEnv.flyToggle = true
                     setupOreFly()
                     spawn(oreFarmLoop)
                 end, OnDisable = function()
+                    local hadOreFarm = oreFarm
                     oreFarm = false
                     globalEnv.oreFarm = false
                     flyToggle = false
@@ -4849,6 +5497,13 @@ function createHubUI()
                     if bv then bv:Destroy() end
                     if flyConn then flyConn:Disconnect() end
                     if humanoid then humanoid.PlatformStand = false end
+                    if not isEnabled then
+                        toggleNoclip(oreFarmNoclipWasEnabled)
+                        if hadOreFarm then
+                            teleportFarmPlayerUp()
+                        end
+                    end
+                    oreFarmNoclipWasEnabled = false
                 end }
             }},
             { Type = "ListAuto", Name = T("TP_MODE"), Description = T("TP_MODE_DESC"), Options = {
@@ -4862,13 +5517,15 @@ function createHubUI()
                 { Type = "Slider", StateKey = "ExecuteDistance", Name = T("EXECUTE_DISTANCE"), Description = T("EXECUTE_DISTANCE_DESC"), Min = 0, Max = 100, Default = 20, OnChange = function(v) EXECUTE_DISTANCE = v globalEnv.EXECUTE_DISTANCE = v end }
             }},
             { Type = "ListAuto", Name = T("FARM_MOBS_LIST"), Description = T("FARM_MOBS_LIST_DESC"), Options = mobFarmOptions },
+            { Type = "ListAuto", Name = T("FARM_CASTLE"), Description = T("FARM_CASTLE_DESC"), Options = castleFarmOptions },
             { Type = "ListAuto", Name = T("RAIDS"), Description = T("RAIDS_DESC"), Options = {
                 { Type = "Single", Name = T("TP_RAID_AREA"), Description = T("TP_RAID_AREA_DESC"), Callback = function() if root then root.CFrame = LOCATIONS.Raid end end },
-                { Type = "Toggle", StateKey = "FarmShinobuRaid", Name = T("FARM") .. " Shinobu Raid", Description = T("FARM_DESC"), OnEnable = function() toggleTeleport(true, "ShinoubuRaid") end, OnDisable = function() toggleTeleport(false) end },
-                { Type = "Toggle", StateKey = "FarmRengokuRaid", Name = T("FARM") .. " Rengoku Raid", Description = T("FARM_DESC"), OnEnable = function() toggleTeleport(true, "RengokuRaid") end, OnDisable = function() toggleTeleport(false) end },
-                { Type = "Toggle", StateKey = "FarmKokushiboRaid", Name = T("FARM") .. " Kokushibo Raid", Description = T("FARM_DESC"), OnEnable = function() toggleTeleport(true, "KokushiboRaid") end, OnDisable = function() toggleTeleport(false) end },
-                { Type = "Toggle", StateKey = "FarmEnemyRaid", Name = T("FARM") .. " Enemy Raid", Description = "Foca no inimigo 'Enemy'", OnEnable = function() toggleTeleport(true, "Enemy") end, OnDisable = function() toggleTeleport(false) end },
-                { Type = "Toggle", StateKey = "FarmYoriichi", Name = T("FARM") .. " Yoriichi", Description = T("FARM_DESC"), OnEnable = function() toggleTeleport(true, "Yoriichi") end, OnDisable = function() toggleTeleport(false) end }
+                { Type = "Toggle", StateKey = "FarmGeneralRaid", Name = T("FARM_GENERAL_RAID"), Description = T("FARM_GENERAL_RAID_DESC"), OnEnable = function() toggleTeleport(true, RAID_GENERAL_TARGET, "FARM") end, OnDisable = function() toggleTeleport(false) end },
+                { Type = "Toggle", StateKey = "FarmShinobuRaid", Name = T("FARM") .. " Shinobu Raid", Description = T("FARM_DESC"), OnEnable = function() toggleTeleport(true, "ShinoubuRaid", "FARM") end, OnDisable = function() toggleTeleport(false) end },
+                { Type = "Toggle", StateKey = "FarmRengokuRaid", Name = T("FARM") .. " Rengoku Raid", Description = T("FARM_DESC"), OnEnable = function() toggleTeleport(true, "RengokuRaid", "FARM") end, OnDisable = function() toggleTeleport(false) end },
+                { Type = "Toggle", StateKey = "FarmKokushiboRaid", Name = T("FARM") .. " Kokushibo Raid", Description = T("FARM_DESC"), OnEnable = function() toggleTeleport(true, "KokushiboRaid", "FARM") end, OnDisable = function() toggleTeleport(false) end },
+                { Type = "Toggle", StateKey = "FarmEnemyRaid", Name = T("FARM") .. " Enemy Raid", Description = "Foca no inimigo 'Enemy'", OnEnable = function() toggleTeleport(true, "Enemy", "FARM") end, OnDisable = function() toggleTeleport(false) end },
+                { Type = "Toggle", StateKey = "FarmYoriichi", Name = T("FARM") .. " Yoriichi", Description = T("FARM_DESC"), OnEnable = function() toggleTeleport(true, "Yoriichi", "FARM") end, OnDisable = function() toggleTeleport(false) end }
             }}
         })
 
@@ -4897,7 +5554,7 @@ function createHubUI()
                     end
                 end},
                 { Type = "Toggle", StateKey = "ESPPlayers", Name = T("ESP_PLAYERS"), Description = T("ESP_PLAYERS_DESC"), OnEnable = function() toggleESP(true) end, OnDisable = function() toggleESP(false) end },
-                { Type = "Toggle", StateKey = "FarmPlayer", Name = T("FARM_PLAYER"), Description = T("FARM_PLAYER_DESC"), OnEnable = function() if selectedPlayerName then toggleTeleport(true, selectedPlayerName) end end, OnDisable = function() toggleTeleport(false) end },
+                { Type = "Toggle", StateKey = "FarmPlayer", Name = T("FARM_PLAYER"), Description = T("FARM_PLAYER_DESC"), OnEnable = function() if selectedPlayerName then toggleTeleport(true, selectedPlayerName, "PLAYER") end end, OnDisable = function() toggleTeleport(false) end },
                 { Type = "Toggle", StateKey = "EnableSpectate", Name = T("ENABLE_SPECTATE"), Description = T("ENABLE_SPECTATE_DESC"), OnEnable = function() if selectedPlayerName then toggleSpectate(true, selectedPlayerName) end end, OnDisable = function() toggleSpectate(false) end }
             }}
         })
