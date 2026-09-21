@@ -17,6 +17,7 @@
 --  SERVICES
 -- ============================================================================== 
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
@@ -24,6 +25,8 @@ local CoreGui = game:GetService("CoreGui")
 local Lighting = game:GetService("Lighting")
 local VIM = game:GetService("VirtualInputManager")
 local GuiService = game:GetService("GuiService")
+local HttpService = game:GetService("HttpService")
+local TeleportService = game:GetService("TeleportService")
 local Camera = workspace and workspace.CurrentCamera
 
 -- =========================
@@ -147,6 +150,20 @@ local TRANSLATIONS = {
 
         FLY_SPEED = "Fly & Speed",
         FLY_SPEED_DESC = "Controles de movimento",
+        SERVER_HOP = "Server Hop",
+        SERVER_HOP_DESC = "Entra no servidor público com menor ping",
+        SERVER_HOP_SEARCHING = "Procurando o servidor com menor ping...",
+        SERVER_HOP_FOUND = "Entrando no servidor com %d ms de ping",
+        SERVER_HOP_FAIL = "Não foi possível encontrar um servidor com ping disponível",
+        FARM_AUTO_REGEN = "Auto Regen (Farm)",
+        FARM_AUTO_REGEN_DESC = "Respawna no HP real fixo de 60 ou menos",
+        AUTO_REGEN = "Auto Regen",
+        AUTO_REGEN_DESC = "Respawna quando o HP real chegar ao limite",
+        AUTO_REGEN_THRESHOLD = "Limite Auto Regen",
+        AUTO_REGEN_THRESHOLD_DESC = "Regenera quando HP for menor ou igual",
+        AUTO_REGEN_ESP = "ESP Vida Real",
+        AUTO_REGEN_ESP_DESC = "Mostra o HP real atual e máximo acima do personagem",
+        AUTO_REGEN_WARNING = "Aviso: limite alto pode causar vários respawns e kick",
         ENABLE_FLY = "Ativar Fly",
         ENABLE_FLY_DESC = "WASD + Space/C",
         FLY_SPEED_SLIDER = "Velocidade Fly",
@@ -178,7 +195,7 @@ local TRANSLATIONS = {
         DISTANCE = "Distância",
         DISTANCE_DESC = "Distância do alvo",
         ANTI_EXECUTE = "Anti Execute",
-        ANTI_EXECUTE_DESC = "Mantém a distância atual quando você morrer no farm",
+        ANTI_EXECUTE_DESC = "Longe após morrer; desligado fica perto para morrer",
         EXECUTE_DISTANCE = "Dist. Execute",
         EXECUTE_DISTANCE_DESC = "Distância ao executar",
         AUTO_ATTACK = "Auto Attack",
@@ -414,6 +431,20 @@ local TRANSLATIONS = {
 
         FLY_SPEED = "Fly & Speed",
         FLY_SPEED_DESC = "Movement controls",
+        SERVER_HOP = "Server Hop",
+        SERVER_HOP_DESC = "Joins the public server with the lowest ping",
+        SERVER_HOP_SEARCHING = "Searching for the lowest-ping server...",
+        SERVER_HOP_FOUND = "Joining server with %d ms ping",
+        SERVER_HOP_FAIL = "Could not find a server with available ping",
+        FARM_AUTO_REGEN = "Auto Regen (Farm)",
+        FARM_AUTO_REGEN_DESC = "Respawns at the fixed real HP of 60 or lower",
+        AUTO_REGEN = "Auto Regen",
+        AUTO_REGEN_DESC = "Respawns when real HP reaches the limit",
+        AUTO_REGEN_THRESHOLD = "Auto Regen Limit",
+        AUTO_REGEN_THRESHOLD_DESC = "Regenerates when HP is less than or equal",
+        AUTO_REGEN_ESP = "Real Health ESP",
+        AUTO_REGEN_ESP_DESC = "Shows current and maximum real HP above your character",
+        AUTO_REGEN_WARNING = "Warning: a high limit may cause repeated respawns and a kick",
         ENABLE_FLY = "Enable Fly",
         ENABLE_FLY_DESC = "WASD + Space/C",
         FLY_SPEED_SLIDER = "Fly Speed",
@@ -445,7 +476,7 @@ local TRANSLATIONS = {
         DISTANCE = "Distance",
         DISTANCE_DESC = "Distance from target",
         ANTI_EXECUTE = "Anti Execute",
-        ANTI_EXECUTE_DESC = "Keeps the current distance when you die while farming",
+        ANTI_EXECUTE_DESC = "Stays far after death; off stays close so you can die",
         EXECUTE_DISTANCE = "Execute Dist.",
         EXECUTE_DISTANCE_DESC = "Distance when executing",
         AUTO_ATTACK = "Auto Attack",
@@ -950,6 +981,22 @@ globalEnv.autoAttack = globalEnv.autoAttack or false
 local autoAttack = globalEnv.autoAttack
 local currentMob = nil
 local isEnabled = false
+local farmRespawnBusy = false
+local farmRespawnLast = 0
+local FARM_RESPAWN_HEALTH = 60
+local FARM_RESPAWN_COOLDOWN = 3
+globalEnv.generalAutoRegenThreshold = tonumber(globalEnv.generalAutoRegenThreshold) or 60
+local generalAutoRegenThreshold = globalEnv.generalAutoRegenThreshold
+globalEnv.farmAutoRegen = globalEnv.farmAutoRegen == true
+local farmAutoRegen = globalEnv.farmAutoRegen
+globalEnv.generalAutoRegen = globalEnv.generalAutoRegen == true
+local generalAutoRegen = globalEnv.generalAutoRegen
+globalEnv.autoRegenHealthESP = globalEnv.autoRegenHealthESP == true
+local autoRegenHealthESP = globalEnv.autoRegenHealthESP
+local manualRespawnBusy = false
+local farmRespawnCooldownLogLast = 0
+local farmHealthLogLast = 0
+local FARM_HEALTH_LOG_INTERVAL = 0.50
 local raidFarmActive = false
 local farmIsRaid = false
 local farmScope = nil
@@ -961,6 +1008,7 @@ local RAID_GENERAL_TARGET = "__MOONDF_GENERAL_RAID__"
 local castleFarmActive = false
 local castleFarmTarget = nil
 local castleFarmLastScan = 0
+local castleBossEngaged = false
 local CASTLE_GENERAL_TARGET = "__MOONDF_GENERAL_CASTLE__"
 local connection = nil
 local loadingAllMobs = false
@@ -985,6 +1033,35 @@ local EXECUTE_DISTANCE = globalEnv.EXECUTE_DISTANCE
 local PLAYER_EXECUTE_DISTANCE = 20
 globalEnv.antiExecute = globalEnv.antiExecute ~= false
 local antiExecute = globalEnv.antiExecute
+
+local function autoRegenIsEnabled()
+    return generalAutoRegen or (isEnabled and farmAutoRegen)
+end
+
+local function activeAutoRegenThreshold()
+    if isEnabled and farmAutoRegen then
+        return FARM_RESPAWN_HEALTH
+    end
+    return generalAutoRegenThreshold
+end
+
+function toggleFarmAutoRegen(state)
+    farmAutoRegen = state == true
+    globalEnv.farmAutoRegen = farmAutoRegen
+end
+
+function toggleGeneralAutoRegen(state)
+    generalAutoRegen = state == true
+    globalEnv.generalAutoRegen = generalAutoRegen
+    if generalAutoRegen and notifyDev then
+        notifyDev(T("AUTO_REGEN_WARNING"))
+    end
+end
+
+function toggleAutoRegenHealthESP(state)
+    autoRegenHealthESP = state == true
+    globalEnv.autoRegenHealthESP = autoRegenHealthESP
+end
 
 -- Equipamento legítimo da Katana:
 -- a Tool precisa estar no Backpack (ou já no Character) do jogador.
@@ -1013,6 +1090,148 @@ local function equipKatana()
 
     currentHumanoid:EquipTool(katana)
     return true
+end
+
+-- No Demon Fall, o HP real fica em Character.Health ou Player.Health;
+-- Humanoid.Health/MaxHealth não é usado para essa verificação.
+local function readFarmHealth()
+    local currentCharacter = player and player.Character
+    local health = nil
+    local source = "nenhuma"
+
+    local characterHealth = currentCharacter
+        and currentCharacter:FindFirstChild("Health")
+    if characterHealth and characterHealth:IsA("ValueBase") then
+        health = tonumber(characterHealth.Value)
+        source = "Character.Health"
+    end
+
+    if health == nil then
+        local playerHealth = player and player:FindFirstChild("Health")
+        if playerHealth and playerHealth:IsA("ValueBase") then
+            health = tonumber(playerHealth.Value)
+            source = "Player.Health"
+        end
+    end
+
+    local now = os.clock()
+    if autoRegenIsEnabled() and (now - (farmHealthLogLast or 0)) >= FARM_HEALTH_LOG_INTERVAL then
+        farmHealthLogLast = now
+        print(string.format(
+            "[MOONDF][HP] farm=%s source=%s health=%s threshold=%d character=%s",
+            tostring(isEnabled),
+            source,
+            health == nil and "nil" or tostring(health),
+            activeAutoRegenThreshold(),
+            currentCharacter and currentCharacter.Name or "nil"
+        ))
+    end
+
+    return health, source
+end
+
+-- Recria o personagem quando o Auto Regen ativo atinge seu limite.
+-- O botão do farm usa 60 fixo; o botão geral usa o limite configurado.
+-- A chamada roda em uma thread separada para não travar o loop do farm
+-- caso o InvokeServer demore para responder.
+local function respawnFarmCharacterIfLowHealth()
+    if not autoRegenIsEnabled() or farmRespawnBusy then
+        return false
+    end
+
+    local health, source = readFarmHealth()
+    local threshold = activeAutoRegenThreshold()
+
+    if health == nil or health > threshold then
+        return false
+    end
+
+    local now = os.clock()
+    if (now - farmRespawnLast) < FARM_RESPAWN_COOLDOWN then
+        if (now - (farmRespawnCooldownLogLast or 0)) >= FARM_HEALTH_LOG_INTERVAL then
+            farmRespawnCooldownLogLast = now
+            print(string.format(
+                "[MOONDF][RESPAWN] cooldown ativo: health=%s source=%s threshold=%d",
+                tostring(health),
+                source,
+                threshold
+            ))
+        end
+        return false
+    end
+
+    local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+    local sync = remotes and remotes:FindFirstChild("Sync")
+    if not sync or not sync:IsA("RemoteFunction") then
+        warn("[MOONDF][RESPAWN] Remotes.Sync não encontrado para SpawnCharacter.")
+        farmRespawnLast = now
+        return false
+    end
+
+    farmRespawnBusy = true
+    farmRespawnLast = now
+    print(string.format(
+        "[MOONDF][RESPAWN] disparando: health=%s source=%s threshold=%d",
+        tostring(health),
+        source,
+        threshold
+    ))
+
+    task.spawn(function()
+        local success, err = pcall(function()
+            sync:InvokeServer("Player", "SpawnCharacter")
+        end)
+        if not success then
+            warn("[MOONDF][RESPAWN] falha ao chamar SpawnCharacter:", err)
+        else
+            print("[MOONDF][RESPAWN] SpawnCharacter chamado com sucesso.")
+        end
+        task.wait(1.5)
+        farmRespawnBusy = false
+        print("[MOONDF][RESPAWN] monitor liberado.")
+    end)
+
+    return true
+end
+
+-- Monitor independente do loop de ataque: mantém o respawn funcionando
+-- mesmo quando o farm está sem alvo ou aguardando um boss.
+if globalEnv._MoonDFFarmHealthMonitorConnection then
+    pcall(function()
+        globalEnv._MoonDFFarmHealthMonitorConnection:Disconnect()
+    end)
+end
+local farmHealthMonitorConnection = RunService.Heartbeat:Connect(function()
+    if autoRegenIsEnabled() and not farmRespawnBusy then
+        respawnFarmCharacterIfLowHealth()
+    end
+end)
+globalEnv._MoonDFFarmHealthMonitorConnection = farmHealthMonitorConnection
+
+-- Botão Developer: respawn manual, uma única chamada por clique.
+local function respawnCharacterOnce()
+    if manualRespawnBusy then
+        return
+    end
+
+    local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+    local sync = remotes and remotes:FindFirstChild("Sync")
+    if not sync or not sync:IsA("RemoteFunction") then
+        warn("[MOONDF HUB] Remotes.Sync não encontrado para Respawnar.")
+        return
+    end
+
+    manualRespawnBusy = true
+    task.spawn(function()
+        local success, err = pcall(function()
+            sync:InvokeServer("Player", "SpawnCharacter")
+        end)
+        if not success then
+            warn("[MOONDF HUB] Falha ao respawnar manualmente:", err)
+        end
+        task.wait(1.5)
+        manualRespawnBusy = false
+    end)
 end
 
 if globalEnv._MoonDFKatanaKeyConnection then
@@ -1059,36 +1278,53 @@ AutoSkillSystem.breathThreshold = 40
 AutoSkillSystem.breathPrepareDelay = 2
 AutoSkillSystem.breathChargeTimeout = 4
 AutoSkillSystem.breathRetryDelay = 6
+AutoSkillSystem.breathValueNames = {
+    breathing = true,
+    currentbreathing = true,
+    breath = true
+}
+
+AutoSkillSystem.readBreathingNode = function(node)
+    if not node then return nil end
+
+    local nodeName = string.lower(tostring(node.Name or ""))
+    if AutoSkillSystem.breathValueNames[nodeName] then
+        local ok, value = pcall(function()
+            if node:IsA("ValueBase") then
+                return tonumber(node.Value)
+            end
+        end)
+        if ok and value ~= nil then
+            return math.clamp(value, 0, 100)
+        end
+    end
+
+    local ok, attributes = pcall(node.GetAttributes, node)
+    if ok and attributes then
+        for name, value in pairs(attributes) do
+            if AutoSkillSystem.breathValueNames[string.lower(tostring(name))] then
+                local number = tonumber(value)
+                if number then return math.clamp(number, 0, 100) end
+            end
+        end
+    end
+
+    return nil
+end
 
 AutoSkillSystem.readBreathing = function()
-    local sources = {player, character}
-    local wanted = {
-        breathing = true,
-        currentbreathing = true,
-        breath = true
-    }
+    local sources = {player, player and player.Character}
     for _, source in ipairs(sources) do
         if source then
-            local function readNode(node)
-                local nodeName = string.lower(tostring(node.Name or ""))
-                if wanted[nodeName] and node:IsA("ValueBase") then
-                    local number = tonumber(node.Value)
-                    if number then return math.clamp(number, 0, 100) end
-                end
-                for name, value in pairs(node:GetAttributes()) do
-                    if wanted[string.lower(tostring(name))] then
-                        local number = tonumber(value)
-                        if number then return math.clamp(number, 0, 100) end
-                    end
-                end
-                return nil
-            end
-
-            local direct = readNode(source)
+            local direct = AutoSkillSystem.readBreathingNode(source)
             if direct ~= nil then return direct end
-            for _, descendant in ipairs(source:GetDescendants()) do
-                local number = readNode(descendant)
-                if number ~= nil then return number end
+
+            local ok, descendants = pcall(source.GetDescendants, source)
+            if ok and descendants then
+                for _, descendant in ipairs(descendants) do
+                    local number = AutoSkillSystem.readBreathingNode(descendant)
+                    if number ~= nil then return number end
+                end
             end
         end
     end
@@ -1324,6 +1560,8 @@ AutoSkillSystem.startLoop = function()
                 if enabled
                     and not AutoSkillSystem.breathPreparing
                     and not AutoSkillSystem.breathHolding
+                    and not AutoSkillSystem.isActionBusy()
+                    and not AutoSkillSystem.isSkillOnCooldown(key)
                     and os.clock() >= (AutoSkillSystem.nextUse[key] or 0)
                 then
                     AutoSkillSystem.pressSkill(key)
@@ -1494,6 +1732,110 @@ local function isInBlockedState(h)
     if h.PlatformStand == true then return true end
     for _, v in ipairs(blockedStates) do if h:GetState() == v then return true end end
     return false
+end
+
+-- Procura o menor ping anunciado pela API pública de servidores do Roblox.
+-- O endpoint pode ser acessado por executores via game:HttpGet ou request().
+local serverHopBusy = false
+local SERVER_HOP_MAX_PAGES = 5
+
+local function requestServerList(url)
+    local body
+    local ok = pcall(function()
+        local requestFn
+
+        if syn and typeof(syn.request) == "function" then
+            requestFn = syn.request
+        elseif typeof(http_request) == "function" then
+            requestFn = http_request
+        elseif typeof(request) == "function" then
+            requestFn = request
+        elseif fluxus and typeof(fluxus.request) == "function" then
+            requestFn = fluxus.request
+        end
+
+        if requestFn then
+            local response = requestFn({
+                Url = url,
+                Method = "GET",
+            })
+            body = response and (response.Body or response.body)
+        else
+            body = game:HttpGet(url)
+        end
+    end)
+
+    return ok and body or nil
+end
+
+local function findLowestPingServer()
+    local bestServer
+    local cursor
+
+    for _ = 1, SERVER_HOP_MAX_PAGES do
+        local url = string.format(
+            "https://games.roblox.com/v1/games/%d/servers/Public?sortOrder=Asc&limit=100%s",
+            game.PlaceId,
+            cursor and ("&cursor=" .. HttpService:UrlEncode(cursor)) or ""
+        )
+        local body = requestServerList(url)
+        if not body then break end
+
+        local decoded
+        local decodedOk = pcall(function()
+            decoded = HttpService:JSONDecode(body)
+        end)
+        if not decodedOk or type(decoded) ~= "table" then break end
+
+        for _, server in ipairs(decoded.data or {}) do
+            local ping = tonumber(server.ping)
+            local playing = tonumber(server.playing)
+            local maxPlayers = tonumber(server.maxPlayers)
+            local isAvailable = not maxPlayers or not playing or playing < maxPlayers
+
+            if server.id
+                and server.id ~= game.JobId
+                and ping
+                and ping > 0
+                and isAvailable
+                and (not bestServer or ping < bestServer.ping)
+            then
+                bestServer = {
+                    id = server.id,
+                    ping = ping,
+                }
+            end
+        end
+
+        cursor = decoded.nextPageCursor
+        if not cursor then break end
+    end
+
+    return bestServer
+end
+
+function serverHopLowestPing()
+    if serverHopBusy then return end
+    serverHopBusy = true
+    notifyDev(T("SERVER_HOP_SEARCHING"))
+
+    task.spawn(function()
+        local server = findLowestPingServer()
+        if server then
+            notifyDev(string.format(T("SERVER_HOP_FOUND"), math.floor(server.ping)))
+            local ok, err = pcall(function()
+                TeleportService:TeleportToPlaceInstance(game.PlaceId, server.id, player)
+            end)
+            if not ok then
+                warn("[MOONDF][SERVER HOP] Falha no teleporte:", err)
+                notifyDev(T("SERVER_HOP_FAIL"))
+            end
+        else
+            warn("[MOONDF][SERVER HOP] Nenhum servidor com ping disponível foi encontrado.")
+            notifyDev(T("SERVER_HOP_FAIL"))
+        end
+        serverHopBusy = false
+    end)
 end
 
 local function calculateFlySpeed(sliderVal)
@@ -1881,11 +2223,13 @@ FS.zeroHP = function(enemy)
     return false
 end
 
-local raidEnemyNames = {}
-for _, name in ipairs(FARM) do
-    raidEnemyNames[string.lower(tostring(name))] = true
-end
-raidEnemyNames["enemy"] = true
+-- Alvos permitidos exclusivamente pelo "Farm Raid Geral":
+-- Enemy, Rengoku, Shinobu, Yoriichi e Kokushibo.
+-- Não reutilizar FARM aqui: a lista comum contém mobs que não devem
+-- ser selecionados pelo botão de raid geral.
+local raidEnemyNames = {
+    ["enemy"] = true,
+}
 
 local raidFarmNames = {
     [string.lower(RAID_GENERAL_TARGET)] = true,
@@ -1910,9 +2254,6 @@ local function isRaidBossModel(model)
         or string.find(name, "shinoubu", 1, true) ~= nil
         or string.find(name, "kokushibo", 1, true) ~= nil
         or string.find(name, "yoriichi", 1, true) ~= nil
-        or string.find(name, "douma", 1, true) ~= nil
-        or string.find(name, "doma", 1, true) ~= nil
-        or string.find(name, "akaza", 1, true) ~= nil
 end
 
 local function isRaidEnemyModel(model)
@@ -1994,8 +2335,9 @@ local function selectRaidFarmTarget()
 end
 
 -- Farm específico do Castelo Infinito:
--- usa os nomes exatos dos mobs e mantém a mesma prioridade otimizada do
--- Farm Raid Geral: boss vivo primeiro; GenericOni como fallback.
+-- usa somente GenericOni como fallback e Akaza/Doma/Kokushibo como bosses.
+-- Depois que um boss é encontrado, o farm não volta para GenericOni:
+-- fica aguardando outro boss aparecer.
 local castleBossNames = {
     ["akaza"] = true,
     ["doma"] = true,
@@ -2055,11 +2397,15 @@ local function selectCastleFarmTarget()
     local nextTarget = nil
 
     if #bosses > 0 then
+        castleBossEngaged = true
         if currentAlive and isCastleBossModel(current) then
             nextTarget = current
         else
             nextTarget = bosses[1]
         end
+    elseif castleBossEngaged then
+        -- Um boss já foi encontrado; aguarda somente outro boss.
+        nextTarget = nil
     elseif currentAlive and isCastleEnemyModel(current) then
         nextTarget = current
     else
@@ -2306,11 +2652,24 @@ function teleportAndLook()
     local currentDistance = FS.curDist or FARM_DISTANCE
     local isExecuting = enemy:FindFirstChild("Executing") or enemy:FindFirstChild("Execute")
     local isZeroHP = FS.zeroHP(enemy)
-    local localPlayerDead = not humanoid or humanoid.Health <= 0
+    local realPlayerHealth = select(1, readFarmHealth())
+    local localPlayerDead = (realPlayerHealth ~= nil and realPlayerHealth <= 0)
+    if not localPlayerDead then
+        localPlayerDead = not humanoid or humanoid.Health <= 0
+    end
     local enemyUsingForm = targetIsUsingForm(enemy)
 
-    if localPlayerDead and not antiExecute then
-        currentDistance = 1
+    if localPlayerDead then
+        -- Anti Execute ligado mantém o personagem afastado após morrer.
+        -- Desligado força a aproximação para o personagem poder morrer.
+        if antiExecute then
+            currentDistance = math.max(
+                PLAYER_EXECUTE_DISTANCE,
+                tonumber(EXECUTE_DISTANCE) or PLAYER_EXECUTE_DISTANCE
+            )
+        else
+            currentDistance = 1
+        end
     elseif isZeroHP and not isExecuting then
         currentDistance = 1
     elseif isExecuting then
@@ -2709,23 +3068,25 @@ local function smartAttackOnce()
         return
     end
 
-    -- Slayers não atacam durante o stun nem durante o recuo calculado.
-    -- O relógio é o mesmo usado pelo farm para voltar à distância normal,
-    -- então nenhum M1 é enviado antes do instante exato de retorno.
-    if not demonMode and (FS.playerStunned or tick() < (FS.stunHoldUntil or 0)) then
+    -- Oni e Slayer usam o mesmo stun/recuo. A única diferença do Oni
+    -- é não executar o lunge quando o recuo termina.
+    if FS.playerStunned or tick() < (FS.stunHoldUntil or 0) then
         return
     end
 
-    if FS.ragdolled(enemy) and not demonMode then
-        if not FS.wasRagdoll then
-            FS.wasRagdoll = true
-            FS.ragdollSince = tick()
-            FS.didLunge = false
+    if FS.ragdolled(enemy) then
+        if not demonMode then
+            if not FS.wasRagdoll then
+                FS.wasRagdoll = true
+                FS.ragdollSince = tick()
+                FS.didLunge = false
+            end
+            if not FS.didLunge and (tick() - FS.ragdollSince) >= FS.ragdollWait then
+                FS.doLunge()
+                FS.didLunge = true
+            end
         end
-        if not FS.didLunge and (tick() - FS.ragdollSince) >= FS.ragdollWait then
-            FS.doLunge()
-            FS.didLunge = true
-        end
+        -- Oni espera o ragdoll terminar, mas não usa lunge.
         return
     end
 
@@ -2734,7 +3095,7 @@ local function smartAttackOnce()
         FS.didLunge = false
     end
 
-    if isTargetBlocking(enemy) and not demonMode then
+    if isTargetBlocking(enemy) then
         local safety = 0
         while isEnabled and safety < 40 do
             enemy = getCurrentFarmCharacter()
@@ -2768,31 +3129,29 @@ end
 local function farmAttackLoop()
     local nextFarmExecute = 0
     while farmAttackLooping and isEnabled do
-        if AutoSkillSystem.breathPreparing or AutoSkillSystem.breathHolding then
+        if respawnFarmCharacterIfLowHealth() then
+            -- Pausa brevemente para o novo personagem carregar.
+            task.wait(0.25)
+        elseif farmRespawnBusy then
+            task.wait(0.14)
+        elseif AutoSkillSystem.breathPreparing or AutoSkillSystem.breathHolding then
             task.wait(0.14)
         else
         local demonMode = FS.isDemon()
         local stunnedNow = FS.iAmStunned()
         if stunnedNow and not FS.playerStunned then
             FS.playerStunned = true
-            if not demonMode then
-                FS.curDist = FS.safeDist
-                FS.stunHoldUntil = 0
-                FS.returnLungePending = false
-            end
+            -- Oni e Slayer se afastam durante o stun.
+            FS.curDist = FS.safeDist
+            FS.stunHoldUntil = 0
+            FS.returnLungePending = false
         elseif not stunnedNow and FS.playerStunned then
-            -- Stun acabou: calcula agora o instante exato de retorno.
-            -- Até esse horário o Slayer fica afastado e não pode atacar.
+            -- Stun acabou: ambos aguardam o mesmo recuo.
+            -- Apenas o Slayer agenda o lunge no fim desse recuo.
             FS.playerStunned = false
-            if not demonMode then
-                FS.stunHoldUntil = tick() + (FS.stunRecoilHold or 1.5)
-                FS.curDist = FS.safeDist
-                FS.returnLungePending = true
-            else
-                -- Oni não espera o recuo: mantém os ataques imediatamente.
-                FS.stunHoldUntil = 0
-                FS.returnLungePending = false
-            end
+            FS.stunHoldUntil = tick() + (FS.stunRecoilHold or 1.5)
+            FS.curDist = FS.safeDist
+            FS.returnLungePending = not demonMode
         elseif not FS.playerStunned and FS.curDist and (FS.stunHoldUntil or 0) > 0 then
             local now = tick()
             -- Mantém o comportamento original: o lunge começa no fim do recuo,
@@ -2849,6 +3208,7 @@ function toggleTeleport(enable, mobName, scope)
         raidFarmLastScan = 0
         castleFarmTarget = nil
         castleFarmLastScan = 0
+        castleBossEngaged = false
         if not isEnabled then
             farmNoclipWasEnabled = noclipToggle
         end
@@ -2890,6 +3250,7 @@ function toggleTeleport(enable, mobName, scope)
         raidFarmLastScan = 0
         castleFarmTarget = nil
         castleFarmLastScan = 0
+        castleBossEngaged = false
         if connection then connection:Disconnect() connection = nil end
         teleportAndLookLooping = false
         farmAttackLooping = false
@@ -3078,7 +3439,7 @@ local loadedMobNames = {}
 local loadedMobNameSet = {}
 globalEnv._MoonDFCapturedNpcLogs = globalEnv._MoonDFCapturedNpcLogs or {}
 
-local function collectLoadedMobNames()
+function collectLoadedMobNames()
     local unique = {}
     for _, model in ipairs(workspace:GetDescendants()) do
         if model:IsA("Model") and model ~= character
@@ -3103,7 +3464,7 @@ local function collectLoadedMobNames()
     return names
 end
 
-local function rememberLoadedMobNames()
+function rememberLoadedMobNames()
     for _, name in ipairs(collectLoadedMobNames()) do
         if not loadedMobNameSet[name] then
             loadedMobNameSet[name] = true
@@ -3117,7 +3478,7 @@ local function rememberLoadedMobNames()
     end)
 end
 
-local function detectLoadedMobs()
+function detectLoadedMobs()
     if loadingAllMobs then return end
     loadingAllMobs = true
     loadedMobNames = {}
@@ -3129,13 +3490,13 @@ local function detectLoadedMobs()
         or T("DEV_NO_MOBS"))
 end
 
-local function teleportToEvent(cframe)
+function teleportToEvent(cframe)
     if root and cframe then
         root.CFrame = cframe
     end
 end
 
-local function loadAllMap()
+function loadAllMap()
     if loadingAllMobs then return end
     loadingAllMobs = true
     local initialPosition = root.CFrame
@@ -3166,7 +3527,7 @@ local function loadAllMap()
     loadingAllMobs = false
 end
 
-local function setupHealthPlayer(plr)
+function setupHealthPlayer(plr)
     plr.CharacterAdded:Connect(function()
         maxHealthCache[plr.UserId] = nil
         playerSpawnTime[plr.UserId] = os.clock()
@@ -3185,7 +3546,7 @@ Players.PlayerRemoving:Connect(function(plr)
     playerSpawnTime[plr.UserId] = nil
 end)
 
-local function findRealHealthAndMax(plr)
+function findRealHealthAndMax(plr)
     local char = plr.Character
     if not char then return nil, nil end
 
@@ -3235,7 +3596,76 @@ local function findRealHealthAndMax(plr)
     return math.floor(currentHp), math.floor(maxHp)
 end
 
-local function getPlayerStamina(plr)
+function clearAutoRegenHealthTag()
+    if globalEnv._MoonDFAutoRegenHealthTag then
+        pcall(function() globalEnv._MoonDFAutoRegenHealthTag:Destroy() end)
+        globalEnv._MoonDFAutoRegenHealthTag = nil
+    end
+end
+
+function updateAutoRegenHealthTag()
+    if not autoRegenHealthESP then
+        clearAutoRegenHealthTag()
+        return
+    end
+
+    local char = player and player.Character
+    local head = char and char:FindFirstChild("Head")
+    if not head then
+        clearAutoRegenHealthTag()
+        return
+    end
+
+    if globalEnv._MoonDFAutoRegenHealthTag
+        and globalEnv._MoonDFAutoRegenHealthTag.Parent ~= head
+    then
+        clearAutoRegenHealthTag()
+    end
+
+    if not globalEnv._MoonDFAutoRegenHealthTag then
+        local tag = Instance.new("BillboardGui")
+        tag.Name = "MoonDFAutoRegenHealth"
+        tag.Size = UDim2.new(0, 190, 0, 30)
+        tag.StudsOffset = Vector3.new(0, 3.6, 0)
+        tag.AlwaysOnTop = true
+        tag.MaxDistance = 0
+        tag.LightInfluence = 0
+        tag.Parent = head
+        globalEnv._MoonDFAutoRegenHealthTag = tag
+
+        local label = Instance.new("TextLabel")
+        label.Name = "TextDisplay"
+        label.Size = UDim2.new(1, 0, 1, 0)
+        label.BackgroundTransparency = 1
+        label.Font = Enum.Font.GothamBold
+        label.TextSize = 14
+        label.TextStrokeTransparency = 0.2
+        label.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+        label.Parent = tag
+    end
+
+    local currentHp, maxHp = findRealHealthAndMax(player)
+    local label = globalEnv._MoonDFAutoRegenHealthTag:FindFirstChild("TextDisplay")
+    if not label then return end
+
+    if currentHp and maxHp and maxHp > 0 then
+        local percent = math.clamp(currentHp / maxHp, 0, 1)
+        label.Text = string.format("HP REAL: %d / %d", currentHp, maxHp)
+        label.TextColor3 = Color3.fromHSV(percent * 0.33, 0.95, 1)
+    else
+        label.Text = "HP REAL: ..."
+        label.TextColor3 = Color3.fromRGB(180, 180, 200)
+    end
+end
+
+if globalEnv._MoonDFAutoRegenHealthConnection then
+    pcall(function()
+        globalEnv._MoonDFAutoRegenHealthConnection:Disconnect()
+    end)
+end
+globalEnv._MoonDFAutoRegenHealthConnection = RunService.Heartbeat:Connect(updateAutoRegenHealthTag)
+
+function getPlayerStamina(plr)
     local cur, maxS = nil, nil
     local s = plr:FindFirstChild("Stamina")
     if s and s:IsA("ValueBase") then cur = tonumber(s.Value) end
@@ -3258,7 +3688,11 @@ local function getPlayerStamina(plr)
     return math.clamp(cur, 0, maxS), maxS
 end
 
-local function getPlayerBreathing(plr)
+-- O bloco principal já está próximo do limite de 200 registradores locais
+-- do Luau. Guardar esta função na tabela compartilhada evita criar mais um
+-- registrador local sem mudar o comportamento do ESP.
+AutoSkillSystem.getPlayerBreathing = function(plr)
+    if not plr then return nil end
     local b = plr:FindFirstChild("Breathing")
     if b and b:IsA("ValueBase") then
         local v = tonumber(b.Value)
@@ -3275,9 +3709,10 @@ local function getPlayerBreathing(plr)
     return nil
 end
 
-local ESP_MAX_DIST = 180
+-- Mantido fora dos registradores locais do bloco principal.
+ESP_MAX_DIST = 180
 
-local function clearAllHealthESP()
+function clearAllHealthESP()
     for _, plr in ipairs(Players:GetPlayers()) do
         if plr.Character then
             local head = plr.Character:FindFirstChild("Head")
@@ -3302,7 +3737,7 @@ local function clearAllHealthESP()
     end
 end
 
-local function ensureSideBar(hrp, name, offsetX)
+function ensureSideBar(hrp, name, offsetX)
     local gui = hrp:FindFirstChild(name)
     if gui and gui:IsA("BillboardGui") then return gui end
     if gui then gui:Destroy() end
@@ -3336,7 +3771,7 @@ local function ensureSideBar(hrp, name, offsetX)
     return gui
 end
 
-local function setSideBarPct(gui, pct, color)
+function setSideBarPct(gui, pct, color)
     if not gui then return end
     local track = gui:FindFirstChild("Track")
     local fill = track and track:FindFirstChild("Fill")
@@ -3346,7 +3781,7 @@ local function setSideBarPct(gui, pct, color)
     if color then fill.BackgroundColor3 = color end
 end
 
-local function drawHealthESP()
+function drawHealthESP()
     if not espEnabled then return end
     local myRoot = root
     local myPos = myRoot and myRoot.Position
@@ -3455,7 +3890,7 @@ local function drawHealthESP()
                 end
 
                 if breathGui then
-                    local breath = getPlayerBreathing(plr)
+                    local breath = AutoSkillSystem.getPlayerBreathing(plr)
                     if breath then
                         local pct = math.clamp(breath / 100, 0, 1)
                         local col = pct > 0.45 and Color3.fromRGB(70, 210, 255)
@@ -3533,7 +3968,7 @@ function toggleInfiniteJump(state)
     end)
 end
 
-local function processStaminaAndCombat()
+function processStaminaAndCombat()
     local char = character
     if not char then return end
 
@@ -3598,7 +4033,7 @@ local function processStaminaAndCombat()
     end
 end
 
-local function ensureStaminaCombatLoop()
+function ensureStaminaCombatLoop()
     if staminaCombatConn then return end
     staminaCombatConn = RunService.Heartbeat:Connect(function()
         if not (infiniteStamina or antiCombat) then return end
@@ -5376,11 +5811,20 @@ function createHubUI()
 
         addTopic("GENERAL", T("TOPIC_GENERAL"), {
             { Type = "Single", Name = T("EMERGENCY"), Description = T("EMERGENCY_DESC"), Callback = emergencyStop },
+            { Type = "Single", Name = T("SERVER_HOP"), Description = T("SERVER_HOP_DESC"), Callback = serverHopLowestPing },
             { Type = "ListAuto", Name = T("FLY_SPEED"), Description = T("FLY_SPEED_DESC"), Options = {
                 { Type = "Toggle", StateKey = "EnableFly", Name = T("ENABLE_FLY"), Description = T("ENABLE_FLY_DESC"), OnEnable = function() flyToggle = true globalEnv.flyToggle = true setupFly() end, OnDisable = function() flyToggle = false globalEnv.flyToggle = false if bg then bg:Destroy() end if bv then bv:Destroy() end if flyConn then flyConn:Disconnect() end humanoid.PlatformStand = false end },
                 { Type = "Slider", StateKey = "FlySpeedValue", Name = T("FLY_SPEED_SLIDER"), Description = T("FLY_SPEED_SLIDER_DESC"), Min = 0, Max = 10000, Default = 150, OnChange = function(v) flySpeedValue = v globalEnv.flySpeedValue = v end },
                 { Type = "Toggle", StateKey = "EnableSpeed", Name = T("ENABLE_SPEED"), Description = T("ENABLE_SPEED_DESC"), OnEnable = function() speedToggle = true globalEnv.speedToggle = true if speedConn then speedConn:Disconnect() end speedConn = RunService.Heartbeat:Connect(function() if humanoid then humanoid.WalkSpeed = walkSpeed end end) end, OnDisable = function() speedToggle = false globalEnv.speedToggle = false if speedConn then speedConn:Disconnect() end humanoid.WalkSpeed = BASE_WALKSPEED end },
                 { Type = "Slider", StateKey = "WalkSpeed", Name = T("SPEED_VALUE_SLIDER"), Description = T("SPEED_VALUE_SLIDER_DESC"), Min = 16, Max = 500, Default = 16, OnChange = function(v) walkSpeed = v globalEnv.walkSpeed = v end }
+            }},
+            { Type = "ListAuto", Name = T("AUTO_REGEN"), Description = T("AUTO_REGEN_DESC"), Options = {
+                { Type = "Toggle", StateKey = "GeneralAutoRegen", Name = T("AUTO_REGEN"), Description = T("AUTO_REGEN_DESC"), OnEnable = function() toggleGeneralAutoRegen(true) end, OnDisable = function() toggleGeneralAutoRegen(false) end },
+                { Type = "Slider", StateKey = "GeneralAutoRegenThreshold", Name = T("AUTO_REGEN_THRESHOLD"), Description = T("AUTO_REGEN_THRESHOLD_DESC"), Min = 1, Max = 200, Default = generalAutoRegenThreshold, OnChange = function(v)
+                    generalAutoRegenThreshold = math.max(1, tonumber(v) or 60)
+                    globalEnv.generalAutoRegenThreshold = generalAutoRegenThreshold
+                end },
+                { Type = "Toggle", StateKey = "AutoRegenHealthESP", Name = T("AUTO_REGEN_ESP"), Description = T("AUTO_REGEN_ESP_DESC"), OnEnable = function() toggleAutoRegenHealthESP(true) end, OnDisable = function() toggleAutoRegenHealthESP(false) end }
             }},
             { Type = "ListAuto", Name = T("EXTRAS"), Description = T("EXTRAS_DESC"), Options = {
                 { Type = "Toggle", StateKey = "ClickTP", Name = T("CLICK_TP"), Description = T("CLICK_TP_DESC"), OnEnable = function() toggleClickTP(true) end, OnDisable = function() toggleClickTP(false) end },
@@ -5513,6 +5957,7 @@ function createHubUI()
                     globalEnv.teleportMode = mapped
                 end },
                 { Type = "Toggle", StateKey = "AntiExecute", Name = T("ANTI_EXECUTE"), Description = T("ANTI_EXECUTE_DESC"), OnEnable = function() antiExecute = true globalEnv.antiExecute = true end, OnDisable = function() antiExecute = false globalEnv.antiExecute = false end },
+                { Type = "Toggle", StateKey = "FarmAutoRegen", Name = T("FARM_AUTO_REGEN"), Description = T("FARM_AUTO_REGEN_DESC"), OnEnable = function() toggleFarmAutoRegen(true) end, OnDisable = function() toggleFarmAutoRegen(false) end },
                 { Type = "Slider", StateKey = "FarmDistance", Name = T("DISTANCE"), Description = T("DISTANCE_DESC"), Min = 0, Max = 50, Default = 4, OnChange = function(v) FARM_DISTANCE = v globalEnv.FARM_DISTANCE = v end },
                 { Type = "Slider", StateKey = "ExecuteDistance", Name = T("EXECUTE_DISTANCE"), Description = T("EXECUTE_DISTANCE_DESC"), Min = 0, Max = 100, Default = 20, OnChange = function(v) EXECUTE_DISTANCE = v globalEnv.EXECUTE_DISTANCE = v end }
             }},
@@ -5603,6 +6048,7 @@ function createHubUI()
                 { Type = "Single", Name = T("DEV_LOAD_MOBS"), Description = T("DEV_LOAD_MOBS_DESC"), Callback = detectLoadedMobs },
                 { Type = "ListAuto", Name = T("DEV_LOADED_MOBS"), Description = T("DEV_LOADED_MOBS_DESC"), Options = getLoadedMobNameOptions },
                 { Type = "Single", Name = T("DEV_COORDS"), Description = T("DEV_COORDS_DESC"), Callback = copyCoordinates },
+                { Type = "Single", Name = "Respawnar", Description = "Respawna seu personagem uma vez", Callback = respawnCharacterOnce },
             }},
             { Type = "ListAuto", Name = T("DEV_FUNNY"), Description = T("DEV_FUNNY_DESC"), Options = {
                 { Type = "Toggle", StateKey = "DevSpin", Name = T("DEV_SPIN"), Description = T("DEV_SPIN_DESC"), OnEnable = function() toggleDevSpin(true) end, OnDisable = function() toggleDevSpin(false) end },
