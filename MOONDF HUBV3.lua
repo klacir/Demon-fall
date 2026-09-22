@@ -159,10 +159,19 @@ local TRANSLATIONS = {
         FARM_AUTO_REGEN_DESC = "Respawna no HP real fixo de 60 ou menos",
         AUTO_REGEN = "Auto Regen",
         AUTO_REGEN_DESC = "Respawna quando o HP real chegar ao limite",
+        AUTO_REGEN_MANUAL_RESPAWN = "Respawn Manual",
+        AUTO_REGEN_MANUAL_RESPAWN_DESC = "Respawna seu personagem uma vez imediatamente",
         AUTO_REGEN_THRESHOLD = "Limite Auto Regen",
         AUTO_REGEN_THRESHOLD_DESC = "Regenera quando HP for menor ou igual",
         AUTO_REGEN_ESP = "ESP Vida Real",
         AUTO_REGEN_ESP_DESC = "Mostra o HP real atual e máximo acima do personagem",
+        AUTO_REGEN_BREATH_BAR = "Barra de Respiração",
+        AUTO_REGEN_BREATH_BAR_BUTTON = "CRIAR BARRA DE RESPIRAÇÃO",
+        AUTO_REGEN_BREATH_BAR_DESC = "Ativa a barra branca vertical durante a respiração",
+        AUTO_REGEN_BREATH_BAR_CHARACTER = "Barra fixa no boneco",
+        AUTO_REGEN_BREATH_BAR_CHARACTER_DESC = "Prende a barra ao personagem com tamanho fixo, sem alterar com o zoom",
+        AUTO_REGEN_BREATH_BAR_SCREEN = "Barra fixa na tela (UI)",
+        AUTO_REGEN_BREATH_BAR_SCREEN_DESC = "Mostra a barra como UI fixa na tela, um pouco à esquerda",
         AUTO_REGEN_WARNING = "Aviso: limite alto pode causar vários respawns e kick",
         ENABLE_FLY = "Ativar Fly",
         ENABLE_FLY_DESC = "WASD + Space/C",
@@ -440,10 +449,19 @@ local TRANSLATIONS = {
         FARM_AUTO_REGEN_DESC = "Respawns at the fixed real HP of 60 or lower",
         AUTO_REGEN = "Auto Regen",
         AUTO_REGEN_DESC = "Respawns when real HP reaches the limit",
+        AUTO_REGEN_MANUAL_RESPAWN = "Manual Respawn",
+        AUTO_REGEN_MANUAL_RESPAWN_DESC = "Respawns your character once immediately",
         AUTO_REGEN_THRESHOLD = "Auto Regen Limit",
         AUTO_REGEN_THRESHOLD_DESC = "Regenerates when HP is less than or equal",
         AUTO_REGEN_ESP = "Real Health ESP",
         AUTO_REGEN_ESP_DESC = "Shows current and maximum real HP above your character",
+        AUTO_REGEN_BREATH_BAR = "Breathing Bar",
+        AUTO_REGEN_BREATH_BAR_BUTTON = "CREATE BREATHING BAR",
+        AUTO_REGEN_BREATH_BAR_DESC = "Activates the white vertical bar while breathing",
+        AUTO_REGEN_BREATH_BAR_CHARACTER = "Bar fixed to character",
+        AUTO_REGEN_BREATH_BAR_CHARACTER_DESC = "Attaches the bar to the character with a fixed size that does not change with zoom",
+        AUTO_REGEN_BREATH_BAR_SCREEN = "Bar fixed on screen (UI)",
+        AUTO_REGEN_BREATH_BAR_SCREEN_DESC = "Shows the bar as fixed screen UI, slightly to the left",
         AUTO_REGEN_WARNING = "Warning: a high limit may cause repeated respawns and a kick",
         ENABLE_FLY = "Enable Fly",
         ENABLE_FLY_DESC = "WASD + Space/C",
@@ -997,6 +1015,10 @@ local manualRespawnBusy = false
 local farmRespawnCooldownLogLast = 0
 local farmHealthLogLast = 0
 local FARM_HEALTH_LOG_INTERVAL = 0.50
+-- No modo geral, guarda o CFrame antes do respawn para voltar ao mesmo
+-- ponto assim que o novo personagem for criado. O modo Farm não usa isso.
+local generalAutoRegenReturnCFrame = nil
+local generalAutoRegenRestoreConn = nil
 local raidFarmActive = false
 local farmIsRaid = false
 local farmScope = nil
@@ -1043,6 +1065,81 @@ local function activeAutoRegenThreshold()
         return FARM_RESPAWN_HEALTH
     end
     return generalAutoRegenThreshold
+end
+
+local function isGeneralAutoRegenMode()
+    return generalAutoRegen and not (isEnabled and farmAutoRegen)
+end
+
+local function captureGeneralAutoRegenPosition()
+    if not isGeneralAutoRegenMode() then
+        generalAutoRegenReturnCFrame = nil
+        return false
+    end
+
+    local currentRoot = character
+        and character.Parent
+        and character:FindFirstChild("HumanoidRootPart")
+    if not currentRoot or not currentRoot:IsA("BasePart") then
+        generalAutoRegenReturnCFrame = nil
+        return false
+    end
+
+    -- CFrame preserva posição e rotação exatas, ao contrário de salvar
+    -- apenas o Vector3 da posição.
+    generalAutoRegenReturnCFrame = currentRoot.CFrame
+    return true
+end
+
+local function restoreGeneralAutoRegenPosition(newCharacter)
+    local savedCFrame = generalAutoRegenReturnCFrame
+    if not savedCFrame or not newCharacter then
+        return
+    end
+
+    if generalAutoRegenRestoreConn then
+        generalAutoRegenRestoreConn:Disconnect()
+        generalAutoRegenRestoreConn = nil
+    end
+
+    local newRoot = newCharacter:FindFirstChild("HumanoidRootPart")
+        or newCharacter:WaitForChild("HumanoidRootPart", 2)
+    if not newRoot or not newRoot:IsA("BasePart") then
+        return
+    end
+
+    local restoreStartedAt = os.clock()
+    local restoreWindow = 2
+    local function applySavedPosition()
+        if not newCharacter.Parent or not newRoot.Parent then
+            return false
+        end
+
+        -- O servidor pode aplicar o ponto aleatório do respawn alguns
+        -- frames depois do CharacterAdded. Reaplica o CFrame por uma janela
+        -- curta para vencer essa sobrescrita sem deixar loop permanente.
+        pcall(function()
+            newRoot.CFrame = savedCFrame
+            newRoot.AssemblyLinearVelocity = Vector3.zero
+            newRoot.AssemblyAngularVelocity = Vector3.zero
+        end)
+        return true
+    end
+
+    -- Primeiro teleporte é imediato; os próximos cobrem a correção tardia
+    -- feita pelo respawn do servidor.
+    applySavedPosition()
+    generalAutoRegenRestoreConn = RunService.Heartbeat:Connect(function()
+        if os.clock() - restoreStartedAt >= restoreWindow
+            or not applySavedPosition()
+        then
+            if generalAutoRegenRestoreConn then
+                generalAutoRegenRestoreConn:Disconnect()
+                generalAutoRegenRestoreConn = nil
+            end
+        end
+    end)
+    generalAutoRegenReturnCFrame = nil
 end
 
 function toggleFarmAutoRegen(state)
@@ -1170,6 +1267,10 @@ local function respawnFarmCharacterIfLowHealth()
 
     farmRespawnBusy = true
     farmRespawnLast = now
+    -- A captura precisa acontecer imediatamente antes do respawn para que
+    -- o retorno use a posição real onde o jogador estava no momento do HP
+    -- baixo. Isso é exclusivo do modo geral.
+    captureGeneralAutoRegenPosition()
     print(string.format(
         "[MOONDF][RESPAWN] disparando: health=%s source=%s threshold=%d",
         tostring(health),
@@ -1182,9 +1283,18 @@ local function respawnFarmCharacterIfLowHealth()
             sync:InvokeServer("Player", "SpawnCharacter")
         end)
         if not success then
+            generalAutoRegenReturnCFrame = nil
             warn("[MOONDF][RESPAWN] falha ao chamar SpawnCharacter:", err)
         else
             print("[MOONDF][RESPAWN] SpawnCharacter chamado com sucesso.")
+            -- Evita que uma falha silenciosa do jogo deixe uma posição antiga
+            -- pendente para um CharacterAdded posterior.
+            local pendingReturnCFrame = generalAutoRegenReturnCFrame
+            task.delay(3, function()
+                if generalAutoRegenReturnCFrame == pendingReturnCFrame then
+                    generalAutoRegenReturnCFrame = nil
+                end
+            end)
         end
         task.wait(1.5)
         farmRespawnBusy = false
@@ -1222,6 +1332,12 @@ local function respawnCharacterOnce()
     end
 
     manualRespawnBusy = true
+    -- Quando o botão estiver dentro do Auto Regen Geral, mantém o mesmo
+    -- comportamento do respawn automático e retorna ao ponto atual.
+    captureGeneralAutoRegenPosition()
+    -- Evita que o monitor de HP dispare um segundo respawn imediatamente
+    -- depois do clique manual.
+    farmRespawnLast = os.clock()
     task.spawn(function()
         local success, err = pcall(function()
             sync:InvokeServer("Player", "SpawnCharacter")
@@ -1265,6 +1381,8 @@ AutoSkillSystem.keyMap = {
 }
 AutoSkillSystem.loopRunning = false
 AutoSkillSystem.autoBreath = false
+AutoSkillSystem.breathBarEnabled = globalEnv.autoBreathBar == true
+AutoSkillSystem.breathBarMode = globalEnv.autoBreathBarMode or "Screen"
 AutoSkillSystem.breathHolding = false
 AutoSkillSystem.breathPreparing = false
 AutoSkillSystem.breathStartedAt = 0
@@ -1656,6 +1774,8 @@ local infiniteStamina = globalEnv.infiniteStamina
 globalEnv.antiCombat = globalEnv.antiCombat or false
 local antiCombat = globalEnv.antiCombat
 local staminaCombatConn = nil
+local antiCombatCharacterConn = nil
+local antiCombatGuiConn = nil
 local COMBAT_TAGS = { Combat = true, Aggro = true, Busy = true, Stun = true, Down = true, Ragdoll = true }
 local STAMINA_TAGS = { Stamina = true }
 
@@ -3771,8 +3891,182 @@ function ensureSideBar(hrp, name, offsetX)
     return gui
 end
 
+-- Barra 3D presa ao personagem. Diferente de BillboardGui, o tamanho destas
+-- peças é medido em studs e acompanha a câmera como um objeto do mundo.
+function ensureCharacterBreathBar(character, hrp, name, offsetX)
+    local oldBar = hrp:FindFirstChild(name) or character:FindFirstChild(name)
+    if oldBar and oldBar:IsA("Model")
+        and oldBar:GetAttribute("MoonDFWorldBreathBar") == true then
+        return oldBar
+    end
+    if oldBar then
+        pcall(function() oldBar:Destroy() end)
+    end
+
+    local model = Instance.new("Model")
+    model.Name = name
+    model:SetAttribute("MoonDFWorldBreathBar", true)
+    model.Parent = character
+
+    local width = 0.12
+    local depth = 0.16
+    -- Deixa a barra fora do braço, atrás das costas e alinhada à lateral
+    -- do braço, sem alterar o modo de barra fixa na tela.
+    local height = 2.8
+    local baseCFrame = hrp.CFrame * CFrame.new(offsetX, 0.2, 0.75)
+
+    local track = Instance.new("Part")
+    track.Name = "Track"
+    track.Size = Vector3.new(width, height, depth)
+    track.CFrame = baseCFrame
+    track.Color = Color3.fromRGB(20, 22, 28)
+    track.Transparency = 0.25
+    track.Material = Enum.Material.SmoothPlastic
+    track.CanCollide = false
+    track.CanTouch = false
+    track.CanQuery = false
+    track.CastShadow = false
+    track.Massless = true
+    track.Parent = model
+
+    local trackWeld = Instance.new("Weld")
+    trackWeld.Name = "TrackWeld"
+    trackWeld.Part0 = hrp
+    trackWeld.Part1 = track
+    trackWeld.C0 = hrp.CFrame:ToObjectSpace(baseCFrame)
+    trackWeld.Parent = model
+
+    local fill = Instance.new("Part")
+    fill.Name = "Fill"
+    fill.Size = Vector3.new(width * 1.08, height, depth * 1.08)
+    fill.CFrame = baseCFrame
+    fill.Color = Color3.new(1, 1, 1)
+    fill.Material = Enum.Material.Neon
+    fill.CanCollide = false
+    fill.CanTouch = false
+    fill.CanQuery = false
+    fill.CastShadow = false
+    fill.Massless = true
+    fill.Parent = model
+
+    local fillWeld = Instance.new("Weld")
+    fillWeld.Name = "FillWeld"
+    fillWeld.Part0 = hrp
+    fillWeld.Part1 = fill
+    fillWeld.C0 = hrp.CFrame:ToObjectSpace(baseCFrame)
+    fillWeld.Parent = model
+
+    model.PrimaryPart = track
+    model:SetAttribute("FullHeight", height)
+    model:SetAttribute("BarWidth", width * 1.08)
+    model:SetAttribute("BarDepth", depth * 1.08)
+    return model
+end
+
+function setCharacterBreathBarVisible(model, visible)
+    if not model or not model:IsA("Model") then return end
+    local track = model:FindFirstChild("Track")
+    local fill = model:FindFirstChild("Fill")
+    if track and track:IsA("BasePart") then
+        track.Transparency = visible and 0.25 or 1
+    end
+    if fill and fill:IsA("BasePart") then
+        fill.Transparency = visible and 0 or 1
+    end
+end
+
+-- Barra de respiração fixa na tela. Diferente das barras do ESP dos outros
+-- jogadores, esta não fica presa ao personagem nem depende da câmera.
+function ensureFixedBreathBar()
+    local gui = globalEnv._MoonDFAutoBreathBar
+    if gui and gui.Parent == screenGui and gui:IsA("Frame") then
+        return gui
+    end
+    if gui then
+        pcall(function() gui:Destroy() end)
+        globalEnv._MoonDFAutoBreathBar = nil
+    end
+
+    gui = Instance.new("Frame")
+    gui.Name = "MoonDF_AutoBreathBar"
+    gui.AnchorPoint = Vector2.new(0.5, 0.5)
+    -- Um pouco mais à esquerda, centralizada verticalmente.
+    gui.Position = UDim2.new(17 / 32, 0, 0.5, 0)
+    gui.Size = UDim2.new(0, 6, 0, 110)
+    gui.BackgroundTransparency = 1
+    gui.BorderSizePixel = 0
+    gui.Visible = false
+    gui.ZIndex = 100
+    gui.Parent = screenGui
+
+    local track = Instance.new("Frame")
+    track.Name = "Track"
+    track.Size = UDim2.new(1, 0, 1, 0)
+    track.BackgroundColor3 = Color3.fromRGB(20, 22, 28)
+    track.BackgroundTransparency = 0.25
+    track.BorderSizePixel = 0
+    track.ZIndex = 100
+    track.Parent = gui
+    Instance.new("UICorner", track).CornerRadius = UDim.new(1, 0)
+
+    local fill = Instance.new("Frame")
+    fill.Name = "Fill"
+    fill.AnchorPoint = Vector2.new(0, 1)
+    fill.Position = UDim2.new(0, 0, 1, 0)
+    fill.Size = UDim2.new(1, 0, 1, 0)
+    fill.BackgroundColor3 = Color3.new(1, 1, 1)
+    fill.BorderSizePixel = 0
+    fill.ZIndex = 101
+    fill.Parent = track
+    Instance.new("UICorner", fill).CornerRadius = UDim.new(1, 0)
+
+    globalEnv._MoonDFAutoBreathBar = gui
+    return gui
+end
+
+function setAutoBreathBarMode(mode)
+    if mode ~= "Character" and mode ~= "Screen" then
+        return
+    end
+
+    AutoSkillSystem.breathBarMode = mode
+    globalEnv.autoBreathBarMode = mode
+
+    -- Troca o tipo de GUI imediatamente; o próximo Heartbeat recria a barra
+    -- no novo destino sem perder o valor atual da respiração.
+    local currentBar = globalEnv._MoonDFAutoBreathBar
+    if currentBar then
+        pcall(function() currentBar:Destroy() end)
+        globalEnv._MoonDFAutoBreathBar = nil
+    end
+end
+
 function setSideBarPct(gui, pct, color)
     if not gui then return end
+    if gui:IsA("Model") and gui:GetAttribute("MoonDFWorldBreathBar") == true then
+        local track = gui:FindFirstChild("Track")
+        local fill = gui:FindFirstChild("Fill")
+        if not track or not fill
+            or not track:IsA("BasePart")
+            or not fill:IsA("BasePart") then
+            return
+        end
+        pct = math.clamp(pct or 0, 0, 1)
+        local fullHeight = gui:GetAttribute("FullHeight") or 2.2
+        local barWidth = gui:GetAttribute("BarWidth") or 0.13
+        local barDepth = gui:GetAttribute("BarDepth") or 0.17
+        local fillHeight = math.max(0.001, fullHeight * pct)
+        fill.Size = Vector3.new(barWidth, fillHeight, barDepth)
+        -- Mantém a base do preenchimento no mesmo lugar enquanto ele sobe.
+        local fillWeld = gui:FindFirstChild("FillWeld")
+        if fillWeld and fillWeld:IsA("Weld") then
+            local targetCFrame = track.CFrame
+                * CFrame.new(0, (fillHeight - fullHeight) / 2, 0)
+            fillWeld.C0 = fillWeld.Part0.CFrame:ToObjectSpace(targetCFrame)
+        end
+        if color then fill.Color = color end
+        return
+    end
     local track = gui:FindFirstChild("Track")
     local fill = track and track:FindFirstChild("Fill")
     if not fill then return end
@@ -3780,6 +4074,171 @@ function setSideBarPct(gui, pct, color)
     fill.Size = UDim2.new(1, 0, pct, 0)
     if color then fill.BackgroundColor3 = color end
 end
+
+function toggleAutoBreathBar(state)
+    AutoSkillSystem.breathBarEnabled = state == true
+    globalEnv.autoBreathBar = AutoSkillSystem.breathBarEnabled
+    if not AutoSkillSystem.breathBarEnabled then
+        clearAutoBreathBar()
+    else
+        local currentBreath = AutoSkillSystem.getPlayerBreathing(player)
+        AutoSkillSystem.breathBarLastValue = currentBreath
+        AutoSkillSystem.breathBarLastActivity = 0
+        -- Começa no valor real atual, sem animar desde o zero.
+        AutoSkillSystem.breathBarDisplay = currentBreath
+            and math.clamp(currentBreath / 100, 0, 1)
+            or AutoSkillSystem.breathBarDisplay
+    end
+end
+
+function clearAutoBreathBar()
+    local bar = globalEnv._MoonDFAutoBreathBar
+    if bar then
+        pcall(function() bar:Destroy() end)
+        globalEnv._MoonDFAutoBreathBar = nil
+    end
+    AutoSkillSystem.breathBarGui = nil
+    AutoSkillSystem.breathBarDisplay = 0
+    AutoSkillSystem.breathBarLastValue = nil
+    AutoSkillSystem.breathBarLastActivity = 0
+    AutoSkillSystem.breathBarNextProbe = 0
+end
+
+-- O valor pode já estar em 100 quando o jogador aperta para respirar.
+-- Nesse caso ele não sobe, então o InputBegan é o sinal que mantém a barra
+-- visível mesmo com a respiração cheia.
+if globalEnv._MoonDFAutoBreathBarInputConnection then
+    pcall(function()
+        globalEnv._MoonDFAutoBreathBarInputConnection:Disconnect()
+    end)
+end
+globalEnv._MoonDFAutoBreathBarInputConnection = UserInputService.InputBegan:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.G then
+        AutoSkillSystem.breathBarLastActivity = os.clock()
+    end
+end)
+
+function updateAutoBreathBar(dt)
+    if not AutoSkillSystem.breathBarEnabled then
+        if globalEnv._MoonDFAutoBreathBar then
+            clearAutoBreathBar()
+        end
+        return
+    end
+
+    if not player or not player.Character then
+        clearAutoBreathBar()
+        return
+    end
+
+    local now = os.clock()
+    local breath = AutoSkillSystem.getPlayerBreathing(player)
+    if breath == nil and now >= (AutoSkillSystem.breathBarNextProbe or 0) then
+        AutoSkillSystem.breathBarNextProbe = now + 0.12
+        breath = AutoSkillSystem.readBreathing()
+    end
+    local lastBreath = AutoSkillSystem.breathBarLastValue
+    local startedBreathing = breath
+        and lastBreath
+        and breath > lastBreath + 0.01
+
+    -- AutoBreath indica respiração ativa mesmo quando o valor já chegou ao
+    -- máximo; para respiração manual, a subida do valor marca a atividade.
+    if startedBreathing or AutoSkillSystem.breathHolding then
+        AutoSkillSystem.breathBarLastActivity = now
+    end
+    AutoSkillSystem.breathBarLastValue = breath
+
+    local lastActivity = AutoSkillSystem.breathBarLastActivity or 0
+    local breathingRecently = breath
+        and lastActivity > 0
+        and (now - lastActivity) <= 2.5
+    if not breathingRecently then
+        local oldBar = globalEnv._MoonDFAutoBreathBar
+        if oldBar then
+            if oldBar:IsA("GuiObject") then
+                oldBar.Visible = false
+            elseif oldBar:IsA("BillboardGui") then
+                oldBar.Enabled = false
+            elseif oldBar:IsA("Model") then
+                setCharacterBreathBarVisible(oldBar, false)
+            end
+        end
+        -- A barra fica oculta, mas conserva e atualiza o valor real da
+        -- respiração para reaparecer já preenchida no próximo uso.
+        if breath then
+            AutoSkillSystem.breathBarDisplay = math.clamp(breath / 100, 0, 1)
+        end
+        return
+    end
+
+    local bar = globalEnv._MoonDFAutoBreathBar
+    local barMode = AutoSkillSystem.breathBarMode or "Screen"
+    local barCharacter = player.Character
+    local barRoot = barCharacter and barCharacter:FindFirstChild("HumanoidRootPart")
+
+    if barMode == "Character" then
+        if not barRoot then
+            if bar then
+                if bar:IsA("GuiObject") then bar.Visible = false end
+                if bar:IsA("BillboardGui") then bar.Enabled = false end
+                if bar:IsA("Model") then setCharacterBreathBarVisible(bar, false) end
+            end
+            return
+        end
+
+        if bar and (bar.Parent ~= barCharacter or not bar:IsA("Model")
+            or bar:GetAttribute("MoonDFWorldBreathBar") ~= true) then
+            pcall(function() bar:Destroy() end)
+            bar = nil
+            globalEnv._MoonDFAutoBreathBar = nil
+        end
+        if not bar then
+            bar = ensureCharacterBreathBar(
+                barCharacter,
+                barRoot,
+                "MoonDF_AutoBreathBar",
+                1.65
+            )
+            globalEnv._MoonDFAutoBreathBar = bar
+        end
+
+        setCharacterBreathBarVisible(bar, true)
+    else
+        if bar and (bar.Parent ~= screenGui or not bar:IsA("Frame")) then
+            pcall(function() bar:Destroy() end)
+            bar = nil
+            globalEnv._MoonDFAutoBreathBar = nil
+        end
+        if not bar then
+            bar = ensureFixedBreathBar()
+            globalEnv._MoonDFAutoBreathBar = bar
+        end
+
+        -- Barra própria do Auto Regen: fixa na tela e maior que as barras
+        -- comuns do ESP.
+        bar.Size = UDim2.new(0, 6, 0, 110)
+        bar.Position = UDim2.new(17 / 32, 0, 0.5, 0)
+        bar.Visible = true
+    end
+
+    local targetPct = math.clamp(breath / 100, 0, 1)
+    local currentPct = AutoSkillSystem.breathBarDisplay or 0
+    local smoothing = math.clamp((dt or 0.016) * 8, 0, 1)
+    AutoSkillSystem.breathBarDisplay = currentPct
+        + (targetPct - currentPct) * smoothing
+    setSideBarPct(bar, AutoSkillSystem.breathBarDisplay, Color3.new(1, 1, 1))
+end
+
+clearAutoBreathBar()
+if globalEnv._MoonDFAutoBreathBarConnection then
+    pcall(function()
+        globalEnv._MoonDFAutoBreathBarConnection:Disconnect()
+    end)
+end
+globalEnv._MoonDFAutoBreathBarConnection = RunService.Heartbeat:Connect(function(dt)
+    pcall(updateAutoBreathBar, dt)
+end)
 
 function drawHealthESP()
     if not espEnabled then return end
@@ -3972,28 +4431,6 @@ function processStaminaAndCombat()
     local char = character
     if not char then return end
 
-    if antiCombat then
-        for _, obj in ipairs(char:GetChildren()) do
-            local n = obj.Name
-            if COMBAT_TAGS[n] or string.find(string.lower(n), "combat") or string.find(string.lower(n), "aggro") then
-                pcall(function() obj:Destroy() end)
-            end
-        end
-        pcall(function()
-            local pg = player:FindFirstChild("PlayerGui")
-            if pg then
-                for _, g in ipairs(pg:GetDescendants()) do
-                    if g:IsA("ImageLabel") or g:IsA("ImageButton") then
-                        local nm = string.lower(g.Name)
-                        if string.find(nm, "skull") or string.find(nm, "combat") or string.find(nm, "caveira") then
-                            g.Visible = false
-                        end
-                    end
-                end
-            end
-        end)
-    end
-
     if infiniteStamina then
         for _, obj in ipairs(char:GetDescendants()) do
             local n = string.lower(obj.Name)
@@ -4033,35 +4470,106 @@ function processStaminaAndCombat()
     end
 end
 
+local function isCombatObject(instance)
+    local name = instance and instance.Name
+    if not name then return false end
+    local lowerName = string.lower(name)
+    return COMBAT_TAGS[name]
+        or string.find(lowerName, "combat", 1, true)
+        or string.find(lowerName, "aggro", 1, true)
+end
+
+local function removeCombatObject(instance)
+    if not antiCombat or not instance or not instance.Parent then
+        return
+    end
+    if isCombatObject(instance) then
+        pcall(function() instance:Destroy() end)
+    end
+end
+
+local function hideCombatGui(instance)
+    if not antiCombat
+        or not instance
+        or not (instance:IsA("ImageLabel") or instance:IsA("ImageButton"))
+    then
+        return
+    end
+
+    local name = string.lower(instance.Name)
+    if string.find(name, "skull", 1, true)
+        or string.find(name, "combat", 1, true)
+        or string.find(name, "caveira", 1, true)
+    then
+        instance.Visible = false
+    end
+end
+
+local function disconnectAntiCombatListeners()
+    if antiCombatCharacterConn then
+        antiCombatCharacterConn:Disconnect()
+        antiCombatCharacterConn = nil
+    end
+    if antiCombatGuiConn then
+        antiCombatGuiConn:Disconnect()
+        antiCombatGuiConn = nil
+    end
+end
+
+local function installAntiCombatListeners()
+    disconnectAntiCombatListeners()
+    if not antiCombat then return end
+
+    local char = character
+    if char then
+        -- Faz uma limpeza única ao ativar, em vez de varrer o personagem
+        -- inteiro a cada Heartbeat.
+        for _, obj in ipairs(char:GetChildren()) do
+            removeCombatObject(obj)
+        end
+        antiCombatCharacterConn = char.ChildAdded:Connect(removeCombatObject)
+    end
+
+    local playerGui = player:FindFirstChild("PlayerGui")
+        or player:WaitForChild("PlayerGui", 2)
+    if playerGui then
+        for _, gui in ipairs(playerGui:GetDescendants()) do
+            hideCombatGui(gui)
+        end
+        antiCombatGuiConn = playerGui.DescendantAdded:Connect(hideCombatGui)
+    end
+end
+
 function ensureStaminaCombatLoop()
-    if staminaCombatConn then return end
+    if not infiniteStamina or staminaCombatConn then return end
     staminaCombatConn = RunService.Heartbeat:Connect(function()
-        if not (infiniteStamina or antiCombat) then return end
+        if not infiniteStamina then return end
         pcall(processStaminaAndCombat)
     end)
-    if character then
-        character.ChildAdded:Connect(function(child)
-            if not antiCombat then return end
-            local n = child.Name
-            if COMBAT_TAGS[n] or string.find(string.lower(n), "combat") or string.find(string.lower(n), "aggro") then
-                task.defer(function() pcall(function() child:Destroy() end) end)
-            end
-        end)
-    end
 end
 
 function toggleInfiniteStamina(state)
     infiniteStamina = state
     globalEnv.infiniteStamina = state
-    if state then ensureStaminaCombatLoop() end
+    if state then
+        ensureStaminaCombatLoop()
+    elseif not antiCombat and staminaCombatConn then
+        staminaCombatConn:Disconnect()
+        staminaCombatConn = nil
+    end
 end
 
 function toggleAntiCombat(state)
     antiCombat = state
     globalEnv.antiCombat = state
     if state then
-        ensureStaminaCombatLoop()
-        pcall(processStaminaAndCombat)
+        installAntiCombatListeners()
+    else
+        disconnectAntiCombatListeners()
+        if not infiniteStamina and staminaCombatConn then
+            staminaCombatConn:Disconnect()
+            staminaCombatConn = nil
+        end
     end
 end
 
@@ -4823,6 +5331,7 @@ player.CharacterAdded:Connect(function(newChar)
     character = newChar
     root = character:WaitForChild("HumanoidRootPart")
     humanoid = character:WaitForChild("Humanoid")
+    restoreGeneralAutoRegenPosition(newChar)
     if isEnabled then
         task.defer(equipKatana)
     end
@@ -4840,15 +5349,7 @@ player.CharacterAdded:Connect(function(newChar)
         if speedConn then speedConn:Disconnect() end
         speedConn = RunService.Heartbeat:Connect(function() if humanoid then humanoid.WalkSpeed = walkSpeed end end)
     end
-    if antiCombat then
-        character.ChildAdded:Connect(function(child)
-            if not antiCombat then return end
-            local n = child.Name
-            if COMBAT_TAGS[n] or string.find(string.lower(n), "combat") or string.find(string.lower(n), "aggro") then
-                task.defer(function() pcall(function() child:Destroy() end) end)
-            end
-        end)
-    end
+    installAntiCombatListeners()
     if infiniteJump then toggleInfiniteJump(true) end
 end)
 
@@ -5820,11 +6321,38 @@ function createHubUI()
             }},
             { Type = "ListAuto", Name = T("AUTO_REGEN"), Description = T("AUTO_REGEN_DESC"), Options = {
                 { Type = "Toggle", StateKey = "GeneralAutoRegen", Name = T("AUTO_REGEN"), Description = T("AUTO_REGEN_DESC"), OnEnable = function() toggleGeneralAutoRegen(true) end, OnDisable = function() toggleGeneralAutoRegen(false) end },
+                { Type = "Single", Name = T("AUTO_REGEN_MANUAL_RESPAWN"), Description = T("AUTO_REGEN_MANUAL_RESPAWN_DESC"), Callback = respawnCharacterOnce },
                 { Type = "Slider", StateKey = "GeneralAutoRegenThreshold", Name = T("AUTO_REGEN_THRESHOLD"), Description = T("AUTO_REGEN_THRESHOLD_DESC"), Min = 1, Max = 200, Default = generalAutoRegenThreshold, OnChange = function(v)
                     generalAutoRegenThreshold = math.max(1, tonumber(v) or 60)
                     globalEnv.generalAutoRegenThreshold = generalAutoRegenThreshold
                 end },
-                { Type = "Toggle", StateKey = "AutoRegenHealthESP", Name = T("AUTO_REGEN_ESP"), Description = T("AUTO_REGEN_ESP_DESC"), OnEnable = function() toggleAutoRegenHealthESP(true) end, OnDisable = function() toggleAutoRegenHealthESP(false) end }
+                { Type = "Toggle", StateKey = "AutoRegenHealthESP", Name = T("AUTO_REGEN_ESP"), Description = T("AUTO_REGEN_ESP_DESC"), OnEnable = function() toggleAutoRegenHealthESP(true) end, OnDisable = function() toggleAutoRegenHealthESP(false) end },
+                { Type = "Toggle", StateKey = "AutoRegenBreathBarCharacterMode", Name = T("AUTO_REGEN_BREATH_BAR_CHARACTER"), Description = T("AUTO_REGEN_BREATH_BAR_CHARACTER_DESC"),
+                    OnEnable = function()
+                        setAutoBreathBarMode("Character")
+                        if not AutoSkillSystem.breathBarEnabled then
+                            toggleAutoBreathBar(true)
+                        end
+                    end,
+                    OnDisable = function()
+                        if AutoSkillSystem.breathBarMode == "Character" then
+                            toggleAutoBreathBar(false)
+                        end
+                    end
+                },
+                { Type = "Toggle", StateKey = "AutoRegenBreathBarScreenMode", Name = T("AUTO_REGEN_BREATH_BAR_SCREEN"), Description = T("AUTO_REGEN_BREATH_BAR_SCREEN_DESC"),
+                    OnEnable = function()
+                        setAutoBreathBarMode("Screen")
+                        if not AutoSkillSystem.breathBarEnabled then
+                            toggleAutoBreathBar(true)
+                        end
+                    end,
+                    OnDisable = function()
+                        if AutoSkillSystem.breathBarMode == "Screen" then
+                            toggleAutoBreathBar(false)
+                        end
+                    end
+                }
             }},
             { Type = "ListAuto", Name = T("EXTRAS"), Description = T("EXTRAS_DESC"), Options = {
                 { Type = "Toggle", StateKey = "ClickTP", Name = T("CLICK_TP"), Description = T("CLICK_TP_DESC"), OnEnable = function() toggleClickTP(true) end, OnDisable = function() toggleClickTP(false) end },
