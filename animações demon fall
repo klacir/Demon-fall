@@ -1,0 +1,147 @@
+### Lista de animações (Demon Fall) — com descrições
+
+| ID | Descrição |
+|----|-----------|
+| `6515884532` | PARADO (idle) |
+| `6515180141` | CAMINHAR |
+| `6515347258` | CAMINHAR (variante) |
+| `6515344460` | CORRER |
+| `6515175845` | (movimento / walk variante) |
+| `6670099827` | **RUSH** |
+| `7101914175` | **DASH** |
+| `5277781176` | **LUNGE** |
+| `5967031692` | **DEFESA** (block) |
+| `6515811762` | **M2** (heavy) |
+| `6024616446` | DESEMBANHAR ESPADA |
+| `6024679361` | GUARDAR ESPADA |
+| `6515887750` | ESPADA INATIVA (idle com arma) |
+| `6279918658` | ATIRAR 1 (arma / sawed-off) |
+| `6279932158` | ATIRAR 2 (arma) |
+| `4970824671` | MEDITAÇÃO |
+| `5362637377` | PULO SIMPLES |
+| `6827273734` | PULO DUPLO |
+| `5135609370` | COMER |
+| `4860976017` | HITED 2 (tomou hit) |
+| `4860974676` | HITED 1 (tomou hit) |
+| `6959372998` | (sem descrição — anote no logger) |
+| `6959378258` | (sem descrição) |
+| `6959379947` | (sem descrição) |
+| `6959381421` | (sem descrição) |
+
+---
+
+### Como captar isso de **outros players** (básico)
+
+Animações do personagem **replicam** se você as vê. No seu client:
+
+1. Pega o `Character` do alvo  
+2. Pega `Humanoid` → `Animator`  
+3. Escuta `AnimationPlayed`  
+4. Compara o Id numérico com a tabela  
+
+#### Exemplo mínimo (copiar/colar)
+
+```lua
+local Players = game:GetService("Players")
+
+-- IDs importantes
+local ANIM = {
+    Dash   = "7101914175",
+    Rush   = "6670099827",
+    Lunge  = "5277781176",
+    Block  = "5967031692",
+    M2     = "6515811762",
+    Idle   = "6515884532",
+    Walk   = "6515180141",
+    Run    = "6515344460",
+    Jump   = "5362637377",
+    DoubleJump = "6827273734",
+    Hit1   = "4860974676",
+    Hit2   = "4860976017",
+    DrawSword  = "6024616446",
+    Sheathe    = "6024679361",
+}
+
+local function idOf(track)
+    local anim = track and track.Animation
+    if not anim then return nil end
+    return tostring(anim.AnimationId):match("%d+")
+end
+
+local function isAnim(track, key)
+    local id = idOf(track)
+    return id and ANIM[key] == id
+end
+
+-- Conecta em UM player
+local function watchPlayer(player, onAnim)
+    local function hook(char)
+        local hum = char:WaitForChild("Humanoid", 10)
+        if not hum then return end
+        local animator = hum:FindFirstChildOfClass("Animator")
+            or hum:WaitForChild("Animator", 10)
+        if not animator then return end
+
+        animator.AnimationPlayed:Connect(function(track)
+            local id = idOf(track)
+            if not id then return end
+            onAnim(player, id, track)
+        end)
+    end
+
+    if player.Character then hook(player.Character) end
+    player.CharacterAdded:Connect(hook)
+end
+
+-- Uso: detectar Dash / Lunge / Block no alvo
+local target = Players:FindFirstChild("scullbit") -- ou o Player selecionado
+if target then
+    watchPlayer(target, function(player, id, track)
+        if id == ANIM.Dash then
+            print(player.Name, "→ DASH")
+        elseif id == ANIM.Lunge then
+            print(player.Name, "→ LUNGE")
+        elseif id == ANIM.Block then
+            print(player.Name, "→ DEFESA")
+        elseif id == ANIM.M2 then
+            print(player.Name, "→ M2")
+        elseif id == ANIM.Rush then
+            print(player.Name, "→ RUSH")
+        end
+    end)
+end
+```
+
+#### Checagem “está tocando agora?” (sem evento)
+
+```lua
+local function isPlayingId(character, animId)
+    local hum = character and character:FindFirstChildOfClass("Humanoid")
+    if not hum then return false end
+    local animator = hum:FindFirstChildOfClass("Animator")
+    if not animator then return false end
+    for _, track in ipairs(animator:GetPlayingAnimationTracks()) do
+        local id = idOf(track)
+        if id == animId then return true end
+    end
+    return false
+end
+
+-- exemplo no Heartbeat:
+-- if isPlayingId(target.Character, ANIM.Dash) then ... end
+```
+
+---
+
+### O que usar no bot de PvP
+
+| Situação do inimigo | Id | Ação típica do bot |
+|---------------------|-----|---------------------|
+| Dash | `7101914175` | Não chase cego; preparar counter / espera |
+| Rush | `6670099827` | Mesma ideia (burst) |
+| Lunge | `5277781176` | Defesa / side step / M2 |
+| Defesa | `5967031692` | Não bater M1 à toa; feint / wait |
+| M2 | `6515811762` | Defesa ou i-frame |
+| Hit (tomou dano) | `4860974676` / `4860976017` | Janela para combo |
+
+**Importante:** isso só funciona se a anim **replica** (você vê no modelo). Dash já confirmou com `7101914175`. Filhos tipo `ActivateDash` **não** aparecem — a animação é o caminho certo.
